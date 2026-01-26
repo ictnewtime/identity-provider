@@ -3,6 +3,14 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\ClientRoleController;
+use App\Http\Controllers\JwtAuth\LoginController;
+use App\Http\Controllers\JwtAuth\VerificationController;
+use App\Http\Controllers\Manage\UserController;
+use App\Http\Controllers\Manage\UserRoleController;
+use App\Http\Controllers\Manage\RoleController;
+use App\Http\Controllers\Manage\ProviderController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -17,48 +25,48 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
 
-    Route::middleware(['api', 'authenticated'])->get('user', 'JwtAuth\LoginController@userByToken');
-    Route::middleware(['api', 'authenticated'])->get('loginWithToken', 'JwtAuth\LoginController@userByToken');  // TODO da cancellare dopo allineamento
-    Route::middleware(['api', 'authenticated'])->get('logout', 'JwtAuth\LoginController@logout');
+    Route::middleware(['api', 'authenticated'])->get('user', [UserController::class, 'userByToken'] );
+    Route::middleware(['api', 'authenticated'])->get('loginWithToken', [LoginController::class, 'userByToken'] );  // TODO da cancellare dopo allineamento
+    Route::middleware(['api', 'authenticated'])->get('logout', [LoginController::class, 'logout'] );
 
-    Route::middleware('web')->get('roles/{id}/user-roles', 'Manage\UserRoleController@getRoles')->where(['id' => '[0-9]+']);
-    Route::middleware('web')->get('client-roles', 'ClientRoleController@all');
-    Route::post('complete-registration', 'JwtAuth\VerificationController@verify');
+    Route::middleware('web')->get('roles/{id}/user-roles', [UserRoleController::class, 'getRoles'] )->where(['id' => '[0-9]+']);
+    Route::middleware('web')->get('client-roles', [ClientRoleController::class, 'all'] );
+    Route::post('complete-registration', [VerificationController::class, 'verify'] );
 
     // Routes to manage users
     Route::middleware(['client', 'checkclientrole:manager'])->group(function () {
 
-        Route::post('user', 'Manage\UserController@create');
+        Route::post('user', [UserController::class, 'create'] );
 
-        Route::post('users/{id}/user-roles', 'Manage\UserRoleController@create')->where(['id' => '[0-9]+']);
+        Route::post('users/{id}/user-roles', [UserRoleController::class, 'create'] )->where(['id' => '[0-9]+']);
 
-        Route::delete('user-role/{id}', 'Manage\UserRoleController@delete')->where(['id' => '[0-9]+']);
+        Route::delete('user-role/{id}', [UserRoleController::class, 'delete']  )->where(['id' => '[0-9]+']);
 
     });
 
     // Routes to manage idp
     Route::middleware(['client', 'checkclientrole:admin'])->group(function () {
 
-        Route::post('providers', 'Manage\ProviderController@create');
+        Route::post('providers', [ProviderController::class, 'create']);
 
-        Route::post('roles', 'Manage\RoleController@create');
+        Route::post('roles', [RoleController::class, 'create'] );
 
-        Route::delete('roles/{id}', 'Manage\RoleController@delete')->where(['id' => '[0-9]+']);
+        Route::delete('roles/{id}', [RoleController::class, 'delete'] )->where(['id' => '[0-9]+']);
     });
 
     Route::middleware('client')->group(function () {
 
-        Route::get('roles', 'Manage\RoleController@all');
+        Route::get('roles', [RoleController::class, 'all'] );
 
-        Route::get('providers', 'Manage\ProviderController@all');
+        Route::get('providers', [ProviderController::class, 'all'] );
 
-        Route::get('users/{id}', 'Manage\UserController@find')->where('id', '[0-9]+');
+        Route::get('users/{id}', [UserController::class, 'find'] )->where('id', '[0-9]+');
 
-        Route::get('users/{id}/user-roles', 'Manage\UserRoleController@getUserRole')->where(['id' => '[0-9]+']);
+        Route::get('users/{id}/user-roles', [UserRoleController::class, 'getUserRole']  )->where(['id' => '[0-9]+']);
     });
 });
 
 Route::prefix('v2')->group(function () {
 
-    Route::middleware('web')->post('login', 'JwtAuth\LoginController@login')->name('login');
+    Route::middleware('web')->post('login', [LoginController::class, 'login']  )->name('login');
 });

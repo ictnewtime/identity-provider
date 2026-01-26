@@ -1,0 +1,35 @@
+2026-01-26 13:18:01,955 INFO Set uid to user 0 succeeded
+2026-01-26 13:18:01,963 INFO RPC interface 'supervisor' initialized
+2026-01-26 13:18:01,963 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-01-26 13:18:01,963 INFO supervisord started with pid 1
+2026-01-26 13:18:02,977 INFO spawned: 'nginx' with pid 7
+2026-01-26 13:18:02,982 INFO spawned: 'php-fpm' with pid 8
+2026-01-26 13:18:04,081 INFO success: nginx entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-01-26 13:18:04,081 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-01-26 13:18:42,120 INFO reaped unknown pid 62 (exit status 0)
+2026-01-26 13:38:06,350 INFO reaped unknown pid 731 (exit status 0)
+2026-01-26 13:38:51,401 INFO reaped unknown pid 1118 (exit status 0)
+2026-01-26 13:39:02,412 INFO reaped unknown pid 1136 (exit status 0)
+2026-01-26 13:49:06,039 INFO reaped unknown pid 1163 (exit status 0)
+2026-01-26 14:02:49,899 INFO reaped unknown pid 1779 (exit status 0)
+2026-01-26 14:03:44,961 INFO reaped unknown pid 1798 (exit status 0)
+2026-01-26 14:23:14,202 INFO reaped unknown pid 1817 (exit status 0)
+2026-01-26 14:24:50,311 INFO reaped unknown pid 1836 (exit status 0)
+2026-01-26 15:06:57,106 INFO Set uid to user 0 succeeded
+2026-01-26 15:06:57,117 INFO RPC interface 'supervisor' initialized
+2026-01-26 15:06:57,117 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-01-26 15:06:57,117 INFO supervisord started with pid 1
+2026-01-26 15:06:58,128 INFO spawned: 'nginx' with pid 7
+2026-01-26 15:06:58,132 INFO spawned: 'php-fpm' with pid 8
+2026-01-26 15:06:59,262 INFO success: nginx entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-01-26 15:06:59,262 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-01-26 16:08:38,902 INFO Set uid to user 0 succeeded
+2026-01-26 16:08:38,910 INFO RPC interface 'supervisor' initialized
+2026-01-26 16:08:38,910 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2026-01-26 16:08:38,911 INFO supervisord started with pid 1
+2026-01-26 16:08:39,929 INFO spawned: 'nginx' with pid 7
+2026-01-26 16:08:39,937 INFO spawned: 'php-fpm' with pid 8
+2026-01-26 16:08:41,102 INFO success: nginx entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-01-26 16:08:41,102 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2026-01-26 16:42:22,277 INFO reaped unknown pid 86 (exit status 0)
+2026-01-26 16:59:59,908 INFO reaped unknown pid 105 (exit status 0)

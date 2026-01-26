@@ -1,38 +1,30 @@
+import './bootstrap';
+import { createApp } from 'vue';
 
-/**
- * First we will load all of this project's JavaScript dependencies which
- * includes Vue and other libraries. It is a great starting point when
- * building robust, powerful web applications using Vue and Laravel.
- */
+// 1. Importiamo tutti i componenti (Ora con estensione .vue obbligatoria)
+import UsersComponent from './components/UsersComponent.vue';
+import NotificationComponent from './components/NotificationComponent.vue';
+import ProviderFormComponent from './components/ProviderFormComponent.vue';
+import LoginForm from './components/LoginForm.vue';
+import RoleFormComponent from './components/RoleFormComponent.vue';
+import Paginator from './components/Paginator.vue';
+import CompleteRegistrationForm from './components/CompleteRegistrationForm.vue';
+import OauthClientsTable from './components/OauthClientsTable.vue';
+import NewClientFormComponent from './components/NewClientFormComponent.vue';
 
-require('./bootstrap');
+// 2. Creiamo l'istanza dell'applicazione Vue 3
+const app = createApp({});
 
-window.Vue = require('vue');
+// 3. Registriamo i componenti usando i tag che usi nel tuo HTML
+app.component('users', UsersComponent);
+app.component('notification', NotificationComponent);
+app.component('provider-form', ProviderFormComponent);
+app.component('login-form', LoginForm);
+app.component('manage-roles-panel', RoleFormComponent);
+app.component('paginator', Paginator);
+app.component('complete-registration-form', CompleteRegistrationForm);
+app.component('oauth-clients', OauthClientsTable);
+app.component('newclient-form', NewClientFormComponent);
 
-/**
- * Next, we will create a fresh Vue application instance and attach it to
- * the page. Then, you may begin adding components to this application
- * or customize the JavaScript scaffolding to fit your unique needs.
- */
-
-Vue.component('users', require('./components/UsersComponent.vue'));
-
-Vue.component('notification', require('./components/NotificationComponent'));
-
-Vue.component('provider-form', require('./components/ProviderFormComponent'));
-
-Vue.component('login-form', require('./components/LoginForm'));
-
-Vue.component('manage-roles-panel', require('./components/RoleFormComponent'));
-
-Vue.component('paginator', require('./components/Paginator'));
-
-Vue.component('complete-registration-form', require('./components/CompleteRegistrationForm'));
-
-Vue.component('oauth-clients', require('./components/OauthClientsTable'));
-
-Vue.component('newclient-form', require('./components/NewClientFormComponent'));
-
-const app = new Vue({
-    el: '#app'
-});
+// 4. Montiamo l'app sul div con id="app"
+app.mount('#app');

@@ -13,6 +13,11 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
+use App\Http\Controllers\JwtAuth\LoginController;
+use App\Http\Controllers\Manage\ProviderController;
+use App\Http\Controllers\Manage\UserController;
+use App\Http\Controllers\Manage\OauthClientsController;
+use App\Http\Controllers\Manage\RoleController;
 
 Route::get('/', function () {
     return redirect('loginForm');
@@ -24,13 +29,13 @@ Route::get('locale/{locale}', function ($locale) {
 });
 
 Route::middleware('guest')
-    ->get('loginForm', 'JwtAuth\LoginController@showLoginForm')
+    ->get('loginForm', [LoginController::class, 'showLoginForm'])
     ->name('loginForm');
 
-Route::get('logout', 'JwtAuth\LoginController@logout')->name('logout');
+Route::get('logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::middleware('web.authenticated')
-    ->get('authenticated', 'JwtAuth\LoginController@authenticated')
+    ->get('authenticated', [LoginController::class, 'authenticated'])
     ->name('authenticated');
 
 Route::get('complete-registration', function () {
@@ -45,13 +50,13 @@ Route::prefix('admin')->middleware('role:ADMIN_IDP')->group(function () {
         return redirect()->route('users-panel');
     })->name('admin-board');
 
-    Route::post('users', 'Manage\UserController@create');
+    Route::post('users', [UserController::class, 'create']);
 
     Route::get('users-panel', function () {
         return view('admin.users');
     })->name('users-panel');
 
-    Route::post('providers', 'Manage\ProviderController@create');
+    Route::post('providers', [ProviderController::class, 'create'] );
 
     Route::get('create-provider', function () {
         return view('admin.create-provider');
@@ -61,14 +66,14 @@ Route::prefix('admin')->middleware('role:ADMIN_IDP')->group(function () {
         return view('admin.oauth-clients');
     })->name('oauth-clients');
 
-    Route::get('oauth-clients-all', 'Manage\OauthClientsController@all');
-    Route::put('update-roles', 'Manage\OauthClientsController@updateClientRoles');
+    Route::get('oauth-clients-all', [OauthClientsController::class, 'all']);
+    Route::put('update-roles', [OauthClientsController::class, 'updateClientRoles']);
 
-    Route::get('roles', 'Manage\RoleController@all');
-    Route::post('roles', 'Manage\RoleController@create');
-    Route::delete('roles/{id}', 'Manage\RoleController@delete')->where(['id' => '[0-9]+']);
+    Route::get('roles', [RoleController::class, 'all'] );
+    Route::post('roles', [RoleController::class, 'create'] );
+    Route::delete('roles/{id}', [RoleController::class, 'delete'] )->where(['id' => '[0-9]+']);
 
-    Route::get('users', 'Manage\UserController@all');
+    Route::get('users', [UserController::class, 'all'] );
 
     Route::get('manage-role', function () {
         return view('admin.create-role');

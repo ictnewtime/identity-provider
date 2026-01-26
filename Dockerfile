@@ -1,4 +1,4 @@
-FROM php:7.4-fpm
+FROM php:8.2-fpm
 
 WORKDIR /var/www
 
@@ -46,10 +46,10 @@ COPY composer.json composer.lock* ./
 COPY . .
 
 # Install/update composer dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
 # Install npm dependencies and compile assets
-RUN npm install && npm run prod
+# RUN npm install && npm run prod
 
 # Change ownership and permissions
 RUN chown -R www-data:www-data /var/www/storage && \

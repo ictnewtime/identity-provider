@@ -16,8 +16,8 @@ services:
       - REDIS_PORT=6379
     volumes:
       # Uncomment next line for development mode (will override permissions)
-      # - ./:/var/www
-      - ./storage:/var/www/storage
+      - ./:/var/www
+      # - ./storage:/var/www/storage
     ports:
       - "8000:80"
     networks:

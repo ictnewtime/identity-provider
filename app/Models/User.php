@@ -5,11 +5,15 @@ namespace App\Models;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Laravel\Passport\Contracts\OAuthenticatable;
+use Laravel\Passport\HasApiTokens;
 
+//, OAuthenticatable
 class User extends Authenticatable implements JWTSubject
 {
-
-    use Notifiable;
+//HasApiTokens,
+    use  HasFactory, Notifiable;
 
     public $timestamps = false;
 
