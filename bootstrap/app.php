@@ -31,13 +31,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'localization' => Localization::class,
             'authenticated' => Authenticated::class,
             
-            // 'guest' è nativo, ma forziamo il comportamento corretto
             'guest' => RedirectIfAuthenticated::class, 
-            // 'guest' => \Illuminate\Auth\Middleware\Authenticate::class,
             
-            // Colleghiamo il tuo vecchio 'web.authenticated' al middleware di Auth nativo
             'web.authenticated' => RedirectIfUnauthenticated::class,
-            // 'web.authenticated' => \Illuminate\Auth\Middleware\Authenticate::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

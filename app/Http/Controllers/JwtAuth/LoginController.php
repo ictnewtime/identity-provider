@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpFoundation\Cookie;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie as FacadeCookie;
 
 class LoginController extends Controller
@@ -33,6 +34,9 @@ class LoginController extends Controller
      */
     public function authenticated()
     {
+        if (Auth::user()->hasRoleId(config('role.admin_idp'))) {
+            return redirect()->route('admin-board');
+        }
         return view('auth.logged');
     }
 

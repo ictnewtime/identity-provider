@@ -21,8 +21,12 @@
     <body class="bg-white">
 
         <div id="nav-bar" class="w-100 position-fixed">
-            <div class="bg-dark px-3 py-4">
+            <div class="bg-dark px-3 py-4 text-white d-flex justify-content-between">
                 <b><p class="text-white mb-0">PANNELLO AMMINISTRAZIONE</p></b>
+
+            <p class="nav-item">
+                <a class="nav-link active text-white mb-0" href="{{ route('logout') }}">@lang('auth.label-logout')</a>
+            </p>
             </div>
         </div>
 
@@ -54,7 +58,7 @@
                         </div>
                     </a>
 
-                    <a href="#" class="text-dark no-text-decoration">
+                    <!-- <a href="#" class="text-dark no-text-decoration">
                         <div class="d-flex py-4 border-bottom border-light align-items-center px-4 menu-item">
                             <div class="pr-3">
                                 <i class="fa fa-briefcase fa-lg"></i>
@@ -63,7 +67,7 @@
                                 <span>DIPARTIMENTI</span>
                             </div>
                         </div>
-                    </a>
+                    </a> -->
 
                     <a href="{{ route('create-provider') }}" class="text-dark no-text-decoration">
                         <div class="d-flex py-4 border-bottom border-light align-items-center px-4 menu-item">

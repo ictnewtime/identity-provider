@@ -9,7 +9,9 @@
             <label for="input-email">Email</label>
             <input
               type="text"
-              v-bind:class="'form-control ' + (!validator.email ? 'is-invalid' : '')"
+              v-bind:class="
+                'form-control ' + (!validator.email ? 'is-invalid' : '')
+              "
               id="input-email"
               placeholder="mario.rossi@example.com"
               name="email"
@@ -34,7 +36,9 @@
             <label for="input-surname">Cognome</label>
             <input
               type="text"
-              :class="'form-control ' + (!validator.surname ? 'is-invalid' : '')"
+              :class="
+                'form-control ' + (!validator.surname ? 'is-invalid' : '')
+              "
               id="input-surname"
               placeholder="Rossi"
               name="surname"
@@ -50,7 +54,7 @@
         <div>
           <h1>Lista utenti</h1>
         </div>
-        <div class="col-4 input-group px-0">
+        <div class="col-4 input-group px-0" style="max-width: 300px">
           <input
             v-model="filterUserInput"
             type="text"
@@ -104,7 +108,7 @@
       <paginator
         v-if="pagination.total > pagination.per_page"
         :pagination="pagination"
-        :onChangePage="page => loadUsers(page)"
+        :onChangePage="(page) => loadUsers(page)"
       ></paginator>
     </div>
   </div>
@@ -119,23 +123,23 @@ export default {
       form: {
         email: null,
         name: null,
-        surname: null
+        surname: null,
       },
       validator: {
         email: true,
         password: true,
         name: true,
-        surname: true
+        surname: true,
       },
       pagination: {
         current_page: -1,
         data: [],
         total: 0,
         last_page: 0,
-        per_page: 10
+        per_page: 10,
       },
       loading: false,
-      filterUserInput: null
+      filterUserInput: null,
     };
   },
 
@@ -144,14 +148,13 @@ export default {
   },
 
   watch: {
-    filterUserInput: function(newValue, oldValue) {
+    filterUserInput: function (newValue, oldValue) {
       this.filterUsers();
     },
-
   },
 
   methods: {
-    submit: function() {
+    submit: function () {
       if (!this.validate()) {
         return;
       }
@@ -161,25 +164,25 @@ export default {
         .post("/admin/users", {
           email: vm.form.email,
           name: vm.form.name,
-          surname: vm.form.surname
+          surname: vm.form.surname,
         })
-        .then(function(data) {
+        .then(function (data) {
           vm.resetForm();
           vm.loadUsers();
           EventBus.$emit("newNotification", {
             message: "Utente aggiunto correttamente",
-            type: "SUCCESS"
+            type: "SUCCESS",
           });
         })
-        .catch(function(error) {
+        .catch(function (error) {
           EventBus.$emit("newNotification", {
             message: "Errore durante la registrazione",
-            type: "ERROR"
+            type: "ERROR",
           });
         });
     },
 
-    validate: function() {
+    validate: function () {
       this.validator.email = this.validateEmail(this.form.email);
       this.validator.name = !!this.form.name;
       this.validator.surname = !!this.form.surname;
@@ -196,11 +199,12 @@ export default {
     },
 
     validateEmail: function validateEmail(email) {
-      let re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+      let re =
+        /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
       return re.test(String(email).toLowerCase());
     },
 
-    resetForm: function() {
+    resetForm: function () {
       this.form.email = null;
       this.form.name = null;
       this.form.surname = null;
@@ -214,25 +218,25 @@ export default {
         .get("/admin/users", {
           params: {
             page: page,
-            q: vm.filterUserInput
-          }
+            q: vm.filterUserInput,
+          },
         })
-        .then(response => {
+        .then((response) => {
           vm.pagination = response.data;
           vm.loading = false;
         })
-        .catch(error => {
+        .catch((error) => {
           vm.loading = false;
           EventBus.$emit("newNotification", {
             message: "Errore durante il caricamento degli utenti",
-            type: "ERROR"
+            type: "ERROR",
           });
         });
     },
 
     filterUsers() {
       this.loadUsers();
-    }
-  }
+    },
+  },
 };
 </script>

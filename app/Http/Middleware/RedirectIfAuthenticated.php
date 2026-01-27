@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Support\Facades\Auth;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class RedirectIfAuthenticated
 {
@@ -22,11 +23,11 @@ class RedirectIfAuthenticated
         }
 
         $redirectUrl = $request->input('redirect');
-
         if (empty($redirectUrl)) {
             return redirect('authenticated');
         }
-        $token = auth()->getToken();
+        // $token = auth()->getToken();
+        $token = JWTAuth::fromUser(Auth::user());
         $url = $redirectUrl . '?token=' . $token;
 
         return redirect()->away($url);

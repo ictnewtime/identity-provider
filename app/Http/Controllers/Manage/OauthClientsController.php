@@ -38,7 +38,7 @@ class OauthClientsController extends Controller
     */
 
     public function all(Request $request)
-    {   
+    {
         $query = $request->input('q');
 
         return $this->oauthClientsRepository->all($query);

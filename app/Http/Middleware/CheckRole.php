@@ -17,15 +17,16 @@ class CheckRole {
      */
     public function handle($request, Closure $next, $mandatoryRole)
     {
-
         if (!Auth::guard()->check()) {
             return redirect('loginForm');
         }
 
-        $user = auth()->user();
-
-        foreach ($user->roles as $role) {
-            if ($role->role->name === $mandatoryRole) {
+        $user = Auth::user();
+        $user->load('roles.role');
+        $userRoles = [];
+        foreach ($user->roles as $userRole) {
+            array_push($userRoles, $userRole->role->name);
+            if ($userRole->role->name === $mandatoryRole) {
                 return $next($request);
             }
         }

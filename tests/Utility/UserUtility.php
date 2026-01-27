@@ -2,27 +2,31 @@
 
 namespace Tests\Utility;
 
-use App\Models\Role;
-use App\Models\User;
-use App\Models\UserRole;
+use App\Models\User;      // Assicurati che il namespace sia App\Models\User
+use App\Models\Role;      // Assicurati che sia App\Models\Role
+use App\Models\UserRole;  // Assicurati che sia App\Models\UserRole
+use Illuminate\Support\Facades\Hash;
 
 class UserUtility
 {
-
     /**
-     * Login user
-     * return Array cookies with token
+     * Get admin user
+     *
+     * @return User
      */
     public static function getAdmin()
     {
         $role = Role::firstOrCreate(['name' => 'ADMIN_IDP']);
-        $user = factory(User::class)->create([
-            'is_verified' => true
+
+        $user = User::factory()->create([
+            'is_verified' => true,
+            'password' => Hash::make('secret'),
+            'email' => 'admin_' . uniqid() . '@example.com', 
         ]);
 
-        factory(UserRole::class)->create([
+        UserRole::create([
             'user_id' => $user->id,
-            'role_id' => $role->id,
+            'role_id' => $role->id
         ]);
 
         return $user;

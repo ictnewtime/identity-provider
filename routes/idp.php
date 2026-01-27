@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\ClientRoleController;
@@ -25,7 +24,7 @@ use App\Http\Controllers\Manage\ProviderController;
 
 Route::prefix('v1')->group(function () {
 
-    Route::middleware(['api', 'authenticated'])->get('user', [UserController::class, 'userByToken'] );
+    Route::middleware(['api', 'authenticated'])->get('user', [LoginController::class, 'userByToken'] );
     Route::middleware(['api', 'authenticated'])->get('loginWithToken', [LoginController::class, 'userByToken'] );  // TODO da cancellare dopo allineamento
     Route::middleware(['api', 'authenticated'])->get('logout', [LoginController::class, 'logout'] );
 

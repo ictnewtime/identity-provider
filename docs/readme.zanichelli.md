@@ -33,6 +33,11 @@ GET Requests
 - **/loginForm** shows the IDP login form. Parameter: "redirect".
 - **/v1/user** retrieve the user data by token. Parameters: "token"
 - **/v1/logout** logout
+  http://localhost:8000/loginForm?redirect=https://www.google.com
+    <!-- curl -X POST http://localhost:8000/v2/login \
+     -d "username=mario.rossi@example.com" \
+     -d "password=secret" -->
+  GET http://localhost:8000/v1/user?token=INCOLLA_QUI_IL_TOKEN
 
 POST Requests
 

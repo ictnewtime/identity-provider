@@ -4,7 +4,6 @@ namespace App\Repositories;
 use App\Constants\Role;
 class ClientRoleRepository
 {
- 
 
     /**
      * Returns a list of all Client Roles.

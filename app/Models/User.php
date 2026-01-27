@@ -8,6 +8,7 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
+use App\Models\UserRole;
 
 //, OAuthenticatable
 class User extends Authenticatable implements JWTSubject
@@ -37,7 +38,8 @@ class User extends Authenticatable implements JWTSubject
 
     public function roles()
     {
-        return $this->hasMany('App\Models\UserRole', 'user_id');
+        $user_roles = $this->hasMany(UserRole::class, 'user_id');
+        return $user_roles;
     }
 
 
@@ -59,5 +61,15 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return array();
+    }
+
+    public function hasRoleId($roleid)
+    {
+        foreach ($this->roles as $userRole) {
+            if ($userRole->role_id === $roleid) {
+                return true;
+            }
+        }
+        return false;
     }
 }
