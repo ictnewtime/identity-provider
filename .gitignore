@@ -15,5 +15,5 @@ yarn-error.log
 .env
 .env.prod*
 .env.dev*
-/tmp
+/tmp*
 /storage/api-docs/*.json

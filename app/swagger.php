@@ -5,11 +5,11 @@
      * 
      * @OA\Info(
      *     version="1.0.0",
-     *     title="Zanichelli API IdentityProvider",
+     *     title="Newtime API IdentityProvider",
      *     description="REST APIs to use SSO (single-sign-on) for applications ",
      *     @OA\Contact(
-     *         name="Zanichelli DEV team", 
-     *         email="developers@zanichelli.it"
+     *         name="Newtime DEV team", 
+     *         email="dev@newtimegroup.it"
      *     ),
      * )
      * 

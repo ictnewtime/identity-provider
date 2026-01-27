@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>Zanichelli</title>
+    <title>Newtime</title>
 
     <link rel="icon" type="image/png" href="/images/favicon.png" />
 
@@ -20,7 +20,7 @@
 </head>
 <body>
     <div id="app">
-        <div id="zanichelli-nav">
+        <div id="newtimegroup-nav">
             <ul class="nav justify-content-end">
                 @auth
                     <li class="nav-item">

@@ -147,13 +147,13 @@
         <div id="wrapper">
             <div id="container">
                 <header>
-                    <h1>ZANICHELLI</h1>
+                    <h1>Newtimegroup</h1>
                 </header>
 
                 @yield('body')
 
                 <div class="mail-footer">
-                    <p>&copy; 2019-2020 Zanichelli Editore S.p.a.</p>
+                    <p>&copy; Newtime Group S.p.a.</p>
                 </div>
             </div>
         </div>

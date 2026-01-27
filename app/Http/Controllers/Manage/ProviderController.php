@@ -33,13 +33,13 @@ class ProviderController extends Controller
      *                     property="domain",
      *                     description="Provider domain",
      *                     type="string",
-     *                     example="portale.zanichelli.it"
+     *                     example="portale.newtimegroup.it"
      *                 ),
      *                 @OA\Property(
      *                     property="logoutUrl",
      *                     description="URL for logout",
      *                     type="string",
-     *                     example="https://portale.zanichelli.it/logoutUser/"
+     *                     example="https://portale.newtimegroup.it/logoutUser/"
      *                 ),
      *                 @OA\Property(
      *                     property="username",

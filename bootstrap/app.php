@@ -8,8 +8,8 @@ use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\CheckClientRole;
 use App\Http\Middleware\Localization;
 use App\Http\Middleware\Authenticated;
-// use App\Http\Middleware\old\RedirectIfAuthenticated as RedirectIfAuthenticated2;
-// use App\Http\Middleware\old\RedirectIfUnauthenticated as RedirectIfUnauthenticated2;
+use App\Http\Middleware\RedirectIfAuthenticated;
+use App\Http\Middleware\RedirectIfUnauthenticated;
 
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -32,14 +32,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'authenticated' => Authenticated::class,
             
             // 'guest' è nativo, ma forziamo il comportamento corretto
-            // 'guest' => RedirectIfAuthenticated2::class, 
+            'guest' => RedirectIfAuthenticated::class, 
             // 'guest' => \Illuminate\Auth\Middleware\Authenticate::class,
-            'guest' => true,
             
             // Colleghiamo il tuo vecchio 'web.authenticated' al middleware di Auth nativo
-            // 'web.authenticated' => RedirectIfUnauthenticated2::class,
+            'web.authenticated' => RedirectIfUnauthenticated::class,
             // 'web.authenticated' => \Illuminate\Auth\Middleware\Authenticate::class,
-            'web.authenticated' => true,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
