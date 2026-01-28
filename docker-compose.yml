@@ -9,7 +9,7 @@ services:
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_DATABASE=zanichelli_idp
+      - DB_DATABASE=newtime_idp
       - DB_USERNAME=root
       - DB_PASSWORD=123
       - REDIS_HOST=redis
@@ -31,7 +31,7 @@ services:
     container_name: laravel_jwt_idp_mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: zanichelli_idp
+      MYSQL_DATABASE: newtime_idp
       MYSQL_ROOT_PASSWORD: 123
       MYSQL_PASSWORD: 123
       MYSQL_USER: laravel

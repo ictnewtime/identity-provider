@@ -13,6 +13,7 @@ use Tymon\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpFoundation\Cookie;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie as FacadeCookie;
+use OpenApi\Attributes as OA;
 
 class LoginController extends Controller
 {
@@ -34,54 +35,58 @@ class LoginController extends Controller
      */
     public function authenticated()
     {
-        if (Auth::user()->hasRoleId(config('role.admin_idp'))) {
+        $user = Auth::user();
+        if ($user->hasRoleId(config('role.admin_idp'))) {
             return redirect()->route('admin-board');
         }
         return view('auth.logged');
     }
 
-    /**
-     * @OA\Post(
-     *     path="/v2/login",
-     *     summary="generate a JWT token", 
-     *     description="Use to generate access JWT token for user auth",
-     *     operationId="v2/login",
-     *     tags={"JWT Auth"},
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/x-www-form-urlencoded",
-     *             @OA\Schema(
-     *                 type="object",
-     *                 @OA\Property(
-     *                     property="username",
-     *                     description="Username",
-     *                     type="string"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="password",
-     *                     description="User password",
-     *                     type="string",
-     *                     format="password"
-     *                 )
-     *             )
-     *          )
-     *     ),     
-     *     @OA\Response(
-     *         response=200,
-     *         description="Operation successful",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Authentication error",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     )
-     * )
-     */
+    #[OA\Post(
+        path: '/v2/login',
+        summary: 'generate a JWT token',
+        description: 'Use to generate access JWT token for user auth',
+        operationId: 'v2/login',
+        tags: ['JWT Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'application/x-www-form-urlencoded',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        new OA\Property(
+                            property: 'username',
+                            description: 'Username',
+                            type: 'string'
+                        ),
+                        new OA\Property(
+                            property: 'password',
+                            description: 'User password',
+                            type: 'string',
+                            format: 'password'
+                        )
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                ),
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Authentication error',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            )
+        ]
+    )]
     public function login(LoginRequest $request)
     {
         $credentials = $request->only('username', 'password');
@@ -94,7 +99,7 @@ class LoginController extends Controller
             Log::error($e->getMessage());
             return $this->createResponse(500, __('auth.err-jwt'));
         }
-        $user = auth()->user();
+        $user = Auth::user();
 
         if (!$user->is_verified) {
             return $this->createResponse(403, __('auth.err-verification'));
@@ -110,67 +115,51 @@ class LoginController extends Controller
         ])->withCookie(new Cookie('token', $token, 0, '/', env('TOKEN_COOKIE_DOMAIN')));
     }
 
-    /**
-     * @OA\Get(
-     *     path="/v1/user",
-     *     summary="retrieve user info in json format", 
-     *     description="Use to retrieve user info with roles",
-     *     operationId="userByToken",
-     *     tags={"JWT Auth"},
-     *     @OA\Parameter(
-     *         name="token",
-     *         in="query",
-     *         description="JWT token vaule",
-     *         required=true,
-     *        @OA\Schema(
-     *            type="string"
-     *        )     
-     *     ),     
-     *     @OA\Response(
-     *         response=200,
-     *         description="Operation successful",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     )
-     * )
-     */
+    #[OA\Get(
+        path: '/v1/user',
+        summary: 'retrieve user info in json format',
+        description: 'Use to retrieve user info with roles',
+        operationId: 'userByToken',
+        tags: ['JWT Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                ),
+            ),
+        ]
+    )]
     public function userByToken()
     {
-        $userResource = UserResource::make(auth()->user());
+        $userResource = UserResource::make(Auth::user());
 
         return response()->json($userResource);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/v1/logout",
-     *     summary="Logout the user and delete his session",
-     *     description="Logout the user and delete his session",
-     *     operationId="logout",
-     *     tags={"JWT Auth"},
-     *     @OA\Parameter(
-     *         name="token",
-     *         in="query",
-     *         description="JWT token vaule",
-     *         required=true,
-     *        @OA\Schema(
-     *            type="string"
-     *        )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Operation successful",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     )
-     * )
-     */
+    #[OA\Get(
+        path: '/v1/logout',
+        summary: 'Logout the user and delete his session',
+        description: 'Logout the user and delete his session',
+        operationId: 'logout',
+        tags: ['JWT Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                ),
+            ),
+        ]
+    )]
     public function logout(Request $request)
     {
-        event(new LogoutEvent(auth()->user()));
-        auth()->logout(true);
+        $user = Auth::user();
+        event(new LogoutEvent($user));
+        // auth()->logout(true);
+        Auth::logout();
 
         $cookie = FacadeCookie::forget('token', '/', env('TOKEN_COOKIE_DOMAIN'));
 
@@ -208,5 +197,85 @@ class LoginController extends Controller
             return $response->withCookie($cookie);
         }
         return $response;
+    }
+
+
+    /**
+     * test swagger with dummy login
+     */
+    #[OA\Post(
+        path: '/v1/test-login',
+        summary: 'generate a JWT token',
+        description: 'Use to generate access JWT token for user auth',
+        operationId: 'test_login',
+        tags: ['JWT Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'application/x-www-form-urlencoded',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        new OA\Property(
+                            property: 'username',
+                            description: 'Username',
+                            type: 'string'
+                        ),
+                        new OA\Property(
+                            property: 'password',
+                            description: 'User password',
+                            type: 'string',
+                            format: 'password'
+                        )
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                ),
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Authentication error',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            )
+        ]
+    )]
+    public function test_login(Request $request)
+    {
+        // return $request->all();
+        // return 404
+        return response()->json([
+            'message' => 'Authentication error',
+            'status' => 404
+        ]);
+    }
+
+    #[OA\Get(
+        path: '/v1/test-idp',
+        summary: 'test idp',
+        description: 'test ipd',
+        operationId: 'test_ipd',
+        tags: ['JWT Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            )
+        ]
+    )]
+    public function test_idp(Request $request)
+    {
+        return $request->all();
     }
 }

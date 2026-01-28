@@ -1,15 +1,47 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Zanichelli API IdentityProvider",
-        "description": "REST APIs to use SSO (single-sign-on) for applications ",
+        "title": "My API",
+        "description": "API description",
         "contact": {
-            "name": "Zanichelli DEV team",
-            "email": "gsiciliano@zanichelli.it"
+            "email": "contact@example.com"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
         },
         "version": "1.0.0"
     },
     "paths": {
+        "/v1/client-roles": {
+            "get": {
+                "tags": [
+                    "ClientRoles"
+                ],
+                "summary": "list of  client roles",
+                "description": "Returns the entire list of client roles",
+                "operationId": "ClientRole.all",
+                "responses": {
+                    "200": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "web": []
+                    }
+                ]
+            }
+        },
         "/v2/login": {
             "post": {
                 "tags": [
@@ -19,6 +51,7 @@
                 "description": "Use to generate access JWT token for user auth",
                 "operationId": "v2/login",
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/x-www-form-urlencoded": {
                             "schema": {
@@ -60,19 +93,8 @@
                     "JWT Auth"
                 ],
                 "summary": "retrieve user info in json format",
-                "description": "Use to retrieve user info with roles and departments",
+                "description": "Use to retrieve user info with roles",
                 "operationId": "userByToken",
-                "parameters": [
-                    {
-                        "name": "token",
-                        "in": "query",
-                        "description": "JWT token vaule",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "Operation successful",
@@ -88,15 +110,12 @@
                 ],
                 "summary": "create a new user",
                 "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
-                "operationId": "create",
+                "operationId": "User.create",
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/x-www-form-urlencoded": {
                             "schema": {
-                                "required": [
-                                    "name",
-                                    "username"
-                                ],
                                 "properties": {
                                     "email": {
                                         "description": "User e-mail. It is not mandatory",
@@ -112,19 +131,6 @@
                                         "description": "User surname",
                                         "type": "string",
                                         "example": "rossi"
-                                    },
-                                    "username": {
-                                        "description": "Username",
-                                        "type": "string",
-                                        "example": "mario.rossi"
-                                    },
-                                    "employee": {
-                                        "description": "If user is employee the value must be 1, otherwise 0.",
-                                        "type": "string",
-                                        "enum": [
-                                            0,
-                                            1
-                                        ]
                                     }
                                 },
                                 "type": "object"
@@ -179,17 +185,6 @@
                 "summary": "Logout the user and delete his session",
                 "description": "Logout the user and delete his session",
                 "operationId": "logout",
-                "parameters": [
-                    {
-                        "name": "token",
-                        "in": "query",
-                        "description": "JWT token vaule",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "Operation successful",
@@ -200,26 +195,28 @@
                 }
             }
         },
-        "/v1/login": {
+        "/v1/test-login": {
             "post": {
                 "tags": [
                     "JWT Auth"
                 ],
-                "summary": "generate a JWT token - @deprecated: use /v2/login",
+                "summary": "generate a JWT token",
                 "description": "Use to generate access JWT token for user auth",
-                "operationId": "V1/login",
+                "operationId": "test_login",
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/x-www-form-urlencoded": {
                             "schema": {
                                 "properties": {
                                     "username": {
-                                        "description": "User name",
+                                        "description": "Username",
                                         "type": "string"
                                     },
                                     "password": {
                                         "description": "User password",
-                                        "type": "string"
+                                        "type": "string",
+                                        "format": "password"
                                     }
                                 },
                                 "type": "object"
@@ -240,29 +237,17 @@
                             "application/json": {}
                         }
                     }
-                },
-                "deprecated": true
+                }
             }
         },
-        "/v1/loginWithToken": {
+        "/v1/test-idp": {
             "get": {
                 "tags": [
                     "JWT Auth"
                 ],
-                "summary": "retrieve user info in json format - @deprecated: use /v1/user",
-                "description": "Use to retrieve user info with roles and departments",
-                "operationId": "loginWithToken",
-                "parameters": [
-                    {
-                        "name": "token",
-                        "in": "query",
-                        "description": "JWT token vaule",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
+                "summary": "test idp",
+                "description": "test ipd",
+                "operationId": "test_ipd",
                 "responses": {
                     "200": {
                         "description": "Operation successful",
@@ -270,8 +255,57 @@
                             "application/json": {}
                         }
                     }
+                }
+            }
+        },
+        "/v1/register": {
+            "post": {
+                "tags": [
+                    "JWT Auth"
+                ],
+                "summary": "register new user",
+                "description": "Use to create new user",
+                "operationId": "register",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "description": "User e-mail",
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "description": "User password",
+                                        "type": "string"
+                                    },
+                                    "password_confirmation": {
+                                        "description": "Confirm password",
+                                        "type": "string"
+                                    },
+                                    "name": {
+                                        "description": "User name",
+                                        "type": "string"
+                                    },
+                                    "surname": {
+                                        "description": "User surname",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
                 },
-                "deprecated": true
+                "responses": {
+                    "200": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                }
             }
         },
         "/v1/complete-registration": {
@@ -283,6 +317,7 @@
                 "description": "Activate user using token received in the email",
                 "operationId": "VerificationController.verify",
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/x-www-form-urlencoded": {
                             "schema": {
@@ -324,14 +359,14 @@
                 }
             }
         },
-        "/v1/departments": {
+        "/v1/oauth-clients": {
             "get": {
                 "tags": [
-                    "Departments"
+                    "OauthClients"
                 ],
-                "summary": "list of departments",
-                "description": "Returns the entire list of departments",
-                "operationId": "all",
+                "summary": "list of oauth clients",
+                "description": "Returns the entire list of oauth clients",
+                "operationId": "OauthClients.all",
                 "responses": {
                     "200": {
                         "description": "Operation successful",
@@ -351,6 +386,58 @@
                         "passport": []
                     }
                 ]
+            },
+            "post": {
+                "tags": [
+                    "OauthClients"
+                ],
+                "summary": "Create a new oauth client",
+                "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
+                "operationId": "OauthClientsController.create",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "description": "Client name",
+                                        "type": "string",
+                                        "example": "Client name"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "passport": [
+                            "manage-idp"
+                        ]
+                    }
+                ]
             }
         },
         "/v1/providers": {
@@ -359,8 +446,8 @@
                     "Providers"
                 ],
                 "summary": "list of providers",
-                "description": "Returns the entire list of providers.",
-                "operationId": "all",
+                "description": "Returns the entire list of providers",
+                "operationId": "Provider.all",
                 "responses": {
                     "200": {
                         "description": "Operation successful",
@@ -387,21 +474,28 @@
                 ],
                 "summary": "Create a new provider",
                 "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
-                "operationId": "create",
+                "operationId": "Provider.create",
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/x-www-form-urlencoded": {
                             "schema": {
+                                "required": [
+                                    "domain",
+                                    "logoutUrl",
+                                    "username",
+                                    "password"
+                                ],
                                 "properties": {
                                     "domain": {
                                         "description": "Provider domain",
                                         "type": "string",
-                                        "example": "portale.zanichelli.it"
+                                        "example": "portale.newtimegroup.it"
                                     },
                                     "logoutUrl": {
                                         "description": "URL for logout",
                                         "type": "string",
-                                        "example": "https://portale.zanichelli.it/logoutUser/"
+                                        "example": "https://portale.newtimegroup.it/logoutUser/"
                                     },
                                     "username": {
                                         "description": "username",
@@ -465,7 +559,7 @@
                 ],
                 "summary": "list of roles",
                 "description": "Returns the entire list of roles",
-                "operationId": "all",
+                "operationId": "Role.all",
                 "responses": {
                     "200": {
                         "description": "Operation successful",
@@ -492,8 +586,9 @@
                 ],
                 "summary": "Create a new role",
                 "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
-                "operationId": "RoleController.create",
+                "operationId": "Role.create",
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/x-www-form-urlencoded": {
                             "schema": {
@@ -551,7 +646,7 @@
                 ],
                 "summary": "Remove role by id",
                 "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
-                "operationId": "RoleController.delete",
+                "operationId": "Role.delete",
                 "parameters": [
                     {
                         "name": "id",
@@ -645,94 +740,13 @@
                 ]
             }
         },
-        "/v1/user/available/{username}": {
-            "get": {
-                "tags": [
-                    "User management"
-                ],
-                "summary": "Check if a username exists in the user table",
-                "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
-                "operationId": "availableUsername",
-                "parameters": [
-                    {
-                        "name": "username",
-                        "in": "path",
-                        "description": "Username",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "400": {
-                        "description": "Missing parameter 'username'",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            }
-        },
-        "/v1/employees": {
-            "get": {
-                "tags": [
-                    "User management"
-                ],
-                "summary": "returns all employees",
-                "description": "Returns the list of employees",
-                "operationId": "employees",
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            }
-        },
         "/v1/users/{id}/user-roles": {
             "get": {
                 "tags": [
                     "User-Role"
                 ],
-                "summary": "Retrieve role on department of user",
-                "description": "Retrieve role on department of user",
+                "summary": "Retrieve role of user",
+                "description": "Retrieve role of user",
                 "operationId": "UserRole.retrieve-user",
                 "parameters": [
                     {
@@ -776,7 +790,7 @@
                 "tags": [
                     "User-Role"
                 ],
-                "summary": "Assigne role on department to user",
+                "summary": "Assigne role to user",
                 "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
                 "operationId": "UserRole.create",
                 "parameters": [
@@ -798,11 +812,6 @@
                                 "type": "array",
                                 "items": {
                                     "properties": {
-                                        "department_id": {
-                                            "description": "Id of department",
-                                            "type": "integer",
-                                            "example": 1
-                                        },
                                         "role_id": {
                                             "description": "Id of role",
                                             "type": "integer",
@@ -859,7 +868,7 @@
                 "tags": [
                     "User-Role"
                 ],
-                "summary": "Remove role on department to user by user-role-id",
+                "summary": "Remove role to user by user-role-id",
                 "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
                 "operationId": "UserRole.delete",
                 "parameters": [
@@ -908,34 +917,42 @@
                 },
                 "security": [
                     {
-                        "passport": []
+                        "passport": [
+                            "manage-idp"
+                        ]
                     }
-                ]
-            }
-        }
-    },
-    "components": {
-        "securitySchemes": {
-            "passport": {
-                "type": "oauth2",
-                "in": "header",
-                "flows": {
-                    "clientCredentials": {
-                        "tokenUrl": "http://localhost:8083/oauth/token",
-                        "scopes": []
-                    }
-                },
-                "scheme": [
-                    "http",
-                    "https"
                 ]
             }
         }
     },
     "tags": [
         {
+            "name": "ClientRoles",
+            "description": "ClientRoles"
+        },
+        {
             "name": "JWT Auth",
-            "description": "Handle login operations"
+            "description": "JWT Auth"
+        },
+        {
+            "name": "OauthClients",
+            "description": "OauthClients"
+        },
+        {
+            "name": "Providers",
+            "description": "Providers"
+        },
+        {
+            "name": "Roles",
+            "description": "Roles"
+        },
+        {
+            "name": "User management",
+            "description": "User management"
+        },
+        {
+            "name": "User-Role",
+            "description": "User-Role"
         }
     ]
 }

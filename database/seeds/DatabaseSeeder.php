@@ -24,16 +24,17 @@ class DatabaseSeeder extends Seeder {
         DB::table('roles')->insert([
             'name' => 'USER'
         ]);
-
         DB::table('roles')->insert([
             'name' => 'ADMIN'
+        ]);
+        DB::table('roles')->insert([
+            'name' => 'ADMIN_IDP'
         ]);
 
         DB::table('user_roles')->insert([
             'user_id' => 1,
             'role_id' => 1
         ]);
-
         DB::table('user_roles')->insert([
             'user_id' => 1,
             'role_id' => 2
@@ -43,12 +44,10 @@ class DatabaseSeeder extends Seeder {
             'oauth_client_id' => 1,
             'roles' => '["manager"]',
         ]);
-
         DB::table('clients')->insert([
             'oauth_client_id' => 2,
             'roles' => '["manager", "admin"]',
         ]);
-
         DB::table('clients')->insert([
             'oauth_client_id' => 3,
             'roles' => '[]',

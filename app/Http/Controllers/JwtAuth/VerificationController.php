@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use OpenApi\Attributes as OA;
 
 class VerificationController extends Controller
 {
@@ -24,55 +25,58 @@ class VerificationController extends Controller
         $this->userRepository = $userRepository;
     }
 
-    /**
-     * @OA\Post(
-     *     path="/v1/complete-registration",
-     *     summary="Active user",
-     *     description="Activate user using token received in the email",
-     *     operationId="VerificationController.verify",
-     *     tags={"JWT Auth"},
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/x-www-form-urlencoded",
-     *             @OA\Schema(
-     *                 type="object",
-     *                 @OA\Property(
-     *                     property="token",
-     *                     description="Token",
-     *                     type="string"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="password",
-     *                     description="User password",
-     *                     type="string",
-     *                     format="password"
-     *                 )
-     *             )
-     *          )
-     *     ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="Operation successful",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Invalid data",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="General error",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     )
-     * )
-     */
+    #[OA\Post(
+        path: '/v1/complete-registration',
+        summary: 'Active user',
+        description: 'Activate user using token received in the email',
+        operationId: 'VerificationController.verify',
+        tags: ['JWT Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'application/x-www-form-urlencoded',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        new OA\Property(
+                            property: 'token',
+                            description: 'Token',
+                            type: 'string'
+                        ),
+                        new OA\Property(
+                            property: 'password',
+                            description: 'User password',
+                            type: 'string',
+                            format: 'password'
+                        )
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 204,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Invalid data',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 500,
+                description: 'General error',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            )
+        ]
+    )]
     public function verify(Request $request)
     {
         $validator = $this->validator($request->only('token', 'password'));

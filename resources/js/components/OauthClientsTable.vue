@@ -1,10 +1,10 @@
 <template>
   <div>
-    <div class="d-flex mb-2 mt-2 align-items-center justify-content-between">
+    <div class="d-flex align-items-center justify-content-between mb-2 mt-2">
       <div>
         <h1>Lista dei clients</h1>
       </div>
-      <div class="col-4 input-group px-0">
+      <div class="col-4 input-group px-0" style="max-width: 300px">
         <input
           v-model="filterClientInput"
           type="text"

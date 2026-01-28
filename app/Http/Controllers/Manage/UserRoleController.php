@@ -10,7 +10,7 @@ use App\Http\Requests\UserRoleRequest;
 use App\Http\Resources\RoleResource;
 use App\Repositories\UserRoleRepository;
 use App\Repositories\UserRepositoryInterface;
-
+use OpenApi\Attributes as OA;
 
 class UserRoleController extends Controller
 {
@@ -25,77 +25,81 @@ class UserRoleController extends Controller
         $this->userRoleRepository = $userRoleRepository;
     }
 
-    /**
-     * @OA\Post(
-     *     path="/v1/users/{id}/user-roles",
-     *     summary="Assigne role to user",
-     *     description="__*Security:*__ __*can be used only by clients with 'manager' role*__",
-     *     operationId="UserRole.create",
-     *     tags={"User-Role"},
-     *     security={{"passport":{}}},
-     *     @OA\Parameter(
-     *        in="path",
-     *        required=true,
-     *        description="User id",
-     *        name="id",
-     *        @OA\Schema(
-     *            type="integer",
-     *            minimum=1
-     *        )
-     *     ),
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 type="array",
-     *                 @OA\Items(
-     *                      @OA\Property(
-     *                          property="role_id",
-     *                          description="Id of role",
-     *                          type="integer",
-     *                          example=1
-     *                      ),
-     *                 )
-     *             )
-     *          )
-     *     ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Operation successful",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="Operation successfull, user already has role passed",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Invalid scope or client role, Forbidden",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     )
-     * )
-     */
+    #[OA\Post(
+        path: '/v1/users/{id}/user-roles',
+        summary: 'Assigne role to user',
+        description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
+        operationId: 'UserRole.create',
+        tags: ['User-Role'],
+        security: [ ['passport' => [] ] ],
+        parameters: [
+            new OA\Parameter(
+                in: 'path',
+                required: true,
+                description: 'User id',
+                name: 'id',
+                schema: new OA\Schema(
+                    type: 'integer',
+                    minimum: 1
+                )
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            content: new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Items(
+                        properties: [
+                            new OA\Property(
+                                property: 'role_id',
+                                description: 'Id of role',
+                                type: 'integer',
+                                example: 1
+                            )
+                        ]
+                    )
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 204,
+                description: 'Operation successfull, user already has role passed',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation error',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Invalid scope or client role, Forbidden',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            )
+        ],
+    )]
     public function create(UserRoleRequest $request, int $id)
     {
         $roleList = $request->all();
@@ -112,7 +116,8 @@ class UserRoleController extends Controller
 
             $data['role_id'] = $userRole['role_id'];
 
-            if (count($this->userRoleRepository->where($data)) > 0) {
+            // if (count($this->userRoleRepository->where($data)) > 0) {
+            if (count($this->userRoleRepository->where($data)->get()) > 0) {
                 continue;
             }
 
@@ -136,61 +141,63 @@ class UserRoleController extends Controller
         );
     }
 
-    /**
-     * @OA\Delete(
-     *     path="/v1/user-role/{id}",
-     *     summary="Remove role to user by user-role-id",
-     *     description="__*Security:*__ __*can be used only by clients with 'manager' role*__",
-     *     operationId="UserRole.delete",
-     *     tags={"User-Role"},
-     *     security={{"passport":{}}},
-     *     @OA\Parameter(
-     *        in="path",
-     *        required=true,
-     *        description="User-role id",
-     *        name="id",
-     *        @OA\Schema(
-     *            type="integer",
-     *            minimum=1
-     *        )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Operation successful",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Not found",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Error on saving",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Invalid scope or client role, Forbidden",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     )
-     * )
-     */
+    #[OA\Delete(
+        path: '/v1/user-role/{id}',
+        summary: 'Remove role to user by user-role-id',
+        description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
+        operationId: 'UserRole.delete',
+        tags: ['User-Role'],
+        security: [ ['passport' => ['manage-idp'] ] ],
+        parameters: [
+            new OA\Parameter(
+                in: 'path',
+                required: true,
+                description: 'User-role id',
+                name: 'id',
+                schema: new OA\Schema(
+                    type: 'integer',
+                    minimum: 1
+                )
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Not found',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 500,
+                description: 'Error on saving',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Invalid scope or client role, Forbidden',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            )
+        ]
+    )]
     public function delete($id)
     {
         $userRole = $this->userRoleRepository->find($id);
@@ -207,47 +214,49 @@ class UserRoleController extends Controller
         return response('', 204);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/v1/users/{id}/user-roles",
-     *     summary="Retrieve role of user",
-     *     description="Retrieve role of user",
-     *     operationId="UserRole.retrieve-user",
-     *     tags={"User-Role"},
-     *     security={{"passport":{}}},
-     *     @OA\Parameter(
-     *        in="path",
-     *        required=true,
-     *        description="User id",
-     *        name="id",
-     *        @OA\Schema(
-     *            type="integer",
-     *            minimum=1
-     *        )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Operation successful",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="User not found",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     )
-     * )
-     */
+    #[OA\Get(
+        path: '/v1/users/{id}/user-roles',
+        summary: 'Retrieve role of user',
+        description: 'Retrieve role of user',
+        operationId: 'UserRole.retrieve-user',
+        tags: ['User-Role'],
+        security: [ ['passport' => [] ] ],
+        parameters: [
+            new OA\Parameter(
+                in: 'path',
+                required: true,
+                description: 'User id',
+                name: 'id',
+                schema: new OA\Schema(
+                    type: 'integer',
+                    minimum: 1
+                ),
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'User not found',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            )
+        ]
+    )]
     public function getUserRole($id)
     {
         $user = $this->userRepository->find($id);

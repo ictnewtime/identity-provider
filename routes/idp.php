@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\ClientRoleController;
 use App\Http\Controllers\JwtAuth\LoginController;
+use App\Http\Controllers\JwtAuth\RegisterController;
 use App\Http\Controllers\JwtAuth\VerificationController;
 use App\Http\Controllers\Manage\UserController;
 use App\Http\Controllers\Manage\UserRoleController;
@@ -23,6 +24,9 @@ use App\Http\Controllers\Manage\ProviderController;
 
 
 Route::prefix('v1')->group(function () {
+    // test idp LoginController middleware
+    Route::middleware('api')->post('test-login', [LoginController::class, 'test_login']  )->name('test-login');
+    Route::get('test-idp', [LoginController::class, 'test_idp']  )->name('test-idp');
 
     Route::middleware(['api', 'authenticated'])->get('user', [LoginController::class, 'userByToken'] );
     Route::middleware(['api', 'authenticated'])->get('loginWithToken', [LoginController::class, 'userByToken'] );  // TODO da cancellare dopo allineamento
@@ -31,36 +35,27 @@ Route::prefix('v1')->group(function () {
     Route::middleware('web')->get('roles/{id}/user-roles', [UserRoleController::class, 'getRoles'] )->where(['id' => '[0-9]+']);
     Route::middleware('web')->get('client-roles', [ClientRoleController::class, 'all'] );
     Route::post('complete-registration', [VerificationController::class, 'verify'] );
+    Route::post('register', [RegisterController::class, 'register'] );
 
     // Routes to manage users
     Route::middleware(['client', 'checkclientrole:manager'])->group(function () {
-
         Route::post('user', [UserController::class, 'create'] );
-
         Route::post('users/{id}/user-roles', [UserRoleController::class, 'create'] )->where(['id' => '[0-9]+']);
-
         Route::delete('user-role/{id}', [UserRoleController::class, 'delete']  )->where(['id' => '[0-9]+']);
 
     });
 
     // Routes to manage idp
     Route::middleware(['client', 'checkclientrole:admin'])->group(function () {
-
         Route::post('providers', [ProviderController::class, 'create']);
-
         Route::post('roles', [RoleController::class, 'create'] );
-
         Route::delete('roles/{id}', [RoleController::class, 'delete'] )->where(['id' => '[0-9]+']);
     });
 
     Route::middleware('client')->group(function () {
-
         Route::get('roles', [RoleController::class, 'all'] );
-
         Route::get('providers', [ProviderController::class, 'all'] );
-
         Route::get('users/{id}', [UserController::class, 'find'] )->where('id', '[0-9]+');
-
         Route::get('users/{id}/user-roles', [UserRoleController::class, 'getUserRole']  )->where(['id' => '[0-9]+']);
     });
 });

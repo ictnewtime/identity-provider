@@ -14,7 +14,7 @@ use App\Models\UserRole;
 class User extends Authenticatable implements JWTSubject
 {
 //HasApiTokens,
-    use  HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     public $timestamps = false;
 

@@ -12,6 +12,7 @@ use App\Http\Resources\UserResource;
 use App\Repositories\RepositoryInterface;
 use Illuminate\Support\Facades\Validator;
 use App\Repositories\UserRepositoryInterface;
+use OpenApi\Attributes as OA;
 
 class UserController extends Controller
 {
@@ -33,78 +34,80 @@ class UserController extends Controller
         return $this->userRepository->all($query);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/v1/user",
-     *     summary="create a new user",
-     *     description="__*Security:*__ __*can be used only by clients with 'manager' role*__",
-     *     operationId="create",
-     *     tags={"User management"},
-     *     security={{"passport":{}}},
-     *     @OA\RequestBody(
-     *         @OA\MediaType(
-     *             mediaType="application/x-www-form-urlencoded",
-     *             @OA\Schema(
-     *                 type="object",
-     *                 required={"name", "email"},
-     *                 @OA\Property(
-     *                     property="email",
-     *                     description="User e-mail. It is not mandatory",
-     *                     type="string",
-     *                     example="mario.rossi@email.com"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="name",
-     *                     description="User name",
-     *                     type="string",
-     *                     example="mario"
-     *                 ),
-     *                 @OA\Property(
-     *                     property="surname",
-     *                     description="User surname",
-     *                     type="string",
-     *                     example="rossi"
-     *                 )
-     *             )
-     *          )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Operation successful",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=403,
-     *         description="Forbidden",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=422,
-     *         description="Validation error",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=500,
-     *         description="Server error",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     )
-     * )
-     */
+    #[OA\Post(
+        path: '/v1/user',
+        summary: 'create a new user',
+        description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
+        operationId: 'User.create',
+        tags: ['User management'],
+        security: [ ['passport' => [] ] ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'application/x-www-form-urlencoded',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        new OA\Property(
+                            property: 'email',
+                            description: 'User e-mail. It is not mandatory',
+                            type: 'string',
+                            example: 'mario.rossi@email.com'
+                        ),
+                        new OA\Property(
+                            property: 'name',
+                            description: 'User name',
+                            type: 'string',
+                            example: 'mario'
+                        ),
+                        new OA\Property(
+                            property: 'surname',
+                            description: 'User surname',
+                            type: 'string',
+                            example: 'rossi'
+                        )
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 403,
+                description: 'Forbidden',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation error',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            ),
+            new OA\Response(
+                response: 500,
+                description: 'Server error',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                )
+            )
+        ]
+    )]
     public function create(Request $request)
     {
         $credentials = $request->only('email', 'name', 'surname');
@@ -142,39 +145,41 @@ class UserController extends Controller
         ], 200);
     }
 
-    /**
-     * @OA\Get(
-     *     path="/v1/users/{id}",
-     *     summary="Returns user by id",
-     *     description="Returns user details by id",
-     *     operationId="find",
-     *     tags={"User management"},
-     *     security={{"passport":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         description="User id",
-     *         required=true,
-     *        @OA\Schema(
-     *            type="string"
-     *        )
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Operation successful",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=401,
-     *         description="Unauthorized",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *         )
-     *     )
-     * )
-     */
+    #[OA\Get(
+        path: '/v1/users/{id}',
+        summary: 'Returns user by id',
+        description: 'Returns user details by id',
+        operationId: 'find',
+        tags: ['User management'],
+        security: [ ['passport' => [] ] ],
+        parameters: [
+            new OA\Parameter(
+                in: 'path',
+                required: true,
+                description: 'User id',
+                name: 'id',
+                schema: new OA\Schema(
+                    type: 'string'
+                )
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Operation successful',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                ),
+            ),
+            new OA\Response(
+                response: 401,
+                description: 'Unauthorized',
+                content: new OA\MediaType(
+                    mediaType: 'application/json',
+                ),
+            ),
+        ]
+    )]
     public function find($id)
     {
         $user = $this->userRepository->find($id);

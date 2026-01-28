@@ -8,9 +8,9 @@
           <h1>Crea nuovo provider</h1>
         </div>
         <div>
-          <button type="submit" class="btn btn-outline-dark">
+          <!-- <button type="submit" class="btn btn-outline-dark">
             Visualizza tutti
-          </button>
+          </button> -->
         </div>
       </div>
 
