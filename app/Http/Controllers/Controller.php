@@ -20,6 +20,24 @@ use OpenApi\Attributes as OA;
         url: "https://www.apache.org/licenses/LICENSE-2.0.html"
     )
 )]
+
+// const L5_SWAGGER_CONST_TOKEN_URL = env('L5_SWAGGER_CONST_TOKEN_URL', config('app.url').'/v2/login');
+#[OA\Tag(
+    name: "Roles",
+    description: "Handle roles operations"
+)]
+#[OA\SecurityScheme(
+    securityScheme: "passport",
+    type: "oauth2",
+    description: "OAuth2 Client Credentials Flow",
+    flows: [
+        new OA\Flow(
+            flow: "clientCredentials",
+            tokenUrl: "http://localhost:8000/oauth/token",
+            scopes: []
+        )
+    ]
+)]
 class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;

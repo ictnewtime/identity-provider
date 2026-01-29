@@ -8,7 +8,6 @@
 
 namespace App\Models;
 
-
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -20,9 +19,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $password
  * @property string $logoutUrl
  */
-class Provider extends Model {
-
-    protected $table = 'providers';
+class Provider extends Model
+{
+    protected $table = "providers";
 
     public $timestamps = false;
 
@@ -31,8 +30,5 @@ class Provider extends Model {
      *
      * @var array
      */
-    protected $fillable = [
-        'domain', 'logoutUrl', 'username', 'password'
-    ];
-
+    protected $fillable = ["domain", "logoutUrl", "secret_key"];
 }
