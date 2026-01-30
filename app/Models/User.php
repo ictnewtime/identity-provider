@@ -13,7 +13,7 @@ use App\Models\UserRole;
 //, OAuthenticatable
 class User extends Authenticatable implements JWTSubject
 {
-//HasApiTokens,
+    //HasApiTokens,
     use HasApiTokens, HasFactory, Notifiable;
 
     public $timestamps = false;
@@ -23,25 +23,20 @@ class User extends Authenticatable implements JWTSubject
      *
      * @var array
      */
-    protected $fillable = [
-        'email', 'name', 'surname', 'is_verified', 'password'
-    ];
+    protected $fillable = ["username", "password", "email", "name", "surname", "is_verified"];
 
     /**
      * The attributes that should be hidden for arrays.
      *
      * @var array
      */
-    protected $hidden = [
-        'password', 'remember_token',
-    ];
+    protected $hidden = ["password", "remember_token"];
 
     public function roles()
     {
-        $user_roles = $this->hasMany(UserRole::class, 'user_id');
+        $user_roles = $this->hasMany(UserRole::class, "user_id");
         return $user_roles;
     }
-
 
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
@@ -60,7 +55,7 @@ class User extends Authenticatable implements JWTSubject
      */
     public function getJWTCustomClaims()
     {
-        return array();
+        return [];
     }
 
     public function hasRoleId($roleid)

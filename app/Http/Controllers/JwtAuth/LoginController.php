@@ -85,12 +85,13 @@ class LoginController extends Controller
     {
         $credentials = $request->only("username", "password");
         // $token = $this->retrieveToken($credentials);
-        $credentials["email"] = $credentials["username"];
-        unset($credentials["username"]);
-        auth()->attempt($credentials);
+        // $credentials["email"] = $credentials["username"];
+        // unset($credentials["username"]);
+
+        // auth()->attempt($credentials);
+        Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]]);
 
         $user = Auth::user();
-        // dd($user);
         if (!$user->is_verified) {
             return $this->createResponse(403, __("auth.err-verification"));
         }
@@ -199,78 +200,5 @@ class LoginController extends Controller
             return $response->withCookie($cookie);
         }
         return $response;
-    }
-
-    /**
-     * test swagger with dummy login
-     */
-    #[
-        OA\Post(
-            path: "/v1/test-login",
-            summary: "generate a JWT token",
-            description: "Use to generate access JWT token for user auth",
-            operationId: "test_login",
-            tags: ["JWT Auth"],
-            requestBody: new OA\RequestBody(
-                required: true,
-                content: new OA\MediaType(
-                    mediaType: "application/x-www-form-urlencoded",
-                    schema: new OA\Schema(
-                        type: "object",
-                        properties: [
-                            new OA\Property(property: "username", description: "Username", type: "string"),
-                            new OA\Property(
-                                property: "password",
-                                description: "User password",
-                                type: "string",
-                                format: "password",
-                            ),
-                        ],
-                    ),
-                ),
-            ),
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 404,
-                    description: "Authentication error",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
-    public function test_login(Request $request)
-    {
-        // return $request->all();
-        // return 404
-        return response()->json([
-            "message" => "Authentication error",
-            "status" => 404,
-        ]);
-    }
-
-    #[
-        OA\Get(
-            path: "/v1/test-idp",
-            summary: "test idp",
-            description: "test ipd",
-            operationId: "test_ipd",
-            tags: ["JWT Auth"],
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
-    public function test_idp(Request $request)
-    {
-        return $request->all();
     }
 }

@@ -9,7 +9,7 @@ php artisan db:seed
 # per ri-gestire in develop le dipendenze (composer/vendor o node_mudules)
 // composer install
 // npm run build
-// npm rrun watch
+// npm run watch
 // composer dump-autoload
 // composer dump-autoload -o
 
@@ -20,6 +20,7 @@ php artisan db:seed
 php artisan passport:install --force
 # per leggere le chaivi di passport
 chown -R www-data:www-data storage
+php artisan storage:link
 ```
 
 (Facoltativo) Pulisci cache se si hanno dati sporchi quando già avvaita l'applicazione
@@ -30,6 +31,5 @@ php artisan route:cache
 php artisan config:clear
 php artisan cache:clear
 // php artisan config:show app
-php artisan storage:link
 php artisan optimize:clear
 ```

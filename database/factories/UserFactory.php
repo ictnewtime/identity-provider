@@ -22,13 +22,17 @@ class UserFactory extends Factory
      */
     public function definition()
     {
+        $name = $this->faker->name;
+        $surname = $this->faker->name;
+        $username = $name . "." . $surname;
         return [
-            'name' => $this->faker->name,
-            'surname' => $this->faker->name, 
-            'email' => $this->faker->unique()->safeEmail,
-            'password' => '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm',
-            'remember_token' => Str::random(10),
-            'is_verified' => false,
+            "username" => $username,
+            "email" => $this->faker->unique()->safeEmail,
+            "password" => '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm',
+            "name" => $name,
+            "surname" => $surname,
+            "remember_token" => Str::random(10),
+            "is_verified" => false,
         ];
     }
 }

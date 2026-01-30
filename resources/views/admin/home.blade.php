@@ -80,7 +80,7 @@
                         </div>
                     </a>
 
-                    <a href="{{ route('oauth-clients') }}" class="text-dark no-text-decoration">
+                    <a href="{{ route('oauth-clients') }}" class="text-dark no-text-decoration" hidden>
                         <div class="d-flex py-4 border-bottom border-light align-items-center px-4 menu-item">
                             <div class="pr-3">
                                 <i class="fas fa-user-lock"></i>

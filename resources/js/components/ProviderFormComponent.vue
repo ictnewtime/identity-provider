@@ -52,7 +52,7 @@
                             name="secretKey"
                             v-model="form.secretKey"
                         />
-                        <small>Min 5 caratteri</small>
+                        <small>Inserisci una secret key</small>
                     </div>
                 </div>
 
@@ -111,9 +111,9 @@ export default {
 
         validate: function () {
             this.validator.domain = !!this.form.domain;
-            this.validator.secretKey = !!this.form.secretKey && this.form.secretKey.length > 4;
+            this.validator.secretKey = !!this.form.secretKey;
 
-            if (!this.form.domain || !this.form.secretKey || this.form.secretKey.length < 5) {
+            if (!this.form.domain || !this.form.secretKey) {
                 return false;
             }
 

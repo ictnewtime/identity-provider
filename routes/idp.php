@@ -23,12 +23,6 @@ use App\Http\Controllers\Manage\ProviderController;
 */
 
 Route::prefix("v1")->group(function () {
-    // test idp LoginController middleware
-    Route::middleware("api")
-        ->post("test-login", [LoginController::class, "test_login"])
-        ->name("test-login");
-    Route::get("test-idp", [LoginController::class, "test_idp"])->name("test-idp");
-
     Route::middleware(["api", "authenticated"])->get("user", [LoginController::class, "userByToken"]);
     Route::middleware(["api", "authenticated"])->get("loginWithToken", [LoginController::class, "userByToken"]); // TODO da cancellare dopo allineamento
     Route::middleware(["api", "authenticated"])->get("logout", [LoginController::class, "logout"]);

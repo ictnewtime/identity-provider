@@ -20,8 +20,11 @@ class UserController extends Controller
     protected $verificationTokenRepository;
     protected $mailerService;
 
-    public function __construct(UserRepositoryInterface $userRepository, RepositoryInterface $verificationToken, Mailer $mailerService)
-    {
+    public function __construct(
+        UserRepositoryInterface $userRepository,
+        RepositoryInterface $verificationToken,
+        Mailer $mailerService,
+    ) {
         $this->userRepository = $userRepository;
         $this->verificationTokenRepository = $verificationToken;
         $this->mailerService = $mailerService;
@@ -29,157 +32,168 @@ class UserController extends Controller
 
     public function all(Request $request)
     {
-        $query = $request->input('q');
+        $query = $request->input("q");
 
         return $this->userRepository->all($query);
     }
 
-    #[OA\Post(
-        path: '/v1/user',
-        summary: 'create a new user',
-        description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
-        operationId: 'User.create',
-        tags: ['User management'],
-        security: [ ['passport' => [] ] ],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: 'application/x-www-form-urlencoded',
-                schema: new OA\Schema(
-                    type: 'object',
-                    properties: [
-                        new OA\Property(
-                            property: 'email',
-                            description: 'User e-mail. It is not mandatory',
-                            type: 'string',
-                            example: 'mario.rossi@email.com'
-                        ),
-                        new OA\Property(
-                            property: 'name',
-                            description: 'User name',
-                            type: 'string',
-                            example: 'mario'
-                        ),
-                        new OA\Property(
-                            property: 'surname',
-                            description: 'User surname',
-                            type: 'string',
-                            example: 'rossi'
-                        )
-                    ]
-                )
-            )
+    #[
+        OA\Post(
+            path: "/v1/user",
+            summary: "create a new user",
+            description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
+            operationId: "User.create",
+            tags: ["User management"],
+            security: [["passport" => []]],
+            requestBody: new OA\RequestBody(
+                required: true,
+                content: new OA\MediaType(
+                    mediaType: "application/x-www-form-urlencoded",
+                    schema: new OA\Schema(
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "username",
+                                description: "User username",
+                                type: "string",
+                                example: "mario.rossi",
+                            ),
+                            new OA\Property(
+                                property: "password",
+                                description: "User password",
+                                type: "string",
+                                format: "password",
+                            ),
+                            new OA\Property(
+                                property: "email",
+                                description: "User e-mail. It is not mandatory",
+                                type: "string",
+                                example: "mario.rossi@email.com",
+                            ),
+                            new OA\Property(
+                                property: "name",
+                                description: "User name",
+                                type: "string",
+                                example: "mario",
+                            ),
+                            new OA\Property(
+                                property: "surname",
+                                description: "User surname",
+                                type: "string",
+                                example: "rossi",
+                            ),
+                        ],
+                    ),
+                ),
+            ),
+            responses: [
+                new OA\Response(
+                    response: 200,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 401,
+                    description: "Unauthorized",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 403,
+                    description: "Forbidden",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 422,
+                    description: "Validation error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Server error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
         ),
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'Operation successful',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
-                )
-            ),
-            new OA\Response(
-                response: 401,
-                description: 'Unauthorized',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
-                )
-            ),
-            new OA\Response(
-                response: 403,
-                description: 'Forbidden',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
-                )
-            ),
-            new OA\Response(
-                response: 422,
-                description: 'Validation error',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
-                )
-            ),
-            new OA\Response(
-                response: 500,
-                description: 'Server error',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
-                )
-            )
-        ]
-    )]
+    ]
     public function create(Request $request)
     {
-        $credentials = $request->only('email', 'name', 'surname');
+        $credentials = $request->only("username", "password", "password_confirmation", "email", "name", "surname");
         $validator = $this->validator($credentials);
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'The given data are invalid',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(
+                [
+                    "message" => "The given data are invalid",
+                    "errors" => $validator->errors(),
+                ],
+                422,
+            );
         }
 
         DB::beginTransaction();
 
         try {
+            // unset password_confirmation
+            unset($credentials["password_confirmation"]);
             $user = $this->userRepository->create($credentials);
             $verificationToken = $this->verificationTokenRepository->create([
-                'token' => Str::random(60),
-                'user_id' => $user->id
+                "token" => Str::random(60),
+                "user_id" => $user->id,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::info($e);
-            return response()->json([
-                'message' => 'Error during saving user'
-            ], 500);
+            return response()->json(
+                [
+                    "message" => "Error during saving user",
+                ],
+                500,
+            );
         }
 
         DB::commit();
 
-        $body = view('mail.complete-registration', ['token' => $verificationToken->token, 'user' => $user])->render();
-        $this->mailerService->dispatchEmail($body, [$user->email], 'Completa la registrazione');
+        $body = view("mail.complete-registration", ["token" => $verificationToken->token, "user" => $user])->render();
+        $this->mailerService->dispatchEmail($body, [$user->email], "Completa la registrazione");
 
-        return response()->json([
-            'user' => $user
-        ], 200);
+        return response()->json(
+            [
+                "user" => $user,
+            ],
+            200,
+        );
     }
 
-    #[OA\Get(
-        path: '/v1/users/{id}',
-        summary: 'Returns user by id',
-        description: 'Returns user details by id',
-        operationId: 'find',
-        tags: ['User management'],
-        security: [ ['passport' => [] ] ],
-        parameters: [
-            new OA\Parameter(
-                in: 'path',
-                required: true,
-                description: 'User id',
-                name: 'id',
-                schema: new OA\Schema(
-                    type: 'string'
-                )
-            )
-        ],
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'Operation successful',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
+    #[
+        OA\Get(
+            path: "/v1/users/{id}",
+            summary: "Returns user by id",
+            description: "Returns user details by id",
+            operationId: "find",
+            tags: ["User management"],
+            security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    in: "path",
+                    required: true,
+                    description: "User id",
+                    name: "id",
+                    schema: new OA\Schema(type: "string"),
                 ),
-            ),
-            new OA\Response(
-                response: 401,
-                description: 'Unauthorized',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
+            ],
+            responses: [
+                new OA\Response(
+                    response: 200,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
                 ),
-            ),
-        ]
-    )]
+                new OA\Response(
+                    response: 401,
+                    description: "Unauthorized",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
+        ),
+    ]
     public function find($id)
     {
         $user = $this->userRepository->find($id);
@@ -188,11 +202,13 @@ class UserController extends Controller
             return response()->json([], 404);
         }
 
-        return response()->json([
-            'user' => UserResource::make($user)
-        ], 200);
+        return response()->json(
+            [
+                "user" => UserResource::make($user),
+            ],
+            200,
+        );
     }
-
 
     /*
      * Returns the validator for user data
@@ -200,9 +216,11 @@ class UserController extends Controller
     private function validator(array $data)
     {
         $validator = Validator::make($data, [
-            'name' => 'required|string|max:50',
-            'surname' => 'nullable|string|max:50',
-            'email' => 'required|string|email|max:255|unique:users',
+            "email" => "required|string|email|max:255",
+            "username" => "required|string|max:50|unique:users",
+            "password" => "required|string|min:5|confirmed",
+            "name" => "required|string|max:50",
+            "surname" => "nullable|string|max:50",
         ]);
 
         return $validator;
