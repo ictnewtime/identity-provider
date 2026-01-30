@@ -10,7 +10,7 @@
                 <div>
                     <!-- <button type="submit" class="btn btn-outline-dark">
             Visualizza tutti
-          </button> -->
+            </button> -->
                 </div>
             </div>
 
@@ -20,12 +20,15 @@
                         <label for="input-domain">Dominio</label>
                         <input
                             type="text"
-                            v-bind:class="'form-control ' + (!validator.domain ? 'is-invalid' : '')"
+                            v-bind:class="'form-control ' + (validator.domain.length > 0 ? 'is-invalid' : '')"
                             id="input-domain"
                             placeholder="idp.newtimegroup.it"
                             name="domain"
                             v-model="form.domain"
                         />
+                        <small class="form-text text-danger">{{
+                            validator.domain.length > 0 ? validator.domain[0] : ""
+                        }}</small>
                     </div>
                     <div class="form-group col-lg-6">
                         <label for="input-logout-url">Logout URL</label>
@@ -46,13 +49,15 @@
                         <label for="input-secret-key">Secret Key</label>
                         <input
                             type="password"
-                            :class="'form-control ' + (!validator.secretKey ? 'is-invalid' : '')"
+                            :class="'form-control ' + (validator.secretKey.length > 0 ? 'is-invalid' : '')"
                             id="input-secret-key"
                             placeholder="Secret Key"
                             name="secretKey"
                             v-model="form.secretKey"
                         />
-                        <small>Inserisci una secret key</small>
+                        <small class="form-text text-danger">{{
+                            validator.secretKey.length > 0 ? validator.secretKey[0] : ""
+                        }}</small>
                     </div>
                 </div>
 
@@ -74,9 +79,9 @@ export default {
                 logoutUrl: null,
             },
             validator: {
-                domain: true,
-                secretKey: true,
-                logoutUrl: true,
+                domain: [],
+                secretKey: [],
+                logoutUrl: [],
             },
         };
     },
@@ -102,16 +107,18 @@ export default {
                     });
                 })
                 .catch(function (error) {
+                    const errors = error.response.data.errors;
                     EventBus.$emit("newNotification", {
                         message: "Dominio esistente o errore durante la registrazione del provider.",
                         type: "ERROR",
                     });
+                    vm.validator = { ...vm.validator, ...errors };
                 });
         },
 
         validate: function () {
-            this.validator.domain = !!this.form.domain;
-            this.validator.secretKey = !!this.form.secretKey;
+            this.validator.domain = !!this.form.domain ? [] : ["Dominio obbligatorio"];
+            this.validator.secretKey = !!this.form.secretKey ? [] : ["Secret Key obbligatoria"];
 
             if (!this.form.domain || !this.form.secretKey) {
                 return false;

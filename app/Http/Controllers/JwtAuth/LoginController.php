@@ -92,7 +92,8 @@ class LoginController extends Controller
         Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]]);
 
         $user = Auth::user();
-        if (!$user->is_verified) {
+        // if (!$user->is_verified) {
+        if (!$user) {
             return $this->createResponse(403, __("auth.err-verification"));
         }
 

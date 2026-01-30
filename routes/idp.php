@@ -32,7 +32,9 @@ Route::prefix("v1")->group(function () {
         ->where(["id" => "[0-9]+"]);
     Route::middleware("web")->get("client-roles", [ClientRoleController::class, "all"]);
     Route::post("complete-registration", [VerificationController::class, "verify"]);
-    Route::post("register", [RegisterController::class, "register"]);
+    // TODO: valurate se eliminare dato che la registrazione è già gestita
+    // nella rotta user
+    // Route::post("register", [RegisterController::class, "register"]);
 
     // Routes to manage users
     Route::middleware(["client", "checkclientrole:manager"])->group(function () {

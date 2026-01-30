@@ -154,7 +154,7 @@ class ProviderController extends Controller
     {
         return Validator::make($data, [
             "domain" => "required|string|unique:providers|max:255",
-            "secretKey" => "required|string|min:5|max:50",
+            "secretKey" => "required|string|min:0|max:255",
             "logoutUrl" => "string|max:255|nullable",
         ]);
     }

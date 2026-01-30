@@ -24,14 +24,10 @@ class TokenGeneratorService
      */
     public function generate(User $user, ?string $redirectUrl = null)
     {
-        if (empty($redirectUrl)) {
-            return JWTAuth::fromUser($user);
-        }
-
-        $host = parse_url($redirectUrl, PHP_URL_HOST) ?: $redirectUrl;
-        $provider = Provider::where("domain", $host)->first();
-
-        if (!$provider) {
+        $ttlInMinutes = (int) env("JWT_TTL", 120);
+        JWTAuth::factory()->setTTL($ttlInMinutes);
+        $provider = Provider::where("domain", $redirectUrl)->first();
+        if (empty($provider)) {
             return JWTAuth::fromUser($user);
         }
 
@@ -42,12 +38,9 @@ class TokenGeneratorService
             return null;
         }
 
-        $ttlInMinutes = env("JWT_TTL", 120);
         $originalSecret = JWTAuth::getJWTProvider()->getSecret();
 
         try {
-            JWTAuth::factory()->setTTL($ttlInMinutes);
-
             if (!empty($provider->secret_key)) {
                 JWTAuth::getJWTProvider()->setSecret($provider->secret_key);
             }
