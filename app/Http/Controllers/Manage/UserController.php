@@ -8,6 +8,7 @@ use App\Http\Services\Mailer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
 use App\Repositories\RepositoryInterface;
 use Illuminate\Support\Facades\Validator;
@@ -30,6 +31,23 @@ class UserController extends Controller
         $this->mailerService = $mailerService;
     }
 
+    #[
+        OA\Get(
+            path: "/api/v1/users",
+            summary: "get all users",
+            description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
+            operationId: "User.all",
+            tags: ["User management"],
+            security: [["passport" => []]],
+            responses: [
+                new OA\Response(
+                    response: 200,
+                    description: "Returns all users",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
+        ),
+    ]
     public function all(Request $request)
     {
         $query = $request->input("q");
@@ -39,7 +57,7 @@ class UserController extends Controller
 
     #[
         OA\Post(
-            path: "/v1/user",
+            path: "/api/v1/users",
             summary: "create a new user",
             description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
             operationId: "User.create",
@@ -61,6 +79,12 @@ class UserController extends Controller
                             new OA\Property(
                                 property: "password",
                                 description: "User password",
+                                type: "string",
+                                format: "password",
+                            ),
+                            new OA\Property(
+                                property: "password_confirmation",
+                                description: "User password confirmation",
                                 type: "string",
                                 format: "password",
                             ),
@@ -93,16 +117,6 @@ class UserController extends Controller
                     content: new OA\MediaType(mediaType: "application/json"),
                 ),
                 new OA\Response(
-                    response: 401,
-                    description: "Unauthorized",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 403,
-                    description: "Forbidden",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
                     response: 422,
                     description: "Validation error",
                     content: new OA\MediaType(mediaType: "application/json"),
@@ -115,19 +129,9 @@ class UserController extends Controller
             ],
         ),
     ]
-    public function create(Request $request)
+    public function create(UserRequest $request)
     {
         $credentials = $request->only("username", "password", "password_confirmation", "email", "name", "surname");
-        $validator = $this->validator($credentials);
-        if ($validator->fails()) {
-            return response()->json(
-                [
-                    "message" => "The given data are invalid",
-                    "errors" => $validator->errors(),
-                ],
-                422,
-            );
-        }
 
         DB::beginTransaction();
 
@@ -135,37 +139,28 @@ class UserController extends Controller
             // unset password_confirmation
             unset($credentials["password_confirmation"]);
             $user = $this->userRepository->create($credentials);
-            $verificationToken = $this->verificationTokenRepository->create([
-                "token" => Str::random(60),
-                "user_id" => $user->id,
-            ]);
+            // TODO: in un secondo momento gestisco la verifica degli utenti
+            // $verificationToken = $this->verificationTokenRepository->create([
+            //     "token" => Str::random(60),
+            //     "user_id" => $user->id,
+            // ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::info($e);
-            return response()->json(
-                [
-                    "message" => "Error during saving user",
-                ],
-                500,
-            );
+            return response()->json(["message" => "Error during saving user"], 500);
         }
 
         DB::commit();
 
-        $body = view("mail.complete-registration", ["token" => $verificationToken->token, "user" => $user])->render();
-        $this->mailerService->dispatchEmail($body, [$user->email], "Completa la registrazione");
+        // $body = view("mail.complete-registration", ["token" => $verificationToken->token, "user" => $user])->render();
+        // $this->mailerService->dispatchEmail($body, [$user->email], "Completa la registrazione");
 
-        return response()->json(
-            [
-                "user" => $user,
-            ],
-            200,
-        );
+        return response()->json(["user" => $user], 200);
     }
 
     #[
         OA\Get(
-            path: "/v1/users/{id}",
+            path: "/api/v1/users/{id}",
             summary: "Returns user by id",
             description: "Returns user details by id",
             operationId: "find",
@@ -187,8 +182,13 @@ class UserController extends Controller
                     content: new OA\MediaType(mediaType: "application/json"),
                 ),
                 new OA\Response(
-                    response: 401,
-                    description: "Unauthorized",
+                    response: 404,
+                    description: "Not found",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Server error",
                     content: new OA\MediaType(mediaType: "application/json"),
                 ),
             ],
@@ -196,12 +196,128 @@ class UserController extends Controller
     ]
     public function find($id)
     {
-        $user = $this->userRepository->find($id);
+        try {
+            $user = $this->userRepository->find($id);
+        } catch (\Exception $e) {
+            return response()->json([
+                "message" => "Error during finding user",
+                "error" => [
+                    "code" => 500,
+                    "message" => $e->getMessage(),
+                ],
+            ]);
+        }
+        if (empty($user)) {
+            return response()->json(["message" => "User not found"], 404);
+        }
 
+        return response()->json($user);
+    }
+
+    // user update
+    #[
+        OA\Put(
+            path: "/api/v1/users/{id}",
+            summary: "Update user by id",
+            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            operationId: "User.update",
+            tags: ["User management"],
+            security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    in: "path",
+                    required: true,
+                    description: "User id",
+                    name: "id",
+                    schema: new OA\Schema(type: "string"),
+                ),
+            ],
+            requestBody: new OA\RequestBody(
+                required: true,
+                content: new OA\MediaType(
+                    mediaType: "application/x-www-form-urlencoded",
+                    schema: new OA\Schema(
+                        type: "object",
+                        properties: [
+                            new OA\Property(
+                                property: "email",
+                                description: "User email",
+                                type: "string",
+                                example: "mario.rossi@example.com",
+                            ),
+                            new OA\Property(
+                                property: "username",
+                                description: "User username",
+                                type: "string",
+                                example: "mario.rossi",
+                            ),
+                            new OA\Property(
+                                property: "password",
+                                description: "User password",
+                                type: "string",
+                                format: "password",
+                            ),
+                            new OA\Property(
+                                property: "password_confirmation",
+                                description: "User password confirmation",
+                                type: "string",
+                                format: "password",
+                            ),
+                            new OA\Property(
+                                property: "name",
+                                description: "User name",
+                                type: "string",
+                                example: "Mario",
+                            ),
+                            new OA\Property(
+                                property: "surname",
+                                description: "User surname",
+                                type: "string",
+                                example: "Rossi",
+                            ),
+                        ],
+                    ),
+                ),
+            ),
+            responses: [
+                new OA\Response(
+                    response: 200,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 404,
+                    description: "Not found",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Server error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
+        ),
+    ]
+    public function update(UserRequest $request, $id)
+    {
+        $credentials = $request->only("email", "username", "password", "name", "surname");
+
+        $user = $this->userRepository->find($id);
         if (empty($user)) {
             return response()->json([], 404);
         }
-
+        try {
+            $user->update($credentials);
+        } catch (\Exception $e) {
+            // errore 500
+            return response()->json([
+                "message" => "Error during updating user",
+                "error" => [
+                    "code" => 500,
+                    "message" => $e->getMessage(),
+                ],
+            ]);
+        }
         return response()->json(
             [
                 "user" => UserResource::make($user),
@@ -210,19 +326,62 @@ class UserController extends Controller
         );
     }
 
-    /*
-     * Returns the validator for user data
-     */
-    private function validator(array $data)
+    // user delete
+    #[
+        OA\Delete(
+            path: "/api/v1/users/{id}",
+            summary: "Delete user by id",
+            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            operationId: "User.delete",
+            tags: ["User management"],
+            security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    in: "path",
+                    required: true,
+                    description: "User id",
+                    name: "id",
+                    schema: new OA\Schema(type: "string"),
+                ),
+            ],
+            responses: [
+                new OA\Response(
+                    response: 204,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 404,
+                    description: "Not found",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Server error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
+        ),
+    ]
+    public function delete($id)
     {
-        $validator = Validator::make($data, [
-            "email" => "required|string|email|max:255",
-            "username" => "required|string|max:50|unique:users",
-            "password" => "required|string|min:5|confirmed",
-            "name" => "required|string|max:50",
-            "surname" => "nullable|string|max:50",
-        ]);
+        $user = $this->userRepository->find($id);
+        if (empty($user)) {
+            return response()->json([], 404);
+        }
 
-        return $validator;
+        try {
+            $user->delete();
+        } catch (\Exception $e) {
+            // errore 500
+            return response()->json([
+                "message" => "Error during deleting user",
+                "error" => [
+                    "code" => 500,
+                    "message" => $e->getMessage(),
+                ],
+            ]);
+        }
+        return response()->json([], 204);
     }
 }

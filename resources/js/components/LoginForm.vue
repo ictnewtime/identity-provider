@@ -2,7 +2,7 @@
     <div class="d-flex justify-content-center align-items-center min-vh-100">
         <div class="col-10 col-sm-8 col-md-6 col-lg-4 col-xl-3 border px-3 py-4">
             <img class="w-100 mb-4" src="/images/logo.png" />
-            <form method="post" action="/v2/login" class="d-flex flex-column align-items-center">
+            <form method="post" action="/api/v2/login" class="d-flex flex-column align-items-center">
                 <input type="hidden" name="redirect" value="placeholder-redirect" />
                 <div class="form-group w-100">
                     <label for="inputUsername">Username</label>
@@ -71,7 +71,6 @@ export default {
             if (!this.validate) {
                 return;
             }
-            // get url
             const url = window.location.href;
             const urlParams = new URLSearchParams(url);
             const redirect = urlParams.get("redirect");
@@ -80,7 +79,7 @@ export default {
             }
             axios
                 .post(
-                    "/v2/login",
+                    "/api/v2/login",
                     {
                         username: vm.username,
                         password: vm.password,

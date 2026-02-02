@@ -36,7 +36,9 @@ class LoginController extends Controller
     public function authenticated()
     {
         $user = Auth::user();
-        if ($user->hasRoleId(config("role.admin_idp"))) {
+        // TODO: verificare che il ruolo dia all' interno della applicazione,
+        // tramite controllo del provider
+        if ($user->hasRoleId(config("role.admin"))) {
             return redirect()->route("admin-board");
         }
         return view("auth.logged");

@@ -33,3 +33,9 @@ php artisan cache:clear
 // php artisan config:show app
 php artisan optimize:clear
 ```
+
+# ri-creare swagger docs
+
+```php
+php artisan l5-swagger:generate
+```

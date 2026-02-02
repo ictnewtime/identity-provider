@@ -18,7 +18,8 @@ class ProviderUserRoleService
         $providerUser = ProviderUserRole::where("provider_id", $provider_id)
             ->where("user_id", $user->id)
             ->with("role")
-            // da role, ottenere solo id e name
+            // da provider_user_roles.role_id faccio join
+            // dalla tabella roles e seleziono id,name
             ->with("role:id,name")
             ->get()
             ->toArray();

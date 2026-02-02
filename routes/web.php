@@ -19,63 +19,63 @@ use App\Http\Controllers\Manage\UserController;
 use App\Http\Controllers\Manage\OauthClientsController;
 use App\Http\Controllers\Manage\RoleController;
 
-Route::get('/', function () {
-    return redirect('loginForm');
+Route::get("/", function () {
+    return redirect("loginForm");
 });
 
-Route::get('locale/{locale}', function ($locale) {
-    Session::put('locale', $locale);
+Route::get("locale/{locale}", function ($locale) {
+    Session::put("locale", $locale);
     return redirect()->back();
 });
 
-Route::middleware('guest')
-    ->get('loginForm', [LoginController::class, 'showLoginForm'])
-    ->name('loginForm');
+Route::middleware("guest")
+    ->get("loginForm", [LoginController::class, "showLoginForm"])
+    ->name("loginForm");
 
-Route::get('logout', [LoginController::class, 'logout'])->name('logout');
+Route::get("logout", [LoginController::class, "logout"])->name("logout");
 
-Route::middleware('web.authenticated')
-    ->get('authenticated', [LoginController::class, 'authenticated'])
-    ->name('authenticated');
+Route::middleware("web.authenticated")
+    ->get("authenticated", [LoginController::class, "authenticated"])
+    ->name("authenticated");
 
-Route::get('complete-registration', function () {
-    return view('auth.complete-registration-form');
-})->name('complete-registration');
+Route::get("complete-registration", function () {
+    return view("auth.complete-registration-form");
+})->name("complete-registration");
 
 /********* ADMIN ROUTES ************/
 
-Route::prefix('admin')->middleware('role:ADMIN_IDP')->group(function () {
+Route::prefix("admin")
+    ->middleware("role:admin")
+    ->group(function () {
+        Route::get("/", function () {
+            return redirect()->route("users-panel");
+        })->name("admin-board");
 
-    Route::get('/', function () {
-        return redirect()->route('users-panel');
-    })->name('admin-board');
+        Route::get("users-panel", function () {
+            return view("admin.users");
+        })->name("users-panel");
 
-    Route::post('users', [UserController::class, 'create']);
+        Route::get("create-provider", function () {
+            return view("admin.create-provider");
+        })->name("create-provider");
 
-    Route::get('users-panel', function () {
-        return view('admin.users');
-    })->name('users-panel');
+        Route::get("oauth-clients", function () {
+            return view("admin.oauth-clients");
+        })->name("oauth-clients");
 
-    Route::post('providers', [ProviderController::class, 'create'] );
+        Route::get("oauth-clients-all", [OauthClientsController::class, "all"]);
+        // Route::put("update-roles", [OauthClientsController::class, "updateClientRoles"]);
 
-    Route::get('create-provider', function () {
-        return view('admin.create-provider');
-    })->name('create-provider');
+        // Route::get("roles", [RoleController::class, "all"]);
+        // Route::post("roles", [RoleController::class, "create"]);
+        // Route::delete("roles/{id}", [RoleController::class, "delete"])->where(["id" => "[0-9]+"]);
 
-    Route::get('oauth-clients', function () {
-        return view('admin.oauth-clients');
-    })->name('oauth-clients');
+        // Route::get("users", [UserController::class, "all"]);
+        // Route::post("users", [UserController::class, "create"]);
 
-    Route::get('oauth-clients-all', [OauthClientsController::class, 'all']);
-    Route::put('update-roles', [OauthClientsController::class, 'updateClientRoles']);
+        // Route::post("providers", [ProviderController::class, "create"]);
 
-    Route::get('roles', [RoleController::class, 'all'] );
-    Route::post('roles', [RoleController::class, 'create'] );
-    Route::delete('roles/{id}', [RoleController::class, 'delete'] )->where(['id' => '[0-9]+']);
-
-    Route::get('users', [UserController::class, 'all'] );
-
-    Route::get('manage-role', function () {
-        return view('admin.create-role');
-    })->name('manage-role');
-});
+        Route::get("manage-role", function () {
+            return view("admin.create-role");
+        })->name("manage-role");
+    });

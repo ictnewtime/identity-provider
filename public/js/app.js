@@ -28403,14 +28403,13 @@ __webpack_require__.r(__webpack_exports__);
       if (!this.validate) {
         return;
       }
-      // get url
       var url = window.location.href;
       var urlParams = new URLSearchParams(url);
       var redirect = urlParams.get("redirect");
       if (redirect) {
         vm.redirect = redirect;
       }
-      axios.post("/v2/login", {
+      axios.post("/api/v2/login", {
         username: vm.username,
         password: vm.password,
         redirect: vm.redirect
@@ -29512,7 +29511,7 @@ var _hoisted_2 = {
 };
 var _hoisted_3 = {
   method: "post",
-  action: "/v2/login",
+  action: "/api/v2/login",
   "class": "d-flex flex-column align-items-center"
 };
 var _hoisted_4 = {

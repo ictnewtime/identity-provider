@@ -35,10 +35,10 @@ GET Requests
 - **/v1/logout** logout
   http://localhost:8000/loginForm?redirect=https://www.google.com
   http://localhost:8000/loginForm?redirect=https://telefoni.newtimegroup.it
-      <!-- curl -X POST http://localhost:8000/v2/login \
+  <!-- curl -X POST http://localhost:8000/v2/login \
        -d "username=mario.rossi@example.com" \
        -d "password=secret" -->
-    GET http://localhost:8000/v1/user?token=INCOLLA_QUI_IL_TOKEN
+  GET http://localhost:8000/v1/user?token=INCOLLA_QUI_IL_TOKEN
 
 POST Requests
 
@@ -47,7 +47,7 @@ POST Requests
 ### Views
 
 There is 1 default views: login form.
-There is also an admin section (**/admin**) through which you can manage idp system; the view is available for "ADMIN_IDP" user-role.
+There is also an admin section (**/admin**) through which you can manage idp system; the view is available for "admin" user-role.
 
 ### Database
 

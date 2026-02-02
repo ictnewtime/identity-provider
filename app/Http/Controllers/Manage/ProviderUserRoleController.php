@@ -3,65 +3,18 @@
 namespace App\Http\Controllers\Manage;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ProviderUserRoleRequest;
 use App\Models\ProviderUserRole;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 
 class ProviderUserRoleController extends Controller
 {
-    // public function __construct() {}
-
-    #[
-        OA\Post(
-            path: "/v1/provider-user-roles",
-            summary: "Create a new provider user role",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "ProviderUserRole.create",
-            tags: ["Provider User Roles"],
-            security: [["passport" => []]],
-            requestBody: new OA\RequestBody(
-                required: true,
-                content: new OA\MediaType(
-                    mediaType: "application/x-www-form-urlencoded",
-                    schema: new OA\Schema(
-                        type: "object",
-                        properties: [
-                            new OA\Property(property: "provider_id", description: "Provider id", type: "integer"),
-                            new OA\Property(property: "user_id", description: "User id", type: "integer"),
-                            new OA\Property(property: "role_id", description: "Role id", type: "integer"),
-                        ],
-                    ),
-                ),
-            ),
-        ),
-    ]
-    public function create(Request $request)
-    {
-        $data = $request->input(["provider_id", "user_id", "role_id"]);
-        $validator = $this->validator($data);
-
-        if ($validator->fails()) {
-            return response()->json(
-                [
-                    "message" => "The given data is invalid",
-                    "errors" => $validator->errors(),
-                ],
-                422,
-            );
-        }
-
-        ProviderUserRole::create($data);
-        if (empty($provider)) {
-            return response()->json(["message" => "Error creating the relation between provider user role"], 500);
-        }
-
-        return response()->json(["provider" => $provider], 201);
-    }
+    public function __construct() {}
 
     #[
         OA\Get(
-            path: "/v1/provider-user-roles",
+            path: "/api/v1/provider-user-roles",
             summary: "list of provider user roles",
             description: "Returns the entire list of provider user roles",
             operationId: "ProviderUserRole.all",
@@ -82,8 +35,61 @@ class ProviderUserRoleController extends Controller
     }
 
     #[
+        OA\Post(
+            path: "/api/v1/provider-user-roles",
+            summary: "Create a new provider user role",
+            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            operationId: "ProviderUserRole.create",
+            tags: ["Provider User Roles"],
+            security: [["passport" => []]],
+            requestBody: new OA\RequestBody(
+                required: true,
+                content: new OA\MediaType(
+                    mediaType: "application/x-www-form-urlencoded",
+                    schema: new OA\Schema(
+                        type: "object",
+                        properties: [
+                            new OA\Property(property: "provider_id", description: "Provider id", type: "integer"),
+                            new OA\Property(property: "user_id", description: "User id", type: "integer"),
+                            new OA\Property(property: "role_id", description: "Role id", type: "integer"),
+                        ],
+                    ),
+                ),
+            ),
+            responses: [
+                new OA\Response(
+                    response: 201,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 422,
+                    description: "Unprocessable Entity",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Internal Server Error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
+        ),
+    ]
+    public function create(ProviderUserRoleRequest $request)
+    {
+        $data = $request->validated();
+
+        $providerUserRole = ProviderUserRole::create($data);
+        if (empty($providerUserRole)) {
+            return response()->json(["message" => "Error creating the relation between provider user role"], 500);
+        }
+
+        return response()->json(["providerUserRole" => $providerUserRole], 201);
+    }
+
+    #[
         OA\Get(
-            path: "/v1/provider-user-roles/{id}",
+            path: "/api/v1/provider-user-roles/{id}",
             summary: "Returns provider user role by id",
             description: "Returns provider user role details by id",
             operationId: "ProviderUserRole.find",
@@ -116,12 +122,10 @@ class ProviderUserRoleController extends Controller
         return response()->json(["providerUserRole" => $providerUserRole], 200);
     }
 
-    /**
-     * update
-     */
+    // update
     #[
         OA\Put(
-            path: "/v1/provider-user-roles/{id}",
+            path: "/api/v1/provider-user-roles/{id}",
             summary: "Update provider user role by id",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
             operationId: "ProviderUserRole.update",
@@ -143,37 +147,57 @@ class ProviderUserRoleController extends Controller
                     schema: new OA\Schema(
                         type: "object",
                         properties: [
-                            new OA\Property(property: "provider_id", description: "Provider id", type: "integer"),
-                            new OA\Property(property: "user_id", description: "User id", type: "integer"),
-                            new OA\Property(property: "role_id", description: "Role id", type: "integer"),
+                            new OA\Property(
+                                property: "provider_id",
+                                description: "Provider id",
+                                type: "integer",
+                                example: "1",
+                            ),
+                            new OA\Property(property: "user_id", description: "User id", type: "integer", example: "1"),
+                            new OA\Property(property: "role_id", description: "Role id", type: "integer", example: "1"),
                         ],
                     ),
                 ),
             ),
+            responses: [
+                new OA\Response(
+                    response: 200,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 404,
+                    description: "Not found",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 422,
+                    description: "Unprocessable Entity",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Internal Server Error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
         ),
     ]
-    public function update($id, Request $request)
+    public function update($id, ProviderUserRoleRequest $request)
     {
-        $data = $request->input(["provider_id", "user_id", "role_id"]);
-        $validator = $this->validator($data);
+        $data = $request->validated();
 
-        if ($validator->fails()) {
-            return response()->json(
-                [
-                    "message" => "The given data is invalid",
-                    "errors" => $validator->errors(),
-                ],
-                422,
-            );
+        $providerUserRole = ProviderUserRole::where("id", $id)->first();
+        if (empty($providerUserRole)) {
+            return response()->json(["message" => "Provider user role not found"], 404);
         }
-
-        ProviderUserRole::where("id", $id)->update($data);
+        $providerUserRole->update($data);
         return response()->json(["message" => "Provider user role updated"], 200);
     }
 
     #[
         OA\Delete(
-            path: "/v1/provider-user-roles/{id}",
+            path: "/api/v1/provider-user-roles/{id}",
             summary: "Delete provider user role by id",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
             operationId: "ProviderUserRole.delete",
@@ -188,6 +212,18 @@ class ProviderUserRoleController extends Controller
                     schema: new OA\Schema(type: "string"),
                 ),
             ],
+            responses: [
+                new OA\Response(
+                    response: 204,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 404,
+                    description: "Not found",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
         ),
     ]
     public function delete($id)
@@ -198,17 +234,5 @@ class ProviderUserRoleController extends Controller
         }
         $providerUserRole->delete();
         return response()->json(["message" => "Provider user role deleted"], 204);
-    }
-
-    /*
-     * Returns the validator for user data
-     */
-    private function validator(array $data)
-    {
-        return Validator::make($data, [
-            "provider_id" => "required|exists:providers,id",
-            "user_id" => "required|exists:users,id",
-            "role_id" => "required|exists:roles,id",
-        ]);
     }
 }
