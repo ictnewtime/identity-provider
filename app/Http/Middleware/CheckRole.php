@@ -2,12 +2,11 @@
 
 namespace App\Http\Middleware;
 
-
 use Closure;
 use Illuminate\Support\Facades\Auth;
 
-class CheckRole {
-
+class CheckRole
+{
     /**
      * Handle an incoming request.
      *
@@ -18,20 +17,14 @@ class CheckRole {
     public function handle($request, Closure $next, $mandatoryRole)
     {
         if (!Auth::guard()->check()) {
-            return redirect('loginForm');
+            return redirect("loginForm");
         }
 
         $user = Auth::user();
-        $user->load('roles.role');
-        $userRoles = [];
-        foreach ($user->roles as $userRole) {
-            array_push($userRoles, $userRole->role->name);
-            if ($userRole->role->name === $mandatoryRole) {
-                return $next($request);
-            }
+        if ($user->hasRole($mandatoryRole)) {
+            return $next($request);
         }
 
-        return redirect('authenticated');
+        return redirect("authenticated");
     }
-
 }

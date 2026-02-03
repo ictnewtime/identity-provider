@@ -38,8 +38,9 @@ class LoginController extends Controller
         $user = Auth::user();
         // TODO: verificare che il ruolo dia all' interno della applicazione,
         // tramite controllo del provider
-        if ($user->hasRoleId(config("role.admin"))) {
-            return redirect()->route("admin-board");
+        $is_role_admin = $user->hasRole(config("role.admin"));
+        if ($is_role_admin) {
+            return redirect()->route("admin.board");
         }
         return view("auth.logged");
     }

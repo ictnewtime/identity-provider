@@ -36,7 +36,7 @@
             <div id="side-menu" class="h-100 position-fixed pt-2 px-0">
 
                 <div>
-                    <a href="{{ route('users-panel') }}" class="text-dark no-text-decoration">
+                    <a href="{{ route('web-users') }}" class="text-dark no-text-decoration">
                         <div class="d-flex py-4 border-bottom border-light align-items-center px-4 menu-item">
                             <div class="pr-3">
                                 <i class="fa fa-users fa-lg"></i>
@@ -47,7 +47,7 @@
                         </div>
                     </a>
 
-                    <a href="{{ route('manage-role') }}" class="text-dark no-text-decoration">
+                    <a href="{{ route('web-roles') }}" class="text-dark no-text-decoration">
                         <div class="d-flex py-4 border-bottom border-light align-items-center px-4 menu-item">
                             <div class="pr-3">
                                 <i class="fa fa-key fa-lg"></i>
@@ -69,7 +69,7 @@
                         </div>
                     </a> -->
 
-                    <a href="{{ route('create-provider') }}" class="text-dark no-text-decoration">
+                    <a href="{{ route('web-providers') }}" class="text-dark no-text-decoration">
                         <div class="d-flex py-4 border-bottom border-light align-items-center px-4 menu-item">
                             <div class="pr-3">
                                 <i class="fa fa-server fa-lg"></i>

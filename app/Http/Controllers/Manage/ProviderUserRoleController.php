@@ -235,4 +235,28 @@ class ProviderUserRoleController extends Controller
         $providerUserRole->delete();
         return response()->json(["message" => "Provider user role deleted"], 204);
     }
+
+    public function hasRelation(Request $request)
+    {
+        // checkprovider_id or user_id or role_id possono essere null
+        $provider_id = $request->input("provider_id");
+        $user_id = $request->input("user_id");
+        $role_id = $request->input("role_id");
+
+        // se tutti sono null
+        if (empty($provider_id) && empty($user_id) && empty($role_id)) {
+            return response()->json(["message" => "All fields are null"], 400);
+        }
+
+        // se ance solo un campo non e' null
+        if (!empty($provider_id) || !empty($user_id) || !empty($role_id)) {
+            $providerUserRole = ProviderUserRole::where("provider_id", $provider_id)
+                ->where("user_id", $user_id)
+                ->where("role_id", $role_id)
+                // get array
+                ->get();
+
+            return response()->json(["data" => $providerUserRole], 200);
+        }
+    }
 }

@@ -79,7 +79,7 @@ export default {
             }
             axios
                 .post(
-                    "/api/v2/login",
+                    "/admin/v2/login",
                     {
                         username: vm.username,
                         password: vm.password,

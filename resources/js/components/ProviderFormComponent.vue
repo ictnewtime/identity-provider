@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div id="create-provider-container" class="pb-4">
+        <div id="providers-container" class="pb-4">
             <div
                 class="d-flex flex-column flex-lg-row justify-content-start justify-content-lg-between align-items-lg-center mb-5"
             >
@@ -94,7 +94,7 @@ export default {
 
             let vm = this;
             axios
-                .post("/admin/providers", {
+                .post("/admin/v1/providers", {
                     domain: vm.form.domain,
                     logoutUrl: vm.form.logoutUrl,
                     secretKey: vm.form.secretKey,

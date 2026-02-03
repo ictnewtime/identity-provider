@@ -27,6 +27,8 @@
     "vue-template-compiler": "^2.7.16"
   },
   "dependencies": {
-    "mitt": "^3.0.1"
+    "@primeuix/themes": "^2.0.3",
+    "mitt": "^3.0.1",
+    "primevue": "^4.5.4"
   }
 }

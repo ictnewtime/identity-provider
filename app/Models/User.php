@@ -34,8 +34,14 @@ class User extends Authenticatable implements JWTSubject
 
     public function roles()
     {
-        $user_roles = $this->hasMany(UserRole::class, "user_id");
-        return $user_roles;
+        // $user_roles = $this->hasMany(UserRole::class, "user_id");
+        $provider_id = config("app.provider_id");
+        $provider_user_roles = ProviderUserRole::where("user_id", $this->id)
+            ->where("provider_id", $provider_id)
+            ->with("role")
+            ->get();
+
+        return $provider_user_roles;
     }
 
     /**
@@ -58,10 +64,26 @@ class User extends Authenticatable implements JWTSubject
         return [];
     }
 
-    public function hasRoleId($roleid)
+    /**
+     * check if user has a specific role
+     * the role can be a string(ex. admin) or an int(ex. 1)
+     * @param $role
+     */
+    public function hasRole($role)
     {
-        foreach ($this->roles as $userRole) {
-            if ($userRole->role_id === $roleid) {
+        if (is_string($role)) {
+            $role_id = Role::where("name", $role)->first()->id;
+        } else {
+            $role_id = $role;
+        }
+        $provider_id = config("app.provider_id");
+
+        $provider_user_roles = ProviderUserRole::where("user_id", $this->id)
+            ->where("provider_id", $provider_id)
+            ->with("role")
+            ->get();
+        foreach ($provider_user_roles as $provider_user_role) {
+            if ($provider_user_role->role->id == $role_id) {
                 return true;
             }
         }

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
+use App\Models\User;
 use App\Repositories\RepositoryInterface;
 use Illuminate\Support\Facades\Validator;
 use App\Repositories\UserRepositoryInterface;
@@ -50,9 +51,28 @@ class UserController extends Controller
     ]
     public function all(Request $request)
     {
-        $query = $request->input("q");
+        $query = User::query();
 
-        return $this->userRepository->all($query);
+        // 1. Ricerca (Filter)
+        if ($request->filled("q")) {
+            $query->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
+        }
+
+        // 2. Ordinamento (OrderBy)
+        // PrimeVue invia sortField (stringa) e sortOrder (1 per ASC, -1 per DESC)
+        if ($request->filled("sortField")) {
+            $field = $request->sortField;
+            $direction = $request->sortOrder == 1 ? "asc" : "desc";
+            $query->orderBy($field, $direction);
+        } else {
+            $query->orderBy("created_at", "desc");
+        }
+
+        // 3. Paginazione
+        $perPage = $request->get("per_page", 10);
+        $users = $query->paginate($perPage);
+
+        return response()->json($users);
     }
 
     #[

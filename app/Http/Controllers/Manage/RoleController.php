@@ -110,7 +110,8 @@ class RoleController extends Controller
         $data = $request->only("name", "provider_id");
 
         try {
-            $role = $this->roleRepository->create($data);
+            // $role = $this->roleRepository->create($data);
+            $role = Role::create($data);
 
             return response()->json($role, 201);
         } catch (QueryException $e) {

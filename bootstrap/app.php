@@ -19,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__ . "/../routes/api.php",
         commands: __DIR__ . "/../routes/console.php",
         health: "/up",
-        // --- AGGIUNGI QUESTA SEZIONE 'then' ---
+        // ------------------------------------------------------
         // then: function () {
         //     Route::middleware("web")
         //         // ->prefix('idp')
@@ -27,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         //     // Route::group(base_path('routes/idp.php'));
         //     // idp: __DIR__.'/../routes/idp.php',
         // },
-        // --------------------------------------
+        // ------------------------------------------------------
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: ["v2/login", "api/*"]);

@@ -20,36 +20,6 @@
                         }}</small>
                     </div>
                     <div class="form-group col-lg-6 col-md-6 col-sm-12">
-                        <label for="input-password">Password</label>
-                        <input
-                            type="password"
-                            v-bind:class="'form-control ' + (validator.password.length > 0 ? 'is-invalid' : '')"
-                            id="input-password"
-                            placeholder="Password"
-                            name="password"
-                            v-model="form.password"
-                        />
-                        <small class="form-text text-danger">{{
-                            validator.password.length > 0 ? validator.password[0] : ""
-                        }}</small>
-                    </div>
-                    <div class="form-group col-lg-6 col-md-6 col-sm-12">
-                        <label for="input-password-confirmation">Conferma Password</label>
-                        <input
-                            type="password"
-                            v-bind:class="
-                                'form-control ' + (validator.password_confirmation.length > 0 ? 'is-invalid' : '')
-                            "
-                            id="input-password-confirmation"
-                            placeholder="Password"
-                            name="password_confirmation"
-                            v-model="form.password_confirmation"
-                        />
-                        <small class="form-text text-danger">{{
-                            validator.password_confirmation.length > 0 ? validator.password_confirmation[0] : ""
-                        }}</small>
-                    </div>
-                    <div class="form-group col-lg-6 col-md-6 col-sm-12">
                         <label for="input-email">Email</label>
                         <input
                             type="text"
@@ -90,6 +60,36 @@
                         />
                         <small class="form-text text-muted">{{
                             validator.surname.length > 0 ? validator.surname[0] : ""
+                        }}</small>
+                    </div>
+                    <div class="form-group col-lg-6 col-md-6 col-sm-12">
+                        <label for="input-password">Password</label>
+                        <input
+                            type="password"
+                            v-bind:class="'form-control ' + (validator.password.length > 0 ? 'is-invalid' : '')"
+                            id="input-password"
+                            placeholder="Password"
+                            name="password"
+                            v-model="form.password"
+                        />
+                        <small class="form-text text-danger">{{
+                            validator.password.length > 0 ? validator.password[0] : ""
+                        }}</small>
+                    </div>
+                    <div class="form-group col-lg-6 col-md-6 col-sm-12">
+                        <label for="input-password-confirmation">Conferma Password</label>
+                        <input
+                            type="password"
+                            v-bind:class="
+                                'form-control ' + (validator.password_confirmation.length > 0 ? 'is-invalid' : '')
+                            "
+                            id="input-password-confirmation"
+                            placeholder="Password"
+                            name="password_confirmation"
+                            v-model="form.password_confirmation"
+                        />
+                        <small class="form-text text-danger">{{
+                            validator.password_confirmation.length > 0 ? validator.password_confirmation[0] : ""
                         }}</small>
                     </div>
                 </div>
@@ -230,8 +230,9 @@ export default {
             }
 
             let vm = this;
+            const url = window.location.origin + "/api/v1/users";
             axios
-                .post("/admin/users", {
+                .post(url, {
                     username: vm.form.username,
                     password: vm.form.password,
                     password_confirmation: vm.form.password_confirmation,
@@ -306,8 +307,9 @@ export default {
             let vm = this;
             this.loading = true;
 
+            const url = window.location.origin + "/api/v1/users?page=" + page;
             axios
-                .get("/admin/users", {
+                .get(url, {
                     params: {
                         page: page,
                         q: vm.filterUserInput,

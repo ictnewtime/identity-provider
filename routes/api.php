@@ -23,44 +23,41 @@ Route::prefix("v1")->group(function () {
     // middleware client per le rotte protetto dalla classe CheckClientCredentials
     // di Passport
 
-    // Route::middleware(["client", "checkclientrole:admin"])->group(function () {});
+    Route::middleware(["client"])->group(function () {
+        // providers
+        Route::get("providers", [ProviderController::class, "all"]);
+        Route::post("providers", [ProviderController::class, "create"]);
+        Route::get("providers/{id}", [ProviderController::class, "find"])->where(["id" => "[0-9]+"]);
+        Route::put("providers/{id}", [ProviderController::class, "update"])->where(["id" => "[0-9]+"]);
+        Route::delete("providers/{id}", [ProviderController::class, "delete"])->where(["id" => "[0-9]+"]);
 
-    // providers
-    Route::get("providers", [ProviderController::class, "all"]);
-    Route::post("providers", [ProviderController::class, "create"]);
-    Route::get("providers/{id}", [ProviderController::class, "find"])->where(["id" => "[0-9]+"]);
-    Route::put("providers/{id}", [ProviderController::class, "update"])->where(["id" => "[0-9]+"]);
-    Route::delete("providers/{id}", [ProviderController::class, "delete"])->where(["id" => "[0-9]+"]);
+        // roles
+        Route::get("roles", [RoleController::class, "all"]);
+        Route::post("roles", [RoleController::class, "create"]);
+        Route::get("roles/{id}", [RoleController::class, "find"])->where(["id" => "[0-9]+"]);
+        Route::put("roles/{id}", [RoleController::class, "update"])->where(["id" => "[0-9]+"]);
+        Route::delete("roles/{id}", [RoleController::class, "delete"])->where(["id" => "[0-9]+"]);
 
-    // roles
-    Route::get("roles", [RoleController::class, "all"]);
-    Route::post("roles", [RoleController::class, "create"]);
-    Route::get("roles/{id}", [RoleController::class, "find"])->where(["id" => "[0-9]+"]);
-    Route::put("roles/{id}", [RoleController::class, "update"])->where(["id" => "[0-9]+"]);
-    Route::delete("roles/{id}", [RoleController::class, "delete"])->where(["id" => "[0-9]+"]);
+        // users
+        Route::get("users", [UserController::class, "all"]);
+        Route::get("users/{id}", [UserController::class, "find"])->where(["id" => "[0-9]+"]);
+        Route::put("users/{id}", [UserController::class, "update"])->where(["id" => "[0-9]+"]);
+        Route::delete("users/{id}", [UserController::class, "delete"])->where(["id" => "[0-9]+"]);
 
-    // users
-    Route::get("users", [UserController::class, "all"]);
-    Route::get("users/{id}", [UserController::class, "find"])->where(["id" => "[0-9]+"]);
-    Route::put("users/{id}", [UserController::class, "update"])->where(["id" => "[0-9]+"]);
-    Route::delete("users/{id}", [UserController::class, "delete"])->where(["id" => "[0-9]+"]);
-
-    // provider-user-roles
-    Route::get("provider-user-roles", [ProviderUserRoleController::class, "all"]);
-    Route::post("provider-user-roles", [ProviderUserRoleController::class, "create"]);
-    Route::get("provider-user-roles/{id}", [ProviderUserRoleController::class, "find"])->where([
-        "id" => "[0-9]+",
-    ]);
-    Route::put("provider-user-roles/{id}", [ProviderUserRoleController::class, "update"])->where([
-        "id" => "[0-9]+",
-    ]);
-    Route::delete("provider-user-roles/{id}", [ProviderUserRoleController::class, "delete"])->where([
-        "id" => "[0-9]+",
-    ]);
-});
-
-Route::prefix("v2")->group(function () {
-    Route::middleware("web")
-        ->post("login", [LoginController::class, "login"])
-        ->name("login");
+        // provider-user-roles
+        Route::get("provider-user-roles", [ProviderUserRoleController::class, "all"]);
+        Route::post("provider-user-roles", [ProviderUserRoleController::class, "create"]);
+        Route::get("provider-user-roles/{id}", [ProviderUserRoleController::class, "find"])->where([
+            "id" => "[0-9]+",
+        ]);
+        Route::put("provider-user-roles/{id}", [ProviderUserRoleController::class, "update"])->where([
+            "id" => "[0-9]+",
+        ]);
+        Route::delete("provider-user-roles/{id}", [ProviderUserRoleController::class, "delete"])->where([
+            "id" => "[0-9]+",
+        ]);
+        // provider-user-roles/has-relation?provider_id=1&user_id=1
+        // provider-user-roles/has-relation?role_id=1
+        Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
+    });
 });
