@@ -1,7 +1,10 @@
 name: Deploy IDP to Stage
 run-name: Deploying ${{ gitea.actor }} push to Stage
 
-on: workflow_dispatch
+on:
+    push:
+        branches:
+            - staging
 
 jobs:
     ansible-deploy:
