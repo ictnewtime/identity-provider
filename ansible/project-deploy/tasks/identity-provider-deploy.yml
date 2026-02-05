@@ -17,6 +17,8 @@
       image: "{{ registry_url }}/{{ identity_provider_path }}:{{ image_tag }}"
       state: started
       restart_policy: always
+      published_ports:
+          - "{{ internal_container_port }}:80"
       networks:
           - name: database-network
 
