@@ -1,0 +1,54 @@
+name: Deploy IDP to Stage
+run-name: Deploying ${{ gitea.actor }} push to Stage
+
+on:
+    push:
+        branches:
+            - staging
+
+jobs:
+    ansible-deploy:
+        runs-on: self-hosted
+        environment: main
+        container:
+            image: dockerhub.newtimegroup.it/ci-runner:v1
+            credentials:
+                username: ${{ secrets.REGISTRY_USER }}
+                password: ${{ secrets.REGISTRY_PASS }}
+
+        steps:
+            - name: 📡 Checkout repository
+              uses: actions/checkout@v3
+
+            - name: 🔑 Setup SSH
+              uses: webfactory/ssh-agent@v0.8.0
+              with:
+                  ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+
+            - name: 📝 Create Inventory File
+              run: |
+                  echo "[builder]" > inventory
+                  echo "localhost ansible_connection=local" >> inventory
+                  echo "" >> inventory
+                  echo "[stage]" >> inventory
+                  echo "${{ secrets.STAGING_HOST_IP }} ansible_user=${{ secrets.STAGING_SSH_USER }} ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory
+
+            - name: 🚀 Run Ansible Playbook
+              run: |
+                  RAW_BRANCH="${{ gitea.ref_name }}"
+
+                  CLEAN_TAG=$(echo "$RAW_BRANCH" | sed 's/\//-/g')
+
+                  echo "🏷️  Docker Tag sarà: $CLEAN_TAG"
+
+                  GIT_AUTH_URL="https://${{ gitea.actor }}:${{ secrets.GITHUB_TOKEN }}@gitea.newtimegroup.it/${{ gitea.repository }}.git"
+
+                  ansible-playbook -i inventory ansible/deploy.playbook.yml \
+                    --extra-vars "git_repo_url=$GIT_AUTH_URL" \
+                    --extra-vars "git_branch=$CLEAN_TAG" \
+                    --extra-vars "docker_image_tag=$CLEAN_TAG" \
+                    --extra-vars "infisical_token=${{ secrets.INFISICAL_TOKEN }}" \
+                    --extra-vars "infisical_project_id=${{ secrets.INFISICAL_PROJECT_ID }}" \
+                    --extra-vars "infisical_env=stage" \
+                    --extra-vars "registry_user=${{ secrets.REGISTRY_USER }}" \
+                    --extra-vars "registry_pass=${{ secrets.REGISTRY_PASS }}"

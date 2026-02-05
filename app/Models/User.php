@@ -5,11 +5,16 @@ namespace App\Models;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Laravel\Passport\Contracts\OAuthenticatable;
+use Laravel\Passport\HasApiTokens;
+use App\Models\UserRole;
 
+//, OAuthenticatable
 class User extends Authenticatable implements JWTSubject
 {
-
-    use Notifiable;
+    //HasApiTokens,
+    use HasApiTokens, HasFactory, Notifiable;
 
     public $timestamps = false;
 
@@ -18,24 +23,26 @@ class User extends Authenticatable implements JWTSubject
      *
      * @var array
      */
-    protected $fillable = [
-        'email', 'name', 'surname', 'is_verified', 'password'
-    ];
+    protected $fillable = ["username", "password", "email", "name", "surname", "is_verified"];
 
     /**
      * The attributes that should be hidden for arrays.
      *
      * @var array
      */
-    protected $hidden = [
-        'password', 'remember_token',
-    ];
+    protected $hidden = ["password", "remember_token"];
 
     public function roles()
     {
-        return $this->hasMany('App\Models\UserRole', 'user_id');
-    }
+        // $user_roles = $this->hasMany(UserRole::class, "user_id");
+        $provider_id = config("app.provider_id");
+        $provider_user_roles = ProviderUserRole::where("user_id", $this->id)
+            ->where("provider_id", $provider_id)
+            ->with("role")
+            ->get();
 
+        return $provider_user_roles;
+    }
 
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
@@ -54,6 +61,32 @@ class User extends Authenticatable implements JWTSubject
      */
     public function getJWTCustomClaims()
     {
-        return array();
+        return [];
+    }
+
+    /**
+     * check if user has a specific role
+     * the role can be a string(ex. admin) or an int(ex. 1)
+     * @param $role
+     */
+    public function hasRole($role)
+    {
+        if (is_string($role)) {
+            $role_id = Role::where("name", $role)->first()->id;
+        } else {
+            $role_id = $role;
+        }
+        $provider_id = config("app.provider_id");
+
+        $provider_user_roles = ProviderUserRole::where("user_id", $this->id)
+            ->where("provider_id", $provider_id)
+            ->with("role")
+            ->get();
+        foreach ($provider_user_roles as $provider_user_role) {
+            if ($provider_user_role->role->id == $role_id) {
+                return true;
+            }
+        }
+        return false;
     }
 }

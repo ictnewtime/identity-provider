@@ -46,6 +46,6 @@ class RoleRepository extends BaseRepository
      */
     public function update(int $id, array $data)
     {
-        return Role::where('id', $id)->update($data);
+        return Role::where("id", $id)->update($data);
     }
 }

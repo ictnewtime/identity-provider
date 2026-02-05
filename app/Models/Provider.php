@@ -8,7 +8,6 @@
 
 namespace App\Models;
 
-
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -16,13 +15,12 @@ use Illuminate\Database\Eloquent\Model;
  * @package App\Models
  *
  * @property string $domain
- * @property string $username
- * @property string $password
+ * @property string $secret_key
  * @property string $logoutUrl
  */
-class Provider extends Model {
-
-    protected $table = 'providers';
+class Provider extends Model
+{
+    protected $table = "providers";
 
     public $timestamps = false;
 
@@ -31,8 +29,12 @@ class Provider extends Model {
      *
      * @var array
      */
-    protected $fillable = [
-        'domain', 'logoutUrl', 'username', 'password'
-    ];
+    protected $fillable = ["domain", "logoutUrl", "secret_key"];
 
+    /**
+     * The attributes that should be hidden for arrays.
+     *
+     * @var array
+     */
+    protected $hidden = ["secret_key"];
 }

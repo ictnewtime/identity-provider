@@ -17,7 +17,6 @@ class LogLoginListener implements ShouldQueue {
 
         $user = $event->getUser();
         $ip = $event->getIp();
-
         $message = json_encode([
             'ip'     => $ip,
             'userId' => $user->id,

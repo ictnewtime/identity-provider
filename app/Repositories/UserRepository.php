@@ -16,11 +16,13 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
     public function create(array $data)
     {
         return User::create([
-            'email' => $data['email'],
-            'name' => $data['name'],
-            'surname' => isset($data['surname']) ? $data['surname'] : null,
-            'password' => isset($data['password']) ? bcrypt($data['password']) : null,
-            'is_verified' => false,
+            "username" => $data["username"],
+            "email" => $data["email"],
+            "name" => $data["name"],
+            "surname" => isset($data["surname"]) ? $data["surname"] : null,
+            "password" => isset($data["password"]) ? bcrypt($data["password"]) : null,
+            // TODO: implement email verification if required
+            "is_verified" => true,
         ]);
     }
 
@@ -47,8 +49,7 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
             return User::paginate(10);
         }
 
-        return User::where('email', 'like', '%' . $query . '%')
-            ->paginate(10);
+        return User::where("email", "like", "%" . $query . "%")->paginate(10);
     }
 
     /**
@@ -60,6 +61,6 @@ class UserRepository extends BaseRepository implements UserRepositoryInterface
      */
     public function update(int $id, array $data)
     {
-        return User::where('id', $id)->update($data);
+        return User::where("id", $id)->update($data);
     }
 }
