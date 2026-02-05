@@ -10,18 +10,10 @@ services:
     #   - DB_HOST=mariadb
     #   - DB_PORT=3306
     #   - DB_DATABASE=idp
-    volumes:
-      # Uncomment next line for development mode (will override permissions)
-      - ./:/var/www
-      # - ./storage:/var/www/storage
     ports:
       - "8000:80"
     networks:
       - database-network
-
-volumes:
-  mariadb:
-    external: true
 
 networks:
   database-network:
