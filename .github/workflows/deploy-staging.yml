@@ -23,7 +23,7 @@ jobs:
             - name: 🔑 Setup SSH
               uses: webfactory/ssh-agent@v0.8.0
               with:
-                  ssh-private-key: ${{ secrets.STAGE_SSH_KEY }}
+                  ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
 
             - name: 📝 Create Inventory File
               run: |
@@ -31,7 +31,7 @@ jobs:
                   echo "localhost ansible_connection=local" >> inventory
                   echo "" >> inventory
                   echo "[stage]" >> inventory
-                  echo "${{ secrets.STAGE_HOST_IP }} ansible_user=${{ secrets.STAGE_SSH_USER }} ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory
+                  echo "${{ secrets.STAGING_HOST_IP }} ansible_user=${{ secrets.STAGING_SSH_USER }} ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory
 
             - name: 🚀 Run Ansible Playbook
               run: |
