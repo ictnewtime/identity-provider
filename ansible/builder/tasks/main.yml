@@ -1,0 +1,23 @@
+---
+- name: Setup local build directory
+  ansible.builtin.file:
+      path: "{{ local_src_dir }}"
+      state: directory
+      mode: "0755"
+
+- name: Git Checkout del repository
+  ansible.builtin.git:
+      repo: "{{ git_repo_url }}"
+      dest: "{{ local_src_dir }}"
+      version: "{{ git_branch | default('main') }}"
+      force: yes
+      accept_hostkey: yes
+
+- name: Login al Docker Registry privato
+  community.docker.docker_login:
+      registry_url: "{{ registry_url }}"
+      username: "{{ registry_user }}"
+      password: "{{ registry_pass }}"
+
+- name: "Build identity-provider image"
+  import_tasks: identity-provider.yml

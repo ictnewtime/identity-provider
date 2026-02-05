@@ -1,0 +1,30 @@
+---
+- name: Estrazione variabili ENV da Infisical (per runtime sul server)
+  ansible.builtin.shell: |
+      infisical export --projectId {{ infisical_project_id }} --env {{ infisical_env }} --path "/{{ identity_provider_path }}" --format dotenv > {{ local_src_dir }}/{{ lead_consumer_path }}/.env
+  environment:
+      INFISICAL_TOKEN: "{{ infisical_token }}"
+      INFISICAL_API_URL: "{{ infisical_url }}"
+  #no_log: true # Nasconde il token dai log
+  register: infisical_result
+  ignore_errors: true # Non bloccare subito, vogliamo vedere l'errore
+
+- name: Build dell'immagine Docker di identity-provider
+  community.docker.docker_image:
+      build:
+          path: "{{ local_src_dir }}/{{ identity_provider_path }}"
+          dockerfile: "Dockerfile"
+          pull: yes
+          nocache: true
+      name: "{{ registry_url }}/{{ identity_provider_path }}"
+      tag: "{{ image_tag }}"
+      push: yes
+      source: build
+      force_source: true
+
+- name: Rimuovi l'immagine dal server di build
+  community.docker.docker_image:
+      name: "{{ registry_url }}/{{ identity_provider_path }}"
+      tag: "{{ image_tag }}"
+      state: absent
+      force_absent: yes # Forza la rimozione anche se usata da container fermi

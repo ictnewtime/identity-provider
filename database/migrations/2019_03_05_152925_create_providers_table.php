@@ -11,13 +11,13 @@ class CreateProvidersTable extends Migration
      *
      * @return void
      */
-    public function up() {
-        Schema::create('providers', function (Blueprint $table) {
-            $table->increments('id');
-            $table->string('domain')->unique();
-            $table->string('username');
-            $table->string('password');
-            $table->string('logoutUrl');
+    public function up()
+    {
+        Schema::create("providers", function (Blueprint $table) {
+            $table->increments("id");
+            $table->string("domain")->unique();
+            $table->string("secret_key");
+            $table->string("logoutUrl");
         });
     }
 
@@ -26,7 +26,8 @@ class CreateProvidersTable extends Migration
      *
      * @return void
      */
-    public function down() {
-        Schema::dropIfExists('providers');
+    public function down()
+    {
+        Schema::dropIfExists("providers");
     }
 }

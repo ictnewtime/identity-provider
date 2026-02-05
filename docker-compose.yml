@@ -23,34 +23,35 @@ services:
     networks:
       - laravel
     depends_on:
-      - mysql
-      - redis
+      - mariadb
+      # - redis
 
-  mysql:
-    image: mysql:8.0
-    container_name: laravel_jwt_idp_mysql
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
     restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: newtime_idp
-      MYSQL_ROOT_PASSWORD: 123
-      MYSQL_PASSWORD: 123
-      MYSQL_USER: laravel
+    tty: true
     ports:
       - "3306:3306"
+    environment:
+      MYSQL_DATABASE: idp
+      MYSQL_USER: root
+      MYSQL_ROOT_PASSWORD: 123
     volumes:
-      - dbdata:/var/lib/mysql
+      #nota: è sato creato un volume per la persistenza dei dati
+      # con nome mariadb_data
+      - mariadb_data:/var/lib/mysql
     networks:
       - laravel
-    command: --default-authentication-plugin=mysql_native_password
 
-  redis:
-    image: redis:7-alpine
-    container_name: laravel_jwt_idp_redis
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    networks:
-      - laravel
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: laravel_jwt_idp_redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - laravel
 
 volumes:
   dbdata:

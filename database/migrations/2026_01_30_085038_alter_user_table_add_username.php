@@ -13,7 +13,7 @@ return new class extends Migration {
         //
         Schema::table("users", function (Blueprint $table) {
             // email can be duplicated
-            $table->string("email")->unique(false)->change();
+            // $table->string("email")->unique(false)->change();
             // creo il campo username e copio i valori della colonna email nella colonna username
             // con il comando
             // php artisan app:copy-column table:users email username

@@ -1,0 +1,18 @@
+---
+# Configurazioni Progetto
+project_name: "identity-provider"
+local_src_dir: "/tmp/build_{{ project_name }}"
+remote_dest_dir: "/opt/{{ project_name }}"
+
+infisical_url: "https://infisical.newtimegroup.it"
+# Configurazioni Docker Registry
+registry_url: "dockerhub.newtimegroup.it"
+image_name: "{{ registry_url }}/{{ project_name }}"
+image_tag: "{{ docker_image_tag | default('latest') }}"
+
+target_host_port: "{{ host_port | default('8080') }}"
+
+internal_container_port: 8000
+
+identity_provider_path: "identity-provider"
+identity_provider_container_name: "identity-provider"
