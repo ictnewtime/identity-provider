@@ -1,7 +1,7 @@
 ---
 - name: Estrazione variabili ENV da Infisical (per runtime sul server)
   ansible.builtin.shell: |
-      infisical export --projectId {{ infisical_project_id }} --env {{ infisical_env }} --path "/{{ identity_provider_path }}" --format dotenv > {{ local_src_dir }}/{{ lead_consumer_path }}/.env
+      infisical export --projectId {{ infisical_project_id }} --env {{ infisical_env }} --format dotenv > {{ local_src_dir }}/.env
   environment:
       INFISICAL_TOKEN: "{{ infisical_token }}"
       INFISICAL_API_URL: "{{ infisical_url }}"
@@ -12,7 +12,7 @@
 - name: Build dell'immagine Docker di identity-provider
   community.docker.docker_image:
       build:
-          path: "{{ local_src_dir }}/{{ identity_provider_path }}"
+          path: "{{ local_src_dir }}"
           dockerfile: "Dockerfile"
           pull: yes
           nocache: true
