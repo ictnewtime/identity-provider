@@ -18,7 +18,7 @@
       state: started
       restart_policy: always
       networks:
-          - name: bridge
+          - name: database-network
 
 - name: Rimuovi immagini "dangling" (layer orfani)
   community.docker.docker_prune:
