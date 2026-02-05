@@ -6,8 +6,6 @@ use Illuminate\Support\Facades\Config;
 
 class ProviderRepository extends BaseRepository
 {
-
-
     /**
      * Creates and returns a provider..
      *
@@ -16,13 +14,12 @@ class ProviderRepository extends BaseRepository
      */
     public function create(array $data)
     {
-        $logoutUrl = $data['logoutUrl'] ?: 'https://' . $data['domain'] . Config::get('app.default_provider_logout');
+        $logoutUrl = $data["logoutUrl"] ?: "https://" . $data["domain"] . Config::get("app.default_provider_logout");
 
         return Provider::create([
-            'domain' => $data['domain'],
-            'username' => encrypt($data['username']),
-            'password' => encrypt($data['password']),
-            'logoutUrl' => $logoutUrl
+            "domain" => $data["domain"],
+            "secret_key" => encrypt($data["secretKey"]),
+            "logoutUrl" => $logoutUrl,
         ]);
     }
 
@@ -56,6 +53,6 @@ class ProviderRepository extends BaseRepository
      */
     public function update(int $id, array $data)
     {
-        return Provider::where('id', $id)->update($data);
+        return Provider::where("id", $id)->update($data);
     }
 }

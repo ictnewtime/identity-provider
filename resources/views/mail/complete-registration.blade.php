@@ -4,7 +4,7 @@
     @section('body')
         <div class="px-5">
             <h1>Completa la registrazione</h1>
-            <p>Hai ricevuto questa e-mail in seguito alla registrazione da parte di un collaboratore Zanichelli.</p>
+            <p>Hai ricevuto questa e-mail in seguito alla registrazione da parte di un collaboratore Newtime.</p>
 
             <p class="mb-0">Di seguito trovi i tuoi dati.</p>
             <div>

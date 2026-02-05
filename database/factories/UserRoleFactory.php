@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Role;
+use App\Models\User;
 use Faker\Generator as Faker;
 
 /*
@@ -15,7 +17,7 @@ use Faker\Generator as Faker;
 
 $factory->define(App\Models\UserRole::class, function (Faker $faker) {
     return [
-        'role_id' => 1,
-        'user_id' => 1
+        'role_id' => Role::factory(),
+        'user_id' => User::factory(),
     ];
 });

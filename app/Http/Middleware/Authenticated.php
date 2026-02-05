@@ -8,7 +8,7 @@ use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
-
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class Authenticated {
 
@@ -22,11 +22,9 @@ class Authenticated {
     public function handle($request, Closure $next)
     {
         try {
-
-            if (! $user = auth()->checkOrFail()) {
-                return response()->json([
-                    'message' =>  __('auth.user-error')
-                ], 404);
+            $user = JWTAuth::parseToken()->authenticate();
+            if (! $user) {
+                return response()->json(['message' => 'User not found'], 404);
             }
 
         } catch (TokenExpiredException $e) {

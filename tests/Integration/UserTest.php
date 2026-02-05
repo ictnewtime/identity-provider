@@ -178,7 +178,7 @@ class UserTest extends TestCase
             'errors' => [
                 'email'
             ]
-        ]);;
+        ]);
     }
 
     /**

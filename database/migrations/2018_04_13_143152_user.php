@@ -13,22 +13,20 @@ class User extends Migration
      */
     public function up()
     {
+        Schema::create("users", function (Blueprint $table) {
+            // $table->engine = 'InnoDB';
+            // $table->charset = 'utf8';
+            // $table->collation = 'utf8_unicode_ci';
 
-        Schema::create('users', function (Blueprint $table) {
-
-            $table->engine = 'InnoDB';
-            $table->charset = 'utf8';
-            $table->collation = 'utf8_unicode_ci';
-
-            $table->increments('id');
-            $table->string('email', 60)->nullable();
-            $table->string('password')->nullable();
-            $table->boolean('is_verified')->default(false);
-            $table->string('name', 50);
-            $table->string('surname', 50);
+            $table->increments("id");
+            $table->string("email", 60)->nullable();
+            $table->string("password")->nullable();
+            $table->boolean("is_verified")->default(false);
+            $table->string("name", 50);
+            $table->string("surname", 50);
             $table->rememberToken();
-            $table->timestamp('created_at')->useCurrent();
-            $table->timestamp('updated_at')->nullable();
+            $table->timestamp("created_at")->useCurrent();
+            $table->timestamp("updated_at")->nullable();
         });
     }
 
@@ -39,6 +37,6 @@ class User extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('users');
+        Schema::dropIfExists("users");
     }
 }
