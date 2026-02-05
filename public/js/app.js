@@ -35183,7 +35183,7 @@ __webpack_require__.r(__webpack_exports__);
       if (redirect) {
         vm.redirect = redirect;
       }
-      axios.post("/admin/v2/login", {
+      axios.post("/v2/login", {
         username: vm.username,
         password: vm.password,
         redirect: vm.redirect
@@ -36397,7 +36397,7 @@ var _hoisted_2 = {
 };
 var _hoisted_3 = {
   method: "post",
-  action: "/api/v2/login",
+  action: "/v2/login",
   "class": "d-flex flex-column align-items-center"
 };
 var _hoisted_4 = {

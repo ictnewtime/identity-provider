@@ -110,8 +110,8 @@ Route::prefix("admin")
         });
     });
 
-// Route::prefix("v2")->group(function () {
-//     Route::middleware("web")
-//         ->post("login", [LoginController::class, "login"])
-//         ->name("login");
-// });
+Route::prefix("v2")->group(function () {
+    Route::middleware("web")
+        ->post("login", [LoginController::class, "login"])
+        ->name("login");
+});

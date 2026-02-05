@@ -8,7 +8,7 @@ use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
-use App\Models\UserRole;
+// use App\Models\UserRole;
 
 //, OAuthenticatable
 class User extends Authenticatable implements JWTSubject
