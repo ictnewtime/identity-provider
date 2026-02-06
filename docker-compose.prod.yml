@@ -15,6 +15,7 @@ services:
     networks:
       - database-network
 
+# external: true
 networks:
   database-network:
-    name: database-network
+    external: true
