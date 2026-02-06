@@ -3,7 +3,7 @@
 ```sh
 docker volume create mariadb
 docker network create database-network
-docker compose -f docker-compose.db.yml up -d
+docker compose -f docker-compose.db.staging.yml up -d
 ```
 
 ```sh

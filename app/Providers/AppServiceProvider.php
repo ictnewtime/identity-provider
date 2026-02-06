@@ -20,6 +20,7 @@ use App\Http\Controllers\Manage\ProviderController;
 use App\Http\Controllers\Manage\UserRoleController;
 use App\Http\Controllers\Manage\OauthClientsController;
 use App\Http\Controllers\JwtAuth\VerificationController;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,6 +33,9 @@ class AppServiceProvider extends ServiceProvider
     {
         //
         // Passport::loadKeysFrom(__DIR__.'/../secrets/oauth');
+        if ($this->app->environment("production") || $this->app->environment("staging")) {
+            URL::forceScheme("https");
+        }
     }
 
     /**
@@ -41,35 +45,33 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->when(LogoutProvidersListener::class)
+        $this->app
+            ->when(LogoutProvidersListener::class)
             ->needs(RepositoryInterface::class)
             ->give(ProviderRepository::class);
 
         $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
 
-        $this->app->when(ProviderController::class)
-            ->needs(RepositoryInterface::class)
-            ->give(ProviderRepository::class);
+        $this->app->when(ProviderController::class)->needs(RepositoryInterface::class)->give(ProviderRepository::class);
 
-        $this->app->when(RoleController::class)
-            ->needs(RepositoryInterface::class)
-            ->give(RoleRepository::class);
+        $this->app->when(RoleController::class)->needs(RepositoryInterface::class)->give(RoleRepository::class);
 
-        $this->app->when(UserRoleController::class)
-            ->needs(RepositoryInterface::class)
-            ->give(UserRoleRepository::class);
+        $this->app->when(UserRoleController::class)->needs(RepositoryInterface::class)->give(UserRoleRepository::class);
 
         $this->app->bind(ClientRepositoryInterface::class, ClientRepository::class);
 
-        $this->app->when(UserController::class)
+        $this->app
+            ->when(UserController::class)
             ->needs(RepositoryInterface::class)
             ->give(VerificationTokenRepository::class);
 
-        $this->app->when(VerificationController::class)
+        $this->app
+            ->when(VerificationController::class)
             ->needs(RepositoryInterface::class)
             ->give(VerificationTokenRepository::class);
 
-        $this->app->when(OauthClientsController::class)
+        $this->app
+            ->when(OauthClientsController::class)
             ->needs(OauthClientsRepository::class)
             ->give(OauthClientsRepository::class);
     }
