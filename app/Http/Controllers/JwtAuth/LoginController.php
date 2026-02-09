@@ -101,9 +101,9 @@ class LoginController extends Controller
         }
 
         $tokenService = new TokenGeneratorService();
-        $redirectUrl = $request->input("redirect");
+        $redirectId = $request->input("redirect");
         try {
-            $token = $tokenService->generate($user, $redirectUrl);
+            $token = $tokenService->generate($user, $redirectId);
 
             if (!$token) {
                 // Caso: Credenziali OK, ma utente non autorizzato per quel Provider specifico
