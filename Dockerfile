@@ -12,10 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libzip-dev \
     libonig-dev \
-    locales \
     zip \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
     unzip \
     git \
     curl \
