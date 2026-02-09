@@ -12,7 +12,6 @@ use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Repositories\RepositoryInterface;
-use Illuminate\Support\Facades\Validator;
 use App\Repositories\UserRepositoryInterface;
 use OpenApi\Attributes as OA;
 

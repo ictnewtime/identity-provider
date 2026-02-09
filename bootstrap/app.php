@@ -5,7 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\CheckRole;
-use App\Http\Middleware\CheckClientRole;
+// use App\Http\Middleware\CheckClientRole;
 use App\Http\Middleware\Localization;
 use App\Http\Middleware\Authenticated;
 use App\Http\Middleware\RedirectIfAuthenticated;
@@ -33,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ["v2/login", "api/*"]);
         $middleware->alias([
             "role" => CheckRole::class,
-            "checkclientrole" => CheckClientRole::class,
+            // "checkclientrole" => CheckClientRole::class,
             "localization" => Localization::class,
             "authenticated" => Authenticated::class,
 

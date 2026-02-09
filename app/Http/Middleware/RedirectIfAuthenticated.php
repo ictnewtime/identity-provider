@@ -34,13 +34,13 @@ class RedirectIfAuthenticated
         $user = Auth::user();
         $tokenService = new TokenGeneratorService();
         $token = $tokenService->generate($user, $providerId);
+
         if (!$token) {
             return redirect("authenticated")->withErrors(["msg" => "Non autorizzato per questo servizio."]);
         }
-        $provider = Provider::where("domain", $providerId)->first();
-        $separator = parse_url($provider->domain, PHP_URL_QUERY) == null ? "?" : "&";
-        $url = $provider->domain . $separator . "token=" . $token;
-
+        $provider = Provider::where("id", $providerId)->first();
+        $url = "http://" . $provider->domain . "?token=" . $token;
+        // dd("Redirecting to: " . $url);
         return redirect()->away($url);
     }
 }

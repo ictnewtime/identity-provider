@@ -31,12 +31,11 @@ class TokenGeneratorService
         JWTAuth::factory()->setTTL($ttlInMinutes);
         $provider = Provider::where("id", $redirectId)->first();
         if (empty($provider)) {
-            return JWTAuth::fromUser($user);
+            return null;
         }
 
         // dato un provider e un user, ottengo tutti i ruoli associati
         $tokenBody = $this->providerUserRoleService->getJwtTokenInfo($provider->id, $user->id);
-
         if (empty($tokenBody)) {
             return null;
         }

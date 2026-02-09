@@ -73,7 +73,7 @@ class ProviderController extends Controller
                                 property: "secret_key",
                                 description: "secret key for JWT token",
                                 type: "string",
-                                example: "4sc8s28v4d8s",
+                                example: "",
                             ),
                         ],
                         required: ["domain", "logoutUrl", "secret_key"],
