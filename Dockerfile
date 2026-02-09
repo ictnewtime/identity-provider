@@ -48,6 +48,8 @@ RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader -
 # Install npm dependencies and compile assets
 # RUN npm install && npm run prod
 
+RUN php artisan passport:keys
+
 # Change ownership and permissions
 RUN chown -R www-data:www-data /var/www/storage && \
     chmod -R 755 /var/www && \
@@ -83,6 +85,7 @@ RUN echo '#!/bin/bash\n\
 # Start supervisor without running artisan commands\n\
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\
 ' > /entrypoint.sh && chmod +x /entrypoint.sh
+
 
 EXPOSE 80
 ENTRYPOINT ["/entrypoint.sh"]

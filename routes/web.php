@@ -69,7 +69,6 @@ Route::prefix("admin")
         })->name("oauth-clients");
 
         // Route::get("oauth-clients-all", [OauthClientsController::class, "all"]);
-        // Route::put("update-roles", [OauthClientsController::class, "updateClientRoles"]);
 
         Route::prefix("v1")->group(function () {
             Route::get("providers", [ProviderController::class, "all"]);

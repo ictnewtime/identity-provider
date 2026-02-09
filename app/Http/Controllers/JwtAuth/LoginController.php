@@ -40,7 +40,8 @@ class LoginController extends Controller
         // tramite controllo del provider
         $is_role_admin = $user->hasRole(config("role.admin"));
         if ($is_role_admin) {
-            return redirect()->route("admin.board");
+            // return redirect()->route("admin.board");
+            return view("admin.users");
         }
         return view("auth.logged");
     }
@@ -87,23 +88,18 @@ class LoginController extends Controller
     public function login(LoginRequest $request)
     {
         $credentials = $request->only("username", "password");
-        // $token = $this->retrieveToken($credentials);
-        // $credentials["email"] = $credentials["username"];
-        // unset($credentials["username"]);
 
-        // auth()->attempt($credentials);
         Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]]);
 
         $user = Auth::user();
-        // if (!$user->is_verified) {
         if (!$user) {
             return $this->createResponse(403, __("auth.err-verification"));
         }
 
         $tokenService = new TokenGeneratorService();
-        $redirectUrl = $request->input("redirect");
+        $redirectId = $request->input("redirect");
         try {
-            $token = $tokenService->generate($user, $redirectUrl);
+            $token = $tokenService->generate($user, $redirectId);
 
             if (!$token) {
                 // Caso: Credenziali OK, ma utente non autorizzato per quel Provider specifico
@@ -114,6 +110,7 @@ class LoginController extends Controller
             return $this->createResponse(500, __("auth.err-jwt"));
         }
         $userResource = UserResource::make($user);
+
         event(new LoginEvent($user, $request->ip()));
 
         return response()

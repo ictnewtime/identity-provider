@@ -35194,6 +35194,7 @@ __webpack_require__.r(__webpack_exports__);
         }
       }).then(function (response) {
         if (vm.redirect) {
+          console.log("Redirecting to: " + vm.redirect + "?token=" + response.data.token);
           window.location.href = vm.redirect + "?token=" + response.data.token;
         } else {
           window.location.href = "/";

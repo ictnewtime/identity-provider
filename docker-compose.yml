@@ -19,7 +19,7 @@ services:
     ports:
       - "8000:80"
     networks:
-      - laravel
+      - database-network
     depends_on:
       - mariadb
       # - redis
@@ -40,7 +40,7 @@ services:
       # con nome mariadb_data
       - mariadb_data:/var/lib/mysql
     networks:
-      - laravel
+      - database-network
 
   # redis:
   #   image: redis:7-alpine
@@ -52,7 +52,7 @@ services:
   #     - laravel
 
 volumes:
-  dbdata:
+  mariadb_data:
     driver: local
 
 networks:

@@ -26,21 +26,21 @@ class RedirectIfAuthenticated
             return $next($request);
         }
         // the redirectUrl is the provider
-        $redirectUrl = $request->input("redirect");
-        if (empty($redirectUrl)) {
+        $providerId = $request->input("redirect");
+        if (empty($providerId)) {
             return redirect("authenticated");
         }
 
         $user = Auth::user();
         $tokenService = new TokenGeneratorService();
-        $token = $tokenService->generate($user, $redirectUrl);
+        $token = $tokenService->generate($user, $providerId);
+
         if (!$token) {
             return redirect("authenticated")->withErrors(["msg" => "Non autorizzato per questo servizio."]);
         }
-
-        $separator = parse_url($redirectUrl, PHP_URL_QUERY) == null ? "?" : "&";
-        $url = $redirectUrl . $separator . "token=" . $token;
-
+        $provider = Provider::where("id", $providerId)->first();
+        $url = "http://" . $provider->domain . "?token=" . $token;
+        // dd("Redirecting to: " . $url);
         return redirect()->away($url);
     }
 }
