@@ -35193,9 +35193,14 @@ __webpack_require__.r(__webpack_exports__);
           Accept: "application/json"
         }
       }).then(function (response) {
-        if (vm.redirect) {
-          console.log("Redirecting to: " + vm.redirect + "?token=" + response.data.token);
-          window.location.href = vm.redirect + "?token=" + response.data.token;
+        console.log("response", response);
+        if (response.data.token) {
+          // save the token in a cookie (if needed)
+          // response.data.token
+          document.cookie = "idp_token=".concat(response.data.token, "; path=/; domain=").concat(response.data.domain);
+          // full page redirect to the provider with the token
+          window.location.replace(response.data.redirect_url);
+          // window.location.href = response.data.redirect_url;
         } else {
           window.location.href = "/";
         }

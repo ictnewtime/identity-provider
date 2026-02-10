@@ -9,6 +9,7 @@ use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\Provider;
 use App\Services\TokenGeneratorService;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -98,25 +99,36 @@ class LoginController extends Controller
 
         $tokenService = new TokenGeneratorService();
         $redirectId = $request->input("redirect");
-        try {
-            $token = $tokenService->generate($user, $redirectId);
-
-            if (!$token) {
-                // Caso: Credenziali OK, ma utente non autorizzato per quel Provider specifico
-                return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
+        $token = null;
+        $redirect_url = null;
+        if ($redirectId) {
+            // se è presente il redirect, genero il token per quel provider specifico
+            try {
+                $token = $tokenService->generate($user, $redirectId);
+                // dd("token", $token);
+                if (!$token) {
+                    // Caso: Credenziali OK, ma utente non autorizzato per quel Provider specifico
+                    return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
+                }
+                $provider = Provider::where("id", $redirectId)->first();
+                $redirect_url = $provider->protocol . $provider->domain;
+                // $url = "http://localhost?token=" . $token;
+                // dd("Redirecting to: " . $url);
+            } catch (\Exception $e) {
+                Log::error($e->getMessage());
+                return $this->createResponse(500, __("auth.err-jwt"));
             }
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-            return $this->createResponse(500, __("auth.err-jwt"));
         }
         $userResource = UserResource::make($user);
 
         event(new LoginEvent($user, $request->ip()));
-
+        // dd("Login successful for user: " . $redirect_url);
         return response()
             ->json([
                 "user" => $userResource,
                 "token" => $token,
+                "domain" => $provider->domain,
+                "redirect_url" => $redirect_url,
             ])
             ->withCookie(new Cookie("token", $token, 0, "/", env("TOKEN_COOKIE_DOMAIN")));
     }

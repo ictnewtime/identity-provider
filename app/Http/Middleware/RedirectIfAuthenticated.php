@@ -39,7 +39,8 @@ class RedirectIfAuthenticated
             return redirect("authenticated")->withErrors(["msg" => "Non autorizzato per questo servizio."]);
         }
         $provider = Provider::where("id", $providerId)->first();
-        $url = "http://" . $provider->domain . "?token=" . $token;
+        $url = $provider->protocol . $provider->domain . "?token=" . $token;
+        // $url = "http://localhost?token=" . $token;
         // dd("Redirecting to: " . $url);
         return redirect()->away($url);
     }
