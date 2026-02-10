@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // ------------------------------------------------------
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->encryptCookies(except: ["idp_token"]);
         $middleware->validateCsrfTokens(except: ["v2/login", "api/*"]);
         $middleware->alias([
             "role" => CheckRole::class,

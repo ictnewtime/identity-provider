@@ -26,22 +26,37 @@ class RedirectIfAuthenticated
             return $next($request);
         }
         // the redirectUrl is the provider
-        $providerId = $request->input("redirect");
-        if (empty($providerId)) {
+        $provider_id = $request->input("provider_id");
+        $redirect_to = $request->query("redirect_to");
+        if (empty($provider_id)) {
             return redirect("authenticated");
         }
 
         $user = Auth::user();
         $tokenService = new TokenGeneratorService();
-        $token = $tokenService->generate($user, $providerId);
+        $token = $tokenService->generate($user, $provider_id);
 
         if (!$token) {
             return redirect("authenticated")->withErrors(["msg" => "Non autorizzato per questo servizio."]);
         }
-        $provider = Provider::where("id", $providerId)->first();
-        $url = $provider->protocol . $provider->domain . "?token=" . $token;
-        // $url = "http://localhost?token=" . $token;
-        // dd("Redirecting to: " . $url);
-        return redirect()->away($url);
+        // ottengo l' url di origine
+        $provider = Provider::where("id", $provider_id)->first();
+        // creo un cookie con il token
+        $cookie_name = "idp_token_" . $provider_id;
+        $cookie = cookie(
+            $cookie_name, // Nome del cookie
+            $token, // Il token JWT stringa
+            60 * 24, // Durata in minuti (es. 24 ore)
+            "/", // Path
+            null, // Domain (null = automatico)
+            false, // Secure (true = solo HTTPS, metti env('APP_SECURE', false) per locale)
+            true, // HttpOnly (FONDAMENTALE: true = JS non può leggerlo)
+            false, // Raw
+            "Lax", // SameSite (Lax va bene per i redirect, Strict per API pure)
+        );
+        if (!$redirect_to) {
+            $redirect_to = $provider->protocol . $provider->domain;
+        }
+        return redirect()->away($redirect_to)->withCookie($cookie);
     }
 }
