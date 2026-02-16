@@ -100,7 +100,6 @@ export default {
                 .then((response) => {
                     console.log("response", response);
                     if (response.data.redirect_url) {
-                        // full page redirect to the provider with the token
                         window.location.replace(response.data.redirect_url);
                         // window.location.href = response.data.redirect_url;
                     } else {

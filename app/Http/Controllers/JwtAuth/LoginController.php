@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\Provider;
-use App\Services\TokenGeneratorService;
-use Tymon\JWTAuth\Exceptions\JWTException;
-use Symfony\Component\HttpFoundation\Cookie;
+use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie as FacadeCookie;
 use OpenApi\Attributes as OA;
@@ -97,42 +95,22 @@ class LoginController extends Controller
             return $this->createResponse(403, __("auth.err-verification"));
         }
 
-        $tokenService = new TokenGeneratorService();
+        $tokenService = new TokenProviderService();
         $provider_id = $request->input("provider_id");
         $return_to = $request->input("redirect_to");
-        $token = null;
-        $cookie = null;
         if ($provider_id) {
-            // se è presente il redirect, genero il token per quel provider specifico
             try {
-                $token = $tokenService->generate($user, $provider_id);
-                // dd("token", $token);
+                $token = $tokenService->tokenCretion($user, $provider_id);
                 if (!$token) {
-                    // Caso: Credenziali OK, ma utente non autorizzato per quel Provider specifico
                     return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
                 }
-                $cookie_name = "idp_token_" . $provider_id;
-                $cookie = cookie(
-                    $cookie_name, // Nome del cookie
-                    $token, // Il token JWT stringa
-                    60 * 24, // Durata in minuti (es. 24 ore)
-                    "/", // Path
-                    null, // Domain (null = automatico)
-                    false, // Secure (true = solo HTTPS, metti env('APP_SECURE', false) per locale)
-                    true, // HttpOnly (FONDAMENTALE: true = JS non può leggerlo)
-                    false, // Raw
-                    "Lax", // SameSite (Lax va bene per i redirect, Strict per API pure)
-                );
+                $cookie = $tokenService->cookieCretion($token, $provider_id);
                 $provider = Provider::where("id", $provider_id)->first();
                 if (!$return_to) {
                     $return_to = $provider->protocol . $provider->domain;
                 }
                 return response()
-                    ->json([
-                        // "token" => $token,
-                        // "domain" => $provider->domain,
-                        "redirect_url" => $return_to ?? null,
-                    ])
+                    ->json(["redirect_url" => $return_to])
                     ->withCookie($cookie);
             } catch (\Exception $e) {
                 Log::error($e->getMessage());
@@ -142,7 +120,6 @@ class LoginController extends Controller
         $userResource = UserResource::make($user);
 
         event(new LoginEvent($user, $request->ip()));
-        // dd("Login successful for user: " . $redirect_url);
         return response()->json(["user" => $userResource]);
     }
 

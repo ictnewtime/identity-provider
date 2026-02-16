@@ -10,13 +10,15 @@ use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTFactory;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
 
-class TokenGeneratorService
+class TokenProviderService
 {
     protected $providerUserRoleService;
+    protected $ttlInSeconds;
 
     public function __construct()
     {
         $this->providerUserRoleService = new ProviderUserRoleService();
+        $this->ttlInSeconds = (int) env("JWT_TTL", 24 * 60 * 60); // default 24 ore
     }
 
     /**
@@ -25,9 +27,10 @@ class TokenGeneratorService
      * Altrimenti genera un token standard.
      * * @return string|null Ritorna il token stringa, o null se l'utente non è abilitato per quel provider.
      */
-    public function generate(User $user, ?string $redirectId = null)
+    public function tokenCretion(User $user, ?string $redirectId = null)
     {
-        $ttlInMinutes = (int) env("JWT_TTL", 120);
+        $ttlInMinutes = $this->ttlInSeconds / 60;
+        // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
         JWTAuth::factory()->setTTL($ttlInMinutes);
         $provider = Provider::where("id", $redirectId)->first();
         if (empty($provider)) {
@@ -55,7 +58,7 @@ class TokenGeneratorService
                 [
                     "iss" => url("/"),
                     "iat" => time(),
-                    "exp" => time() + $ttlInMinutes * 60,
+                    "exp" => time() + $this->ttlInSeconds,
                     "nbf" => time(),
                     "jti" => bin2hex(random_bytes(10)),
                     "sub" => $user->id,
@@ -90,7 +93,29 @@ class TokenGeneratorService
         } finally {
             JWTAuth::getJWTProvider()->setSecret($originalSecret);
         }
-
+        // dd("token", $token);
+        Log::info("Token generated for user {$user->id} and provider {$provider->id}" . "Al datetime: " . now());
         return $token;
+    }
+
+    public function cookieCretion(string $token, string $provider_id)
+    {
+        // creo un cookie con il token
+        $cookie_name = "idp_token_" . $provider_id;
+        $provider = Provider::where("id", $provider_id)->first();
+        $domain = env("PROVIDER_DOMAIN") ?? null;
+        $is_https = str_starts_with($provider->protocol, "https");
+        $cookie = cookie(
+            $cookie_name, // Nome del cookie
+            $token, // Il token JWT stringa
+            $this->ttlInSeconds, // Durata in secondi
+            "/", // Path
+            $domain, // Domain (null = automatico)
+            $is_https, // Secure (true = solo HTTPS, metti env('APP_SECURE', false) per locale)
+            true, // HttpOnly (FONDAMENTALE: true = JS non può leggerlo)
+            false, // Raw
+            "Lax", // SameSite (Lax va bene per i redirect, Strict per API pure)
+        );
+        return $cookie;
     }
 }

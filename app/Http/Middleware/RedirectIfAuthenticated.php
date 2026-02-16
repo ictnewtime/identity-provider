@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Provider;
 use App\Models\ProviderUserRole;
 use App\Services\ProviderUserRoleService;
-use App\Services\TokenGeneratorService;
+use App\Services\TokenProviderService;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -33,27 +33,14 @@ class RedirectIfAuthenticated
         }
 
         $user = Auth::user();
-        $tokenService = new TokenGeneratorService();
-        $token = $tokenService->generate($user, $provider_id);
+        $tokenService = new TokenProviderService();
+        $token = $tokenService->tokenCretion($user, $provider_id);
 
         if (!$token) {
             return redirect("authenticated")->withErrors(["msg" => "Non autorizzato per questo servizio."]);
         }
-        // ottengo l' url di origine
         $provider = Provider::where("id", $provider_id)->first();
-        // creo un cookie con il token
-        $cookie_name = "idp_token_" . $provider_id;
-        $cookie = cookie(
-            $cookie_name, // Nome del cookie
-            $token, // Il token JWT stringa
-            60 * 24, // Durata in minuti (es. 24 ore)
-            "/", // Path
-            null, // Domain (null = automatico)
-            false, // Secure (true = solo HTTPS, metti env('APP_SECURE', false) per locale)
-            true, // HttpOnly (FONDAMENTALE: true = JS non può leggerlo)
-            false, // Raw
-            "Lax", // SameSite (Lax va bene per i redirect, Strict per API pure)
-        );
+        $cookie = $tokenService->cookieCretion($token, $provider_id);
         if (!$redirect_to) {
             $redirect_to = $provider->protocol . $provider->domain;
         }
