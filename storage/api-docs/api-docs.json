@@ -13,35 +13,6 @@
         "version": "1.0.0"
     },
     "paths": {
-        "/v1/client-roles": {
-            "get": {
-                "tags": [
-                    "ClientRoles"
-                ],
-                "summary": "list of  client roles",
-                "description": "Returns the entire list of client roles",
-                "operationId": "ClientRole.all",
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "web": []
-                    }
-                ]
-            }
-        },
         "/v2/login": {
             "post": {
                 "tags": [
@@ -358,7 +329,7 @@
                                     "secret_key": {
                                         "description": "secret key for JWT token",
                                         "type": "string",
-                                        "example": "4sc8s28v4d8s"
+                                        "example": ""
                                     }
                                 },
                                 "type": "object"
@@ -1327,190 +1298,6 @@
                     }
                 ]
             }
-        },
-        "/v1/users/{id}/user-roles": {
-            "get": {
-                "tags": [
-                    "User-Role"
-                ],
-                "summary": "Retrieve role of user",
-                "description": "Retrieve role of user",
-                "operationId": "UserRole.retrieve-user",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "User id",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "404": {
-                        "description": "User not found",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            },
-            "post": {
-                "tags": [
-                    "User-Role"
-                ],
-                "summary": "Assigne role to user",
-                "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
-                "operationId": "UserRole.create",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "User id",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "array",
-                                "items": {
-                                    "properties": {
-                                        "role_id": {
-                                            "description": "Id of role",
-                                            "type": "integer",
-                                            "example": 1
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "204": {
-                        "description": "Operation successfull, user already has role passed",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "403": {
-                        "description": "Invalid scope or client role, Forbidden",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            }
-        },
-        "/v1/user-role/{id}": {
-            "delete": {
-                "tags": [
-                    "User-Role"
-                ],
-                "summary": "Remove role to user by user-role-id",
-                "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
-                "operationId": "UserRole.delete",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "User-role id",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "404": {
-                        "description": "Not found",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "500": {
-                        "description": "Error on saving",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "403": {
-                        "description": "Invalid scope or client role, Forbidden",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": [
-                            "manage-idp"
-                        ]
-                    }
-                ]
-            }
         }
     },
     "components": {
@@ -1520,7 +1307,7 @@
                 "description": "OAuth2 Client Credentials Flow",
                 "flows": {
                     "clientCredentials": {
-                        "tokenUrl": "http://localhost:8000/oauth/token",
+                        "tokenUrl": "/oauth/token",
                         "scopes": {}
                     }
                 }
@@ -1531,10 +1318,6 @@
         {
             "name": "Roles",
             "description": "Handle roles operations"
-        },
-        {
-            "name": "ClientRoles",
-            "description": "ClientRoles"
         },
         {
             "name": "JWT Auth",
@@ -1555,10 +1338,6 @@
         {
             "name": "User management",
             "description": "User management"
-        },
-        {
-            "name": "User-Role",
-            "description": "User-Role"
         }
     ]
 }

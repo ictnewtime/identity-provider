@@ -35177,25 +35177,32 @@ __webpack_require__.r(__webpack_exports__);
       if (!this.validate) {
         return;
       }
-      var url = window.location.href;
-      var urlParams = new URLSearchParams(url);
-      var redirect = urlParams.get("redirect");
-      if (redirect) {
-        vm.redirect = redirect;
+      var urlParams = new URLSearchParams(window.location.search);
+      var provider_id = urlParams.get("provider_id");
+      var redirect_to = urlParams.get("redirect_to");
+      console.log("provider_id", provider_id);
+      if (provider_id) {
+        vm.provider_id = provider_id;
+      }
+      if (redirect_to) {
+        vm.redirect_to = redirect_to;
       }
       axios.post("/v2/login", {
         username: vm.username,
         password: vm.password,
-        redirect: vm.redirect
+        provider_id: vm.provider_id,
+        redirect_to: vm.redirect_to
       }, {
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json"
         }
       }).then(function (response) {
-        if (vm.redirect) {
-          console.log("Redirecting to: " + vm.redirect + "?token=" + response.data.token);
-          window.location.href = vm.redirect + "?token=" + response.data.token;
+        console.log("response", response);
+        if (response.data.redirect_url) {
+          // full page redirect to the provider with the token
+          window.location.replace(response.data.redirect_url);
+          // window.location.href = response.data.redirect_url;
         } else {
           window.location.href = "/";
         }

@@ -34,6 +34,7 @@ php artisan route:cache
 php artisan config:clear
 php artisan cache:clear
 // php artisan config:show app
+composer dump-autoload
 php artisan optimize:clear
 ```
 

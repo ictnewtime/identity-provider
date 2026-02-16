@@ -71,11 +71,15 @@ export default {
             if (!this.validate) {
                 return;
             }
-            const url = window.location.href;
-            const urlParams = new URLSearchParams(url);
-            const redirect = urlParams.get("redirect");
-            if (redirect) {
-                vm.redirect = redirect;
+            const urlParams = new URLSearchParams(window.location.search);
+            const provider_id = urlParams.get("provider_id");
+            const redirect_to = urlParams.get("redirect_to");
+            console.log("provider_id", provider_id);
+            if (provider_id) {
+                vm.provider_id = provider_id;
+            }
+            if (redirect_to) {
+                vm.redirect_to = redirect_to;
             }
             axios
                 .post(
@@ -83,7 +87,8 @@ export default {
                     {
                         username: vm.username,
                         password: vm.password,
-                        redirect: vm.redirect,
+                        provider_id: vm.provider_id,
+                        redirect_to: vm.redirect_to,
                     },
                     {
                         headers: {
@@ -93,8 +98,10 @@ export default {
                     }
                 )
                 .then((response) => {
-                    if (vm.redirect) {
-                        window.location.href = vm.redirect + "?token=" + response.data.token;
+                    console.log("response", response);
+                    if (response.data.redirect_url) {
+                        window.location.replace(response.data.redirect_url);
+                        // window.location.href = response.data.redirect_url;
                     } else {
                         window.location.href = "/";
                     }

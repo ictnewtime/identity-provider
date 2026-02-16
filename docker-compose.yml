@@ -17,7 +17,7 @@ services:
       - ./:/var/www
       # - ./storage:/var/www/storage
     ports:
-      - "8000:80"
+      - "8001:80"
     networks:
       - database-network
     depends_on:

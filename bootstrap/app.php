@@ -30,7 +30,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // ------------------------------------------------------
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // $middleware->encryptCookies(except: ["idp_token_2"]);
         $middleware->validateCsrfTokens(except: ["v2/login", "api/*"]);
+
+        $middleware->remove(\Illuminate\Cookie\Middleware\EncryptCookies::class);
+        $middleware->prependToGroup("web", \App\Http\Middleware\EncryptCookies::class);
+        // $middleware->prependToGroup("guest", \App\Http\Middleware\EncryptCookies::class);
         $middleware->alias([
             "role" => CheckRole::class,
             // "checkclientrole" => CheckClientRole::class,
@@ -43,6 +48,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
             "scopes" => \Laravel\Passport\Http\Middleware\CheckScopes::class,
             "scope" => \Laravel\Passport\Http\Middleware\CheckForAnyScope::class,
+            "Illuminate\Cookie\Middleware\EncryptCookies" => \App\Http\Middleware\EncryptCookies::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -46,9 +46,12 @@ COPY . .
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
 # Install npm dependencies and compile assets
-# RUN npm install && npm run prod
+RUN npm install && npm run prod
 
-RUN php artisan passport:keys
+# create passport keys if they don't exist
+RUN if [ ! -f /var/www/storage/oauth-private.key ] || [ ! -f /var/www/storage/oauth-public.key ]; then \
+        php artisan passport:keys --force; \
+    fi
 
 # Change ownership and permissions
 RUN chown -R www-data:www-data /var/www/storage && \

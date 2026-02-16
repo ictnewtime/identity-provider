@@ -9,9 +9,8 @@ use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
-use App\Services\TokenGeneratorService;
-use Tymon\JWTAuth\Exceptions\JWTException;
-use Symfony\Component\HttpFoundation\Cookie;
+use App\Models\Provider;
+use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie as FacadeCookie;
 use OpenApi\Attributes as OA;
@@ -96,29 +95,32 @@ class LoginController extends Controller
             return $this->createResponse(403, __("auth.err-verification"));
         }
 
-        $tokenService = new TokenGeneratorService();
-        $redirectId = $request->input("redirect");
-        try {
-            $token = $tokenService->generate($user, $redirectId);
-
-            if (!$token) {
-                // Caso: Credenziali OK, ma utente non autorizzato per quel Provider specifico
-                return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
+        $tokenService = new TokenProviderService();
+        $provider_id = $request->input("provider_id");
+        $return_to = $request->input("redirect_to");
+        if ($provider_id) {
+            try {
+                $token = $tokenService->tokenCretion($user, $provider_id);
+                if (!$token) {
+                    return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
+                }
+                $cookie = $tokenService->cookieCretion($token, $provider_id);
+                $provider = Provider::where("id", $provider_id)->first();
+                if (!$return_to) {
+                    $return_to = $provider->protocol . $provider->domain;
+                }
+                return response()
+                    ->json(["redirect_url" => $return_to])
+                    ->withCookie($cookie);
+            } catch (\Exception $e) {
+                Log::error($e->getMessage());
+                return $this->createResponse(500, __("auth.err-jwt"));
             }
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-            return $this->createResponse(500, __("auth.err-jwt"));
         }
         $userResource = UserResource::make($user);
 
         event(new LoginEvent($user, $request->ip()));
-
-        return response()
-            ->json([
-                "user" => $userResource,
-                "token" => $token,
-            ])
-            ->withCookie(new Cookie("token", $token, 0, "/", env("TOKEN_COOKIE_DOMAIN")));
+        return response()->json(["user" => $userResource]);
     }
 
     #[
