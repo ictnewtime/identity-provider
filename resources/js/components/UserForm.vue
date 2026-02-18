@@ -1,5 +1,6 @@
 <template>
     <Panel header="Crea nuovo utente">
+        prova
         <form @submit.prevent="submit" class="grid p-fluid">
             <div class="col-12 md:col-6 field d-flex align-items-center justify-content-between">
                 <label for="username">Username</label>

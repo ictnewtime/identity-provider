@@ -93,7 +93,6 @@ class TokenProviderService
         } finally {
             JWTAuth::getJWTProvider()->setSecret($originalSecret);
         }
-        // dd("token", $token);
         Log::info("Token generated for user {$user->id} and provider {$provider->id}" . "Al datetime: " . now());
         return $token;
     }

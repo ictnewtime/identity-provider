@@ -27,7 +27,7 @@ class RedirectIfAuthenticated
         }
         // the redirectUrl is the provider
         $provider_id = $request->input("provider_id");
-        $redirect_to = $request->query("redirect_to");
+        $redirect_to = $request->input("redirect_to");
         if (empty($provider_id)) {
             return redirect("authenticated");
         }
@@ -37,13 +37,37 @@ class RedirectIfAuthenticated
         $token = $tokenService->tokenCretion($user, $provider_id);
 
         if (!$token) {
-            return redirect("authenticated")->withErrors(["msg" => "Non autorizzato per questo servizio."]);
+            return redirect("authenticated")->withErrors(["msg" => "Non autorizzato."]);
         }
         $provider = Provider::where("id", $provider_id)->first();
-        $cookie = $tokenService->cookieCretion($token, $provider_id);
+
         if (!$redirect_to) {
             $redirect_to = $provider->protocol . $provider->domain;
         }
-        return redirect()->away($redirect_to)->withCookie($cookie);
+
+        $host = parse_url($redirect_to, PHP_URL_HOST);
+
+        $mainCookie = $tokenService->cookieCretion($token, $provider_id);
+
+        if ($host === "localhost" || $host === "127.0.0.1" || str_contains($host, "192.168.")) {
+            $separator = parse_url($redirect_to, PHP_URL_QUERY) ? "&" : "?";
+            $redirect_url = $redirect_to . $separator . http_build_query(["token" => $token]);
+
+            // Per localhost mandiamo un cookie senza dominio specifico e NON secure (per HTTP)
+            // $localCookie = cookie(
+            //     "idp_token_" . $provider_id,
+            //     $token,
+            //     60 * 24,
+            //     "/",
+            //     null, // Importante: null su localhost
+            //     false, // False se sei su http://localhost
+            //     true,
+            // );
+            $separator = parse_url($redirect_to, PHP_URL_QUERY) ? "&" : "?";
+            $redirect_url = $redirect_to . $separator . "token=" . urlencode($token);
+            return redirect()->away($redirect_url); //->withCookie($localCookie);
+        }
+
+        return redirect()->away($redirect_to)->withCookie($mainCookie);
     }
 }

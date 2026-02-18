@@ -24,7 +24,7 @@ import UserTable from "./UserTable.vue";
 export default {
     name: "UserPage",
     components: {
-        UserForm,
+        // UserForm,
         UserTable,
     },
     methods: {
