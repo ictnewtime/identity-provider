@@ -74,7 +74,6 @@ export default {
             const urlParams = new URLSearchParams(window.location.search);
             const provider_id = urlParams.get("provider_id");
             const redirect_to = urlParams.get("redirect_to");
-            console.log("provider_id", provider_id);
             if (provider_id) {
                 vm.provider_id = provider_id;
             }
@@ -98,7 +97,6 @@ export default {
                     }
                 )
                 .then((response) => {
-                    console.log("response", response);
                     if (response.data.redirect_url) {
                         window.location.replace(response.data.redirect_url);
                         // window.location.href = response.data.redirect_url;

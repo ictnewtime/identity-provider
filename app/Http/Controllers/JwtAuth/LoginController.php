@@ -39,8 +39,7 @@ class LoginController extends Controller
         // tramite controllo del provider
         $is_role_admin = $user->hasRole(config("role.admin"));
         if ($is_role_admin) {
-            // return redirect()->route("admin.board");
-            return view("admin.users");
+            return redirect()->route("web-users");
         }
         return view("auth.logged");
     }
