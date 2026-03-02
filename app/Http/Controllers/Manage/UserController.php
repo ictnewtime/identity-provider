@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Manage;
 
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Http\Services\Mailer;
 use Illuminate\Support\Facades\DB;
@@ -57,14 +56,13 @@ class UserController extends Controller
             $query->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
         }
 
-        // 2. Ordinamento (OrderBy)
-        // PrimeVue invia sortField (stringa) e sortOrder (1 per ASC, -1 per DESC)
+        // 2. Ordinamento
         if ($request->filled("sortField")) {
             $field = $request->sortField;
             $direction = $request->sortOrder == 1 ? "asc" : "desc";
             $query->orderBy($field, $direction);
         } else {
-            $query->orderBy("created_at", "desc");
+            $query->orderBy("created_at", "asc");
         }
 
         // 3. Paginazione
@@ -158,7 +156,7 @@ class UserController extends Controller
             // unset password_confirmation
             unset($credentials["password_confirmation"]);
             $user = $this->userRepository->create($credentials);
-            // TODO: in un secondo momento gestisco la verifica degli utenti
+            // TODO: in un secondo momento va gestita la verifica degli utenti
             // $verificationToken = $this->verificationTokenRepository->create([
             //     "token" => Str::random(60),
             //     "user_id" => $user->id,

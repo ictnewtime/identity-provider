@@ -2,6 +2,6 @@
 
 @section('content')
 
-    <provider-form></provider-form>
+    <providers></providers>
 
 @endsection

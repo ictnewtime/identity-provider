@@ -1,11 +1,11 @@
 <template>
-    <div class="web-user-container p-4">
+    <div class="web-provider-container p-4">
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="text-3xl font-bold m-0">Gestione Utenti</h1>
-                <p class="text-gray-600 mt-1 mb-0">Crea nuovi account e gestisci quelli esistenti</p>
+                <h1 class="text-3xl font-bold m-0">Gestione Provider</h1>
+                <p class="text-gray-600 mt-1 mb-0">Visualizza e crea nuovi Identity Provider</p>
             </div>
-            <Button label="Nuovo Utente" icon="pi pi-plus" @click="openCreateModal" />
+            <Button label="Nuovo Provider" icon="pi pi-plus" @click="openCreateModal" />
         </div>
 
         <div class="card mt-4">
@@ -18,11 +18,11 @@
             >
                 <template #header>
                     <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="m-0">Lista Utenti</h3>
+                        <h3 class="m-0">Lista Provider</h3>
                         <IconField iconPosition="left">
                             <InputText
                                 v-model="filter"
-                                placeholder="Cerca email..."
+                                placeholder="Cerca dominio..."
                                 size="small"
                                 @input="onFilterChange"
                             />
@@ -30,18 +30,21 @@
                     </div>
                 </template>
 
-                <Column field="username" header="Username"></Column>
-                <Column field="email" header="Email"></Column>
-                <Column field="name" header="Nome"></Column>
-                <Column field="surname" header="Cognome"></Column>
+                <Column field="id" header="ID" style="width: 5%"></Column>
+                <Column field="domain" header="Dominio"></Column>
+                <Column field="logoutUrl" header="Logout URL">
+                    <template #body="slotProps">
+                        {{ slotProps.data.logoutUrl || "Default" }}
+                    </template>
+                </Column>
                 <Column header="Azioni" :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined class="me-2" @click="editUser(slotProps.data)" />
+                        <Button icon="pi pi-pencil" outlined class="me-2" @click="editProvider(slotProps.data)" />
                         <Button icon="pi pi-trash" outlined severity="danger" @click="confirmDelete(slotProps.data)" />
                     </template>
                 </Column>
 
-                <template #empty> Nessun utente trovato. </template>
+                <template #empty> Nessun provider trovato. </template>
             </DataTable>
 
             <Paginator :rows="pagination.per_page" :totalRecords="pagination.total" @page="onPage" class="mt-2" />
@@ -49,11 +52,11 @@
 
         <Dialog
             v-model:visible="displayModal"
-            :header="selectedUser ? 'Modifica Utente' : 'Nuovo Utente'"
+            :header="selectedProvider ? 'Modifica Provider' : 'Nuovo Provider'"
             :style="{ width: '60vw' }"
             :modal="true"
         >
-            <UserForm :selectedUser="selectedUser" @user-created="onUserSaved" @user-updated="onUserSaved" />
+            <ProviderForm :selectedProvider="selectedProvider" @provider-saved="onProviderSaved" />
         </Dialog>
 
         <Dialog
@@ -64,14 +67,14 @@
         >
             <div class="d-flex align-items-center">
                 <i class="pi pi-exclamation-triangle me-3 text-warning" style="font-size: 2rem" />
-                <span v-if="userToDelete">
-                    Sei sicuro di voler eliminare l'utente <b>{{ userToDelete.name }}</b
+                <span v-if="providerToDelete">
+                    Sei sicuro di voler eliminare il provider <b>{{ providerToDelete.domain }}</b
                     >?
                 </span>
             </div>
             <template #footer>
                 <Button label="Annulla" icon="pi pi-times" text @click="displayDeleteModal = false" />
-                <Button label="Elimina" icon="pi pi-check" severity="danger" @click="deleteUser" />
+                <Button label="Elimina" icon="pi pi-check" severity="danger" @click="deleteProvider" />
             </template>
         </Dialog>
     </div>
@@ -85,39 +88,28 @@ import IconField from "primevue/iconfield";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
-import UserForm from "./UserForm.vue";
+import ProviderForm from "./ProviderForm.vue";
 
 export default {
-    name: "UserPage",
-    components: {
-        DataTable,
-        Column,
-        Paginator,
-        IconField,
-        InputText,
-        Dialog,
-        Button,
-        UserForm,
-    },
+    name: "ProviderPage",
+    components: { DataTable, Column, Paginator, IconField, InputText, Dialog, Button, ProviderForm },
     data() {
         return {
             filter: "",
             loading: false,
             pagination: { data: [], total: 0, per_page: 10 },
             displayModal: false,
-            selectedUser: null,
-            searchTimeout: null, // Per gestire il debounce sulla ricerca
+            selectedProvider: null,
+            searchTimeout: null,
             displayDeleteModal: false,
-            userToDelete: null,
+            providerToDelete: null,
         };
     },
     methods: {
-        loadUsers(page = 1) {
+        loadProviders(page = 1) {
             this.loading = true;
-            const url = window.location.origin + "/admin/v1/users";
+            const url = window.location.origin + "/admin/v1/providers";
 
-            // Nota: Assumiamo che axios sia registrato globalmente.
-            // In caso contrario, aggiungi: import axios from 'axios';
             axios
                 .get(url, {
                     params: {
@@ -129,76 +121,67 @@ export default {
                 .then((res) => {
                     this.pagination = res.data;
                 })
+                .catch((err) => console.error(err))
                 .finally(() => (this.loading = false));
         },
 
         onPage(event) {
-            this.loadUsers(event.page + 1);
+            this.loadProviders(event.page + 1);
         },
 
         onFilterChange() {
-            // Debounce: aspetta 500ms prima di fare la chiamata API per non intasare il server
             clearTimeout(this.searchTimeout);
             this.searchTimeout = setTimeout(() => {
-                this.loadUsers(1);
+                this.loadProviders(1);
             }, 500);
         },
 
+        editProvider(provider) {
+            this.selectedProvider = provider;
+            this.displayModal = true;
+        },
+
         openCreateModal() {
-            this.selectedUser = null;
+            this.selectedProvider = null;
             this.displayModal = true;
         },
 
-        onUserSaved() {
-            this.displayModal = false; // Chiude la modale
-            this.loadUsers(); // Ricarica la tabella
+        onProviderSaved() {
+            this.displayModal = false;
+            this.loadProviders();
         },
 
-        editUser(user) {
-            this.selectedUser = user;
-            this.displayModal = true;
-        },
-
-        confirmDelete(user) {
-            this.userToDelete = user;
+        confirmDelete(provider) {
+            this.providerToDelete = provider;
             this.displayDeleteModal = true;
         },
 
-        deleteUser() {
-            if (!this.userToDelete) return;
+        deleteProvider() {
             axios
-                .delete(`/admin/v1/users/${this.userToDelete.id}`)
-                .then(() => {
+                .delete("/admin/v1/providers/" + this.providerToDelete.id)
+                .then((res) => {
                     this.displayDeleteModal = false;
-                    this.userToDelete = null;
-                    this.loadUsers();
+                    this.loadProviders();
                     this.$toast.add({
                         severity: "success",
-                        summary: "Operazione completata",
-                        detail: "Utente eliminato correttamente",
+                        summary: "Successful",
+                        detail: "Provider eliminato con successo",
                         life: 3000,
                     });
                 })
-                .catch((error) => {
-                    console.error(error);
+                .catch((err) => {
+                    console.error(err);
                     this.$toast.add({
                         severity: "error",
                         summary: "Errore",
-                        detail: "Errore eliminazione utente",
+                        detail: "Errore eliminazione provider",
                         life: 3000,
                     });
                 });
         },
     },
     mounted() {
-        this.loadUsers();
+        this.loadProviders();
     },
 };
 </script>
-
-<style scoped>
-.web-user-container {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-</style>

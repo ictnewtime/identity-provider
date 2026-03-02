@@ -1,11 +1,11 @@
 <template>
-    <div class="web-user-container p-4">
+    <div class="web-association-container p-4">
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="text-3xl font-bold m-0">Gestione Utenti</h1>
-                <p class="text-gray-600 mt-1 mb-0">Crea nuovi account e gestisci quelli esistenti</p>
+                <h1 class="text-3xl font-bold m-0">Associazioni Utente-Provider-Ruolo</h1>
+                <p class="text-gray-600 mt-1 mb-0">Gestisci i permessi e i ruoli degli utenti sui provider</p>
             </div>
-            <Button label="Nuovo Utente" icon="pi pi-plus" @click="openCreateModal" />
+            <Button label="Nuova Associazione" icon="pi pi-plus" @click="openCreateModal" />
         </div>
 
         <div class="card mt-4">
@@ -18,11 +18,11 @@
             >
                 <template #header>
                     <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="m-0">Lista Utenti</h3>
+                        <h3 class="m-0">Lista Associazioni</h3>
                         <IconField iconPosition="left">
                             <InputText
                                 v-model="filter"
-                                placeholder="Cerca email..."
+                                placeholder="Cerca email o dominio..."
                                 size="small"
                                 @input="onFilterChange"
                             />
@@ -30,18 +30,34 @@
                     </div>
                 </template>
 
-                <Column field="username" header="Username"></Column>
-                <Column field="email" header="Email"></Column>
-                <Column field="name" header="Nome"></Column>
-                <Column field="surname" header="Cognome"></Column>
+                <Column field="id" header="ID" style="width: 5%"></Column>
+
+                <Column header="Utente">
+                    <template #body="slotProps">
+                        {{ slotProps.data.user ? slotProps.data.user.email : "Utente mancante" }}
+                    </template>
+                </Column>
+
+                <Column header="Provider">
+                    <template #body="slotProps">
+                        {{ slotProps.data.provider ? slotProps.data.provider.domain : "Provider mancante" }}
+                    </template>
+                </Column>
+
+                <Column header="Ruolo">
+                    <template #body="slotProps">
+                        {{ slotProps.data.role ? slotProps.data.role.name : "Ruolo mancante" }}
+                    </template>
+                </Column>
+
                 <Column header="Azioni" :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined class="me-2" @click="editUser(slotProps.data)" />
+                        <Button icon="pi pi-pencil" outlined class="me-2" @click="editItem(slotProps.data)" />
                         <Button icon="pi pi-trash" outlined severity="danger" @click="confirmDelete(slotProps.data)" />
                     </template>
                 </Column>
 
-                <template #empty> Nessun utente trovato. </template>
+                <template #empty> Nessuna associazione trovata. </template>
             </DataTable>
 
             <Paginator :rows="pagination.per_page" :totalRecords="pagination.total" @page="onPage" class="mt-2" />
@@ -49,11 +65,11 @@
 
         <Dialog
             v-model:visible="displayModal"
-            :header="selectedUser ? 'Modifica Utente' : 'Nuovo Utente'"
-            :style="{ width: '60vw' }"
+            :header="selectedItem ? 'Modifica Associazione' : 'Nuova Associazione'"
+            :style="{ width: '50vw' }"
             :modal="true"
         >
-            <UserForm :selectedUser="selectedUser" @user-created="onUserSaved" @user-updated="onUserSaved" />
+            <ProviderUserRoleForm :selectedItem="selectedItem" @item-saved="onItemSaved" />
         </Dialog>
 
         <Dialog
@@ -64,14 +80,15 @@
         >
             <div class="d-flex align-items-center">
                 <i class="pi pi-exclamation-triangle me-3 text-warning" style="font-size: 2rem" />
-                <span v-if="userToDelete">
-                    Sei sicuro di voler eliminare l'utente <b>{{ userToDelete.name }}</b
+                <span v-if="itemToDelete">
+                    Sei sicuro di voler rimuovere l'associazione per l'utente
+                    <b>{{ itemToDelete.user ? itemToDelete.user.email : "Selezionato" }}</b
                     >?
                 </span>
             </div>
             <template #footer>
                 <Button label="Annulla" icon="pi pi-times" text @click="displayDeleteModal = false" />
-                <Button label="Elimina" icon="pi pi-check" severity="danger" @click="deleteUser" />
+                <Button label="Elimina" icon="pi pi-check" severity="danger" @click="deleteItem" />
             </template>
         </Dialog>
     </div>
@@ -85,120 +102,88 @@ import IconField from "primevue/iconfield";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
-import UserForm from "./UserForm.vue";
+import ProviderUserRoleForm from "./ProviderUserRoleForm.vue";
 
 export default {
-    name: "UserPage",
-    components: {
-        DataTable,
-        Column,
-        Paginator,
-        IconField,
-        InputText,
-        Dialog,
-        Button,
-        UserForm,
-    },
+    name: "ProviderUserRolePage",
+    components: { DataTable, Column, Paginator, IconField, InputText, Dialog, Button, ProviderUserRoleForm },
     data() {
         return {
             filter: "",
             loading: false,
             pagination: { data: [], total: 0, per_page: 10 },
+
             displayModal: false,
-            selectedUser: null,
-            searchTimeout: null, // Per gestire il debounce sulla ricerca
+            selectedItem: null,
+
             displayDeleteModal: false,
-            userToDelete: null,
+            itemToDelete: null,
+
+            searchTimeout: null,
         };
     },
     methods: {
-        loadUsers(page = 1) {
+        loadItems(page = 1) {
             this.loading = true;
-            const url = window.location.origin + "/admin/v1/users";
-
-            // Nota: Assumiamo che axios sia registrato globalmente.
-            // In caso contrario, aggiungi: import axios from 'axios';
+            // Endpoint per questa tabella (aggiorna la rotta in base alle tue API)
             axios
-                .get(url, {
-                    params: {
-                        page: page,
-                        per_page: this.pagination.per_page,
-                        q: this.filter,
-                    },
+                .get("/admin/v1/provider-user-roles", {
+                    params: { page: page, per_page: this.pagination.per_page, q: this.filter },
                 })
-                .then((res) => {
-                    this.pagination = res.data;
-                })
+                .then((res) => (this.pagination = res.data))
                 .finally(() => (this.loading = false));
         },
-
         onPage(event) {
-            this.loadUsers(event.page + 1);
+            this.loadItems(event.page + 1);
         },
-
         onFilterChange() {
-            // Debounce: aspetta 500ms prima di fare la chiamata API per non intasare il server
             clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => {
-                this.loadUsers(1);
-            }, 500);
+            this.searchTimeout = setTimeout(() => this.loadItems(1), 500);
         },
-
         openCreateModal() {
-            this.selectedUser = null;
+            this.selectedItem = null;
             this.displayModal = true;
         },
-
-        onUserSaved() {
-            this.displayModal = false; // Chiude la modale
-            this.loadUsers(); // Ricarica la tabella
-        },
-
-        editUser(user) {
-            this.selectedUser = user;
+        editItem(item) {
+            this.selectedItem = item;
             this.displayModal = true;
         },
-
-        confirmDelete(user) {
-            this.userToDelete = user;
+        onItemSaved() {
+            this.displayModal = false;
+            this.loadItems();
+        },
+        confirmDelete(item) {
+            this.itemToDelete = item;
             this.displayDeleteModal = true;
         },
-
-        deleteUser() {
-            if (!this.userToDelete) return;
+        deleteItem() {
+            if (!this.itemToDelete) return;
             axios
-                .delete(`/admin/v1/users/${this.userToDelete.id}`)
+                .delete(`/admin/v1/provider-user-roles/${this.itemToDelete.id}`)
                 .then(() => {
-                    this.displayDeleteModal = false;
-                    this.userToDelete = null;
-                    this.loadUsers();
                     this.$toast.add({
                         severity: "success",
-                        summary: "Operazione completata",
-                        detail: "Utente eliminato correttamente",
+                        summary: "Successo",
+                        detail: "Associazione eliminata",
                         life: 3000,
                     });
+                    this.displayDeleteModal = false;
+                    this.itemToDelete = null;
+                    this.loadItems();
                 })
                 .catch((error) => {
                     console.error(error);
                     this.$toast.add({
                         severity: "error",
                         summary: "Errore",
-                        detail: "Errore eliminazione utente",
+                        detail: "Errore durante l'eliminazione",
                         life: 3000,
                     });
                 });
         },
     },
     mounted() {
-        this.loadUsers();
+        this.loadItems();
     },
 };
 </script>
-
-<style scoped>
-.web-user-container {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-</style>

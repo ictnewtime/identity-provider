@@ -1,11 +1,11 @@
 <template>
-    <div class="web-user-container p-4">
+    <div class="web-role-container p-4">
         <div class="mb-4 d-flex justify-content-between align-items-center">
             <div>
-                <h1 class="text-3xl font-bold m-0">Gestione Utenti</h1>
-                <p class="text-gray-600 mt-1 mb-0">Crea nuovi account e gestisci quelli esistenti</p>
+                <h1 class="text-3xl font-bold m-0">Gestione Sessioni</h1>
+                <p class="text-gray-600 mt-1 mb-0">Crea e assegna sessioni ai provider</p>
             </div>
-            <Button label="Nuovo Utente" icon="pi pi-plus" @click="openCreateModal" />
+            <Button label="Nuovo Ruolo" icon="pi pi-plus" @click="openCreateModal" />
         </div>
 
         <div class="card mt-4">
@@ -18,11 +18,11 @@
             >
                 <template #header>
                     <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="m-0">Lista Utenti</h3>
+                        <h3 class="m-0">Lista Sessioni</h3>
                         <IconField iconPosition="left">
                             <InputText
                                 v-model="filter"
-                                placeholder="Cerca email..."
+                                placeholder="Cerca per username o dominio"
                                 size="small"
                                 @input="onFilterChange"
                             />
@@ -30,32 +30,25 @@
                     </div>
                 </template>
 
+                <Column field="id" header="ID" style="width: 5%"></Column>
                 <Column field="username" header="Username"></Column>
-                <Column field="email" header="Email"></Column>
-                <Column field="name" header="Nome"></Column>
-                <Column field="surname" header="Cognome"></Column>
+                <Column header="Provider (Dominio)">
+                    <template #body="slotProps">
+                        {{ slotProps.data.provider ? slotProps.data.provider.domain : "Nessun Provider" }}
+                    </template>
+                </Column>
+
                 <Column header="Azioni" :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined class="me-2" @click="editUser(slotProps.data)" />
                         <Button icon="pi pi-trash" outlined severity="danger" @click="confirmDelete(slotProps.data)" />
                     </template>
                 </Column>
 
-                <template #empty> Nessun utente trovato. </template>
+                <template #empty> Nessuna sessione trovata. </template>
             </DataTable>
 
             <Paginator :rows="pagination.per_page" :totalRecords="pagination.total" @page="onPage" class="mt-2" />
         </div>
-
-        <Dialog
-            v-model:visible="displayModal"
-            :header="selectedUser ? 'Modifica Utente' : 'Nuovo Utente'"
-            :style="{ width: '60vw' }"
-            :modal="true"
-        >
-            <UserForm :selectedUser="selectedUser" @user-created="onUserSaved" @user-updated="onUserSaved" />
-        </Dialog>
-
         <Dialog
             v-model:visible="displayDeleteModal"
             header="Conferma Eliminazione"
@@ -64,14 +57,15 @@
         >
             <div class="d-flex align-items-center">
                 <i class="pi pi-exclamation-triangle me-3 text-warning" style="font-size: 2rem" />
-                <span v-if="userToDelete">
-                    Sei sicuro di voler eliminare l'utente <b>{{ userToDelete.name }}</b
+                <span v-if="sessionToDelete">
+                    Sei sicuro di voler eliminare la sessione di <b>{{ sessionToDelete.username }}</b> per il dominio
+                    <b>{{ sessionToDelete.provider.domain }}</b
                     >?
                 </span>
             </div>
             <template #footer>
                 <Button label="Annulla" icon="pi pi-times" text @click="displayDeleteModal = false" />
-                <Button label="Elimina" icon="pi pi-check" severity="danger" @click="deleteUser" />
+                <Button label="Elimina" icon="pi pi-check" severity="danger" @click="deleteSession" />
             </template>
         </Dialog>
     </div>
@@ -85,7 +79,6 @@ import IconField from "primevue/iconfield";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
-import UserForm from "./UserForm.vue";
 
 export default {
     name: "UserPage",
@@ -97,7 +90,6 @@ export default {
         InputText,
         Dialog,
         Button,
-        UserForm,
     },
     data() {
         return {
@@ -105,77 +97,32 @@ export default {
             loading: false,
             pagination: { data: [], total: 0, per_page: 10 },
             displayModal: false,
-            selectedUser: null,
+            selectedSession: null,
             searchTimeout: null, // Per gestire il debounce sulla ricerca
             displayDeleteModal: false,
-            userToDelete: null,
+            sessionToDelete: null,
         };
     },
     methods: {
-        loadUsers(page = 1) {
-            this.loading = true;
-            const url = window.location.origin + "/admin/v1/users";
-
-            // Nota: Assumiamo che axios sia registrato globalmente.
-            // In caso contrario, aggiungi: import axios from 'axios';
-            axios
-                .get(url, {
-                    params: {
-                        page: page,
-                        per_page: this.pagination.per_page,
-                        q: this.filter,
-                    },
-                })
-                .then((res) => {
-                    this.pagination = res.data;
-                })
-                .finally(() => (this.loading = false));
-        },
-
-        onPage(event) {
-            this.loadUsers(event.page + 1);
-        },
-
-        onFilterChange() {
-            // Debounce: aspetta 500ms prima di fare la chiamata API per non intasare il server
-            clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => {
-                this.loadUsers(1);
-            }, 500);
-        },
-
         openCreateModal() {
-            this.selectedUser = null;
             this.displayModal = true;
         },
-
-        onUserSaved() {
-            this.displayModal = false; // Chiude la modale
-            this.loadUsers(); // Ricarica la tabella
-        },
-
-        editUser(user) {
-            this.selectedUser = user;
-            this.displayModal = true;
-        },
-
-        confirmDelete(user) {
-            this.userToDelete = user;
+        confirmDelete(session) {
+            this.sessionToDelete = session;
             this.displayDeleteModal = true;
         },
-
-        deleteUser() {
-            if (!this.userToDelete) return;
+        deleteSession() {
+            if (!this.sessionToDelete) return;
             axios
-                .delete(`/admin/v1/users/${this.userToDelete.id}`)
+                .delete(`/admin/v1/sessions/${this.sessionToDelete.id}`)
                 .then(() => {
                     this.displayDeleteModal = false;
-                    this.userToDelete = null;
-                    this.loadUsers();
+                    this.sessionToDelete = null;
+                    this.loadSessions();
                     this.$toast.add({
                         severity: "success",
                         summary: "Operazione completata",
-                        detail: "Utente eliminato correttamente",
+                        detail: "Sessione eliminata correttamente",
                         life: 3000,
                     });
                 })
@@ -184,21 +131,11 @@ export default {
                     this.$toast.add({
                         severity: "error",
                         summary: "Errore",
-                        detail: "Errore eliminazione utente",
+                        detail: "Errore eliminazione sessione",
                         life: 3000,
                     });
                 });
         },
     },
-    mounted() {
-        this.loadUsers();
-    },
 };
 </script>
-
-<style scoped>
-.web-user-container {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-</style>

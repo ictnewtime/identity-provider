@@ -16,6 +16,7 @@
         </script>
 
         <link rel="stylesheet" href="/css/admin.css">
+        @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
     </head>
     <body class="bg-white">
@@ -75,7 +76,29 @@
                                 <i class="fa fa-server fa-lg"></i>
                             </div>
                             <div>
-                                <span>APPLICAZIONI</span>
+                                <span>PROVIDER</span>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('web-provider-user-roles') }}" class="text-dark no-text-decoration">
+                        <div class="d-flex py-4 border-bottom border-light align-items-center px-4 menu-item">
+                            <div class="pr-3">
+                                <i class="fa fa-user-tag fa-lg"></i>
+                            </div>
+                            <div>
+                                <span>PROVIDER-UTENTI-RUOLI</span>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ route('web-sessions') }}" class="text-dark no-text-decoration">
+                        <div class="d-flex py-4 border-bottom border-light align-items-center px-4 menu-item">
+                            <div class="pr-3">
+                                <i class="fa fa-history fa-lg"></i>
+                            </div>
+                            <div>
+                                <span>SESSIONI</span>
                             </div>
                         </div>
                     </a>
@@ -91,7 +114,7 @@
                         </div>
                     </a>
 
-                    <p class="text-center mt-5">Version 1.0.0</p>
+                    <p class="text-center mt-5">Version 1.0.1</p>
                 </div>
 
             </div>
@@ -103,6 +126,6 @@
             </div>
         </div>
 
-        <script src="{{mix('js/app.js')}}"></script>
+        <!-- <script src="{{mix('js/app.js')}}"></script> -->
     </body>
 </html>

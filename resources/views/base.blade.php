@@ -16,6 +16,7 @@
     <script defer src="https://use.fontawesome.com/releases/v5.7.2/js/all.js"
             integrity="sha384-0pzryjIRos8mFBWMzSSZApWtPl/5++eIfzYmTgBBmXYdhvxPc+XcFEk+zJwDgWbP" crossorigin="anonymous">
     </script>
+    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
 </head>
 <body>
@@ -40,6 +41,6 @@
         @yield('content')
     </div>
     
-    <script src="{{mix('js/app.js')}}"></script>
+    <!-- <script src="{{mix('js/app.js')}}"></script> -->
 </body>
 </html>

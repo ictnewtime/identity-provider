@@ -2,6 +2,6 @@
 
 @section('content')
 
-    <manage-roles-panel></manage-roles-panel>
+    <provider-user-roles></provider-user-roles>
 
 @endsection

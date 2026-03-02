@@ -13,4 +13,9 @@ class Role extends Model
     protected $fillable = ["name", "provider_id"];
 
     public $timestamps = false;
+
+    public function provider()
+    {
+        return $this->belongsTo(Provider::class);
+    }
 }
