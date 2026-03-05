@@ -6,6 +6,7 @@ use App\Http\Controllers\Manage\UserController;
 use App\Http\Controllers\Manage\RoleController;
 use App\Http\Controllers\Manage\ProviderUserRoleController;
 use App\Http\Controllers\Manage\ProviderController;
+use App\Http\Controllers\Manage\SessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,4 +62,8 @@ Route::prefix("v1")->group(function () {
         // provider-user-roles/has-relation?role_id=1
         Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
     });
+
+    // sessions
+    Route::get("sessions/check", [SessionController::class, "check"]);
+    Route::post("sessions/logout", [SessionController::class, "logout"]);
 });

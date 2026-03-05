@@ -7,8 +7,8 @@ use App\Models\Provider;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Services\ProviderUserRoleService;
 use Illuminate\Support\Facades\Log;
-use Tymon\JWTAuth\Facades\JWTFactory;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
+use Lcobucci\JWT\Configuration;
 
 class TokenProviderService
 {
@@ -19,6 +19,11 @@ class TokenProviderService
     {
         $this->providerUserRoleService = new ProviderUserRoleService();
         $this->ttlInSeconds = (int) env("JWT_TTL", 24 * 60 * 60); // default 24 ore
+    }
+
+    public function getTtlInSeconds(): int
+    {
+        return $this->ttlInSeconds;
     }
 
     /**
@@ -116,5 +121,32 @@ class TokenProviderService
             "Lax", // SameSite (Lax va bene per i redirect, Strict per API pure)
         );
         return $cookie;
+    }
+
+    /**
+     * Accoda il token all'URL se l'host di destinazione è un ambiente locale.
+     * Necessario per aggirare i blocchi dei cookie cross-domain in sviluppo.
+     *
+     * @param string $redirect_url
+     * @param string $token
+     * @return string
+     */
+    public function appendTokenIfLocalUrl(string $redirect_url, string $token): string
+    {
+        $host = parse_url($redirect_url, PHP_URL_HOST);
+
+        if (in_array($host, ["localhost", "127.0.0.1"]) || str_contains($host, "192.168.")) {
+            $separator = parse_url($redirect_url, PHP_URL_QUERY) ? "&" : "?";
+            return $redirect_url . $separator . "token=" . urlencode($token);
+        }
+
+        return $redirect_url;
+    }
+
+    public function appendTokenToUrl(string $redirect_url, string $token): string
+    {
+        // Accoda sempre il token in query string, che sia localhost o produzione
+        $separator = parse_url($redirect_url, PHP_URL_QUERY) ? "&" : "?";
+        return $redirect_url . $separator . "token=" . urlencode($token);
     }
 }

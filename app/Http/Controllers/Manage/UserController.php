@@ -163,7 +163,7 @@ class UserController extends Controller
             // ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::info($e);
+            Log::error($e);
             return response()->json(["message" => "Error during saving user"], 500);
         }
 

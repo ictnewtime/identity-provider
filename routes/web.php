@@ -20,6 +20,8 @@ use App\Http\Controllers\Manage\OauthClientsController;
 use App\Http\Controllers\Manage\ProviderUserRoleController;
 use App\Http\Controllers\Manage\RoleController;
 use App\Http\Controllers\Manage\SessionController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Request;
 
 Route::get("/", function () {
     return redirect("loginForm");
@@ -118,12 +120,11 @@ Route::prefix("admin")
 
             // sessions
             Route::get("sessions", [SessionController::class, "all"]);
-            Route::post("sessions", [SessionController::class, "create"]);
-            Route::get("sessions/{id}", [SessionController::class, "find"])->where(["id" => "[0-9]+"]);
-            Route::put("sessions/{id}", [SessionController::class, "update"])->where(["id" => "[0-9]+"]);
             Route::delete("sessions/{id}", [SessionController::class, "delete"])->where(["id" => "[0-9]+"]);
         });
     });
+
+Route::get("/sso/logout", [LoginController::class, "logout_sso"]);
 
 Route::prefix("v2")->group(function () {
     Route::middleware("web")

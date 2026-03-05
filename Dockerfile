@@ -46,7 +46,7 @@ COPY . .
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
 # Install npm dependencies and compile assets
-RUN npm install && npm run prod
+RUN npm install
 
 # create passport keys if they don't exist
 RUN if [ ! -f /var/www/storage/oauth-private.key ] || [ ! -f /var/www/storage/oauth-public.key ]; then \
@@ -82,6 +82,9 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Set permissions and create directories
 RUN mkdir -p /var/log/supervisor /var/run/supervisor /var/run/php-fpm && \
     chmod 755 /var/run/supervisor
+
+
+RUN npm run build
 
 # Create entrypoint script
 RUN echo '#!/bin/bash\n\

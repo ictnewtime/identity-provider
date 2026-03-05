@@ -8,11 +8,23 @@ use App\Http\Requests\SessionRequest;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Session;
+use App\Services\SessionService;
+use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\JsonResponse;
 
 class SessionController extends Controller
 {
+    protected $sessionService;
+    protected $tokenService;
+
+    public function __construct(SessionService $sessionService, TokenProviderService $tokenService)
+    {
+        $this->sessionService = $sessionService;
+        $this->tokenService = $tokenService;
+    }
+
     #[
         OA\Get(
             path: "/api/v1/sessions",
@@ -57,12 +69,15 @@ class SessionController extends Controller
         return $query->paginate($perPage);
     }
 
+    /**
+     * Controlla lo stato di una sessione (Chiamata dall'IdP Extension)
+     */
     #[
         OA\Get(
             path: "/api/v1/sessions/{id}",
             summary: "Returns session by id",
             description: "Returns session details by id",
-            operationId: "Session.find",
+            operationId: "Session.check",
             tags: ["Session"],
             security: [["passport" => []]],
             parameters: [
@@ -93,10 +108,80 @@ class SessionController extends Controller
             ],
         ),
     ]
-    function find($id)
+    public function check(Request $request): JsonResponse
     {
-        $session = Session::find($id);
-        return response()->json($session);
+        Log::debug("SessionController.check: ");
+        // Recuperiamo l'IP passato dall'extension, o usiamo quello della request in fallback
+        $ip_address = $request->query("ip_address", $request->ip());
+        $provider_id = $request->query("provider_id");
+        $user_id = $request->query("user_id");
+
+        Log::debug("SessionController.check: " . $ip_address . " " . $provider_id . " " . $user_id);
+
+        $result = $this->sessionService->validateAndRefreshSession(
+            $ip_address,
+            $provider_id,
+            $user_id,
+            $this->tokenService,
+        );
+
+        if ($result["status"] === 404) {
+            return response()->json(
+                [
+                    "valid" => false,
+                    "message" => "Session expired or not found.",
+                ],
+                404,
+            );
+        }
+
+        return response()->json(
+            [
+                "valid" => true,
+                "token" => $result["token"], // Sarà null se l'IP non è cambiato, o il nuovo JWT se è cambiato
+            ],
+            200,
+        );
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        Log::info("=== API /sessions/logout CHIAMATA ===");
+        Log::info("Dati ricevuti dal client: ", $request->all());
+
+        // Validazione base di sicurezza
+        $request->validate([
+            "user_id" => "required|integer",
+            "provider_id" => "required|integer",
+        ]);
+
+        $userId = $request->input("user_id");
+        $providerId = $request->input("provider_id");
+
+        // Chiamiamo il service per eliminare la riga dal DB
+        $deleted = $this->sessionService->destroySession($userId, $providerId);
+
+        Log::info("Risultato destroySession: " . ($deleted ? "CANCELLATA" : "NON TROVATA"));
+
+        if (!$deleted) {
+            Log::warning("Restituisco 404: Sessione già cancellata o inesistente.");
+            return response()->json(
+                [
+                    "success" => false,
+                    "message" => "Session not found or already deleted.",
+                ],
+                404,
+            );
+        }
+
+        Log::info("Restituisco 200: Sessione distrutta con successo.");
+        return response()->json(
+            [
+                "success" => true,
+                "message" => "Session successfully destroyed.",
+            ],
+            200,
+        );
     }
 
     /**

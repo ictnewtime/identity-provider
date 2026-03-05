@@ -26,8 +26,9 @@ return new class extends Migration {
             $table->renameColumn("payload", "token")->nullable()->after("provider_id");
             // aggiungo il refresh_token
             $table->string("refresh_token")->nullable()->after("token");
-            // aggiungo il expires_at
+            // aggiungo il expires_at e last_activity
             $table->timestamp("expires_at")->nullable()->after("refresh_token");
+            $table->timestamp("last_activity")->nullable()->after("refresh_token");
 
             // the column updated_at and created_at can be implemented by default
             $table->timestamp("created_at")->useCurrent();

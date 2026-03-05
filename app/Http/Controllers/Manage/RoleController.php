@@ -309,10 +309,8 @@ class RoleController extends Controller
     ]
     public function delete(int $id)
     {
-        Log::info("Updating role" . $id);
         // $role = $this->roleRepository->find($id);
         $role = Role::find($id);
-        Log::info("Updating role" . $role);
 
         if (empty($role)) {
             return response()->json(

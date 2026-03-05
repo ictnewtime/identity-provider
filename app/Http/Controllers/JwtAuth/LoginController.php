@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\Provider;
+use App\Models\Session;
+use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie as FacadeCookie;
@@ -87,38 +89,69 @@ class LoginController extends Controller
     {
         $credentials = $request->only("username", "password");
 
-        Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]]);
-
-        $user = Auth::user();
-        if (!$user) {
+        if (!Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]])) {
             return $this->createResponse(403, __("auth.err-verification"));
         }
 
-        $tokenService = new TokenProviderService();
+        $user = Auth::user();
+        $ip_address = $request->ip();
+
+        // L'evento di login va scatenato SEMPRE, a prescindere dal provider
+        event(new LoginEvent($user, $ip_address));
+
         $provider_id = $request->input("provider_id");
-        $return_to = $request->input("redirect_to");
+        $redirect_to = $request->input("redirect_to");
+
         if ($provider_id) {
+            $tokenService = new TokenProviderService();
+            $sessionService = new SessionService();
+
             try {
-                $token = $tokenService->tokenCretion($user, $provider_id);
+                $token = $sessionService->getValidProviderToken($user, $provider_id, $ip_address, $tokenService);
+                Log::debug("Token: " . $token);
+
                 if (!$token) {
                     return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
                 }
-                $cookie = $tokenService->cookieCretion($token, $provider_id);
+
                 $provider = Provider::where("id", $provider_id)->first();
-                if (!$return_to) {
-                    $return_to = $provider->protocol . $provider->domain;
+                if (!$provider) {
+                    return $this->createResponse(404, "Provider non valido.");
                 }
+
+                // URL base del provider
+                $redirect_url = $provider->protocol . $provider->domain;
+                Log::debug("Provider base URL: " . $redirect_url);
+
+                // SICUREZZA: Se c'è un redirect_to, verifichiamo che appartenga al dominio autorizzato!
+                if ($redirect_to) {
+                    $parsedHost = parse_url($redirect_to, PHP_URL_HOST);
+                    // Accettiamo il redirect solo se è sullo stesso dominio del provider (o è localhost per i test)
+                    if ($parsedHost === $provider->domain || in_array($parsedHost, ["localhost", "127.0.0.1"])) {
+                        $redirect_url = $redirect_to;
+                    } else {
+                        Log::warning("Tentativo di Open Redirect bloccato verso: " . $redirect_to);
+                    }
+                }
+
+                // Logica SSO: accodiamo SEMPRE il token all'URL per passarlo all'App Client
+                $redirect_url = $tokenService->appendTokenToUrl($redirect_url, $token);
+
+                Log::debug("Redirect finale con token: " . $redirect_url);
+                Log::debug("Cookie creation IdP");
+
+                $cookie = $tokenService->cookieCretion($token, $provider_id);
+
                 return response()
-                    ->json(["redirect_url" => $return_to])
+                    ->json(["redirect_url" => $redirect_url])
                     ->withCookie($cookie);
             } catch (\Exception $e) {
                 Log::error($e->getMessage());
                 return $this->createResponse(500, __("auth.err-jwt"));
             }
         }
-        $userResource = UserResource::make($user);
 
-        event(new LoginEvent($user, $request->ip()));
+        $userResource = UserResource::make($user);
         return response()->json(["user" => $userResource]);
     }
 
@@ -164,7 +197,7 @@ class LoginController extends Controller
     public function logout(Request $request)
     {
         $user = Auth::user();
-        event(new LogoutEvent($user));
+        // event(new LogoutEvent($user));
         // auth()->logout(true);
         Auth::logout();
 
@@ -183,6 +216,73 @@ class LoginController extends Controller
         }
 
         return redirect("loginForm")->withCookie($cookie);
+    }
+
+    public function logout_sso(Request $request)
+    {
+        Log::info("--- INIZIO LOGOUT SSO (Lato IdP) ---");
+
+        // 1. Recuperiamo i parametri
+        $provider_id = $request->query("provider_id");
+        $redirect_to = $request->query("redirect_to", url("/"));
+
+        Log::info("Richiesta di logout. Provider ID: " . ($provider_id ?? "Nullo") . " | Redirect: " . $redirect_to);
+
+        // 2. Operazioni SULL'UTENTE (Prima di sloggarlo!)
+        if (Auth::check()) {
+            $user = Auth::user();
+            Log::info("Utente riconosciuto: ID " . $user->id);
+
+            // Lanciamo l'evento
+            // event(new LogoutEvent($user));
+
+            // CANCELLAZIONE DAL DATABASE (Spostata qui dentro!)
+            if ($provider_id) {
+                $deletedCount = \App\Models\Session::where("provider_id", $provider_id)
+                    ->where("user_id", $user->id)
+                    ->delete();
+                Log::info(
+                    "Eliminate $deletedCount sessioni dal DB per l'utente " . $user->id . " sul provider $provider_id",
+                );
+            } else {
+                // Se per qualche motivo non c'è il provider, per sicurezza pialliamo tutte le sue sessioni (Global Logout)
+                $deletedCount = \App\Models\Session::where("user_id", $user->id)->delete();
+                Log::info(
+                    "Nessun provider specificato. Eliminate TUTTE le ($deletedCount) sessioni dal DB per l'utente " .
+                        $user->id,
+                );
+            }
+        } else {
+            Log::warning(
+                "Attenzione: Auth::check() è false. Nessun utente loggato su Laravel, salto l'eliminazione a DB.",
+            );
+        }
+
+        // 3. Eseguiamo il logout nativo di Laravel
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        Log::info("Logout di sistema eseguito (sessione e token rigenerati).");
+
+        // 4. Prepariamo la risposta di redirect
+        $response = redirect($redirect_to);
+
+        // 5. DISTRUZIONE COOKIE
+        $cookieDomain = env("TOKEN_COOKIE_DOMAIN");
+        Log::info("Eliminazione cookie. Dominio usato: " . ($cookieDomain ?? "Nessuno (default)"));
+
+        // Distruggiamo il cookie generico "token"
+        $response->withCookie(FacadeCookie::forget("token", "/", $cookieDomain));
+
+        // Ho de-commentato questa parte: è FONDAMENTALE distruggere il cookie specifico, altrimenti il frontend client si incastra!
+        if ($provider_id) {
+            $cookie_name = "idp_token_" . $provider_id;
+            Log::info("Accodata distruzione del cookie client: " . $cookie_name);
+            $response->withCookie(FacadeCookie::forget($cookie_name, "/", $cookieDomain));
+        }
+
+        Log::info("--- FINE LOGOUT SSO ---");
+        return $response;
     }
 
     private function createResponse(int $status = 200, string $message = null, $cookie = null)
