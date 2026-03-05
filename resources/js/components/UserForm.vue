@@ -1,8 +1,7 @@
 <template>
-    <Panel header="Crea nuovo utente">
-        prova
-        <form @submit.prevent="submit" class="grid p-fluid">
-            <div class="col-12 md:col-6 field d-flex align-items-center justify-content-between">
+    <Panel header="">
+        <form @submit.prevent="submit" class="row justify-content-start">
+            <div class="col-md-6 col-sm-12 field d-flex flex-column">
                 <label for="username">Username</label>
                 <InputText
                     id="username"
@@ -14,7 +13,7 @@
                 <small class="p-error" v-if="validator.username.length">{{ validator.username[0] }}</small>
             </div>
 
-            <div class="col-12 md:col-6 field d-flex align-items-center justify-content-between">
+            <div class="col-md-6 col-sm-12 field d-flex flex-column">
                 <label for="email">Email</label>
                 <InputText
                     id="email"
@@ -26,7 +25,7 @@
                 <small class="p-error" v-if="validator.email.length">{{ validator.email[0] }}</small>
             </div>
 
-            <div class="col-12 md:col-6 field d-flex align-items-center justify-content-between">
+            <div class="col-md-6 col-sm-12 field d-flex flex-column">
                 <label for="name">Nome</label>
                 <InputText
                     id="name"
@@ -38,7 +37,7 @@
                 <small class="p-error" v-if="validator.name.length">{{ validator.name[0] }}</small>
             </div>
 
-            <div class="col-12 md:col-6 field d-flex align-items-center justify-content-between">
+            <div class="col-md-6 col-sm-12 field d-flex flex-column">
                 <label for="surname">Cognome</label>
                 <InputText
                     id="surname"
@@ -50,8 +49,9 @@
                 <small class="p-error" v-if="validator.surname.length">{{ validator.surname[0] }}</small>
             </div>
 
-            <div class="col-12 md:col-6 field d-flex align-items-center justify-content-between">
-                <label for="password">Password</label>
+            <div class="col-md-6 col-sm-12 field d-flex flex-column">
+                <!-- margin left 3 -->
+                <label for="password" class="ms-1">Password</label>
                 <Password
                     id="password"
                     v-model="form.password"
@@ -59,11 +59,21 @@
                     :feedback="false"
                     toggleMask
                     size="small"
+                    :pt="{
+                        root: {
+                            class: 'w-100',
+                        },
+                        pcInputText: {
+                            root: {
+                                class: 'w-100 p-inputtext-sm',
+                            },
+                        },
+                    }"
                 />
                 <small class="p-error" v-if="validator.password.length">{{ validator.password[0] }}</small>
             </div>
 
-            <div class="col-12 md:col-6 field d-flex align-items-center justify-content-between">
+            <div class="col-md-6 col-sm-12 field d-flex flex-column">
                 <label for="password_confirmation">Conferma Password</label>
                 <Password
                     id="password_confirmation"
@@ -72,23 +82,35 @@
                     :feedback="false"
                     toggleMask
                     size="small"
+                    :pt="{
+                        root: {
+                            class: 'w-100',
+                        },
+                        pcInputText: {
+                            root: {
+                                class: 'w-100 p-inputtext-sm',
+                            },
+                        },
+                    }"
                 />
                 <small class="p-error" v-if="validator.password_confirmation.length">{{
                     validator.password_confirmation[0]
                 }}</small>
             </div>
 
-            <div class="col-12 d-flex justify-content-end gap-2 mt-3">
-                <Button label="Reset" icon="pi pi-refresh" severity="danger" variant="outlined" @click="resetForm" />
-                <Button type="submit" label="Crea utente" icon="pi pi-user-plus" :loading="loading" />
+            <div class="col-12 mt-3">
+                <Button
+                    type="submit"
+                    :label="isEditMode ? 'Modifica Utente' : 'Crea Utente'"
+                    :loading="loading"
+                    icon="pi pi-check"
+                />
             </div>
         </form>
     </Panel>
 </template>
 
 <script>
-import { EventBus } from "../event-bus";
-// Importa i componenti PrimeVue qui se non li hai registrati globalmente
 import Panel from "primevue/panel";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
@@ -96,11 +118,20 @@ import Button from "primevue/button";
 
 export default {
     components: { Panel, InputText, Password, Button },
+    props: {
+        // Riceve l'utente cliccato dalla tabella
+        selectedUser: {
+            type: Object,
+            default: null,
+        },
+    },
     data() {
         return {
             form: {
+                id: null, // Aggiunto per l'Edit
                 username: null,
                 password: null,
+                password_confirmation: null,
                 email: null,
                 name: null,
                 surname: null,
@@ -113,118 +144,170 @@ export default {
                 name: [],
                 surname: [],
             },
-            pagination: {
-                current_page: -1,
-                data: [],
-                total: 0,
-                last_page: 0,
-                per_page: 10,
-            },
             loading: false,
-            filterUserInput: null,
         };
     },
 
-    // created() {},
+    computed: {
+        // Capisce se siamo in modalità modifica guardando la prop
+        isEditMode() {
+            return !!this.selectedUser;
+        },
+    },
 
     watch: {
-        filterUserInput: function (newValue, oldValue) {
-            this.filterUsers();
+        // Reagisce ogni volta che la modale si apre con un utente diverso
+        selectedUser: {
+            immediate: true,
+            handler(newVal) {
+                if (newVal && newVal.id) {
+                    this.fetchUser(newVal.id);
+                } else {
+                    this.resetForm();
+                    this.loadUser(); // il tuo vecchio metodo per il localStorage
+                }
+            },
         },
     },
 
     mounted() {
-        // recupero l' utente dal localStorage
-        this.loadUser();
+        // this.loadUser(); // Spostato nel watcher per gestirlo in base allo stato
     },
 
     methods: {
         loadUser() {
             let user = JSON.parse(localStorage.getItem("user"));
-            if (user) {
+            if (user && !this.isEditMode) {
                 this.form.username = user.username;
                 this.form.email = user.email;
                 this.form.name = user.name;
                 this.form.surname = user.surname;
             }
         },
-        submit: function () {
-            if (!this.validate()) {
-                return;
+
+        // Nuova chiamata GET per recuperare i dettagli
+        fetchUser(id) {
+            this.loading = true;
+            axios
+                .get(`${window.location.origin}/admin/v1/users/${id}`)
+                .then((res) => {
+                    const data = res.data;
+                    this.form.id = data.id;
+                    this.form.username = data.username;
+                    this.form.email = data.email;
+                    this.form.name = data.name;
+                    this.form.surname = data.surname;
+                    // Le password non vengono mai restituite dal backend, le lasciamo vuote
+                })
+                .catch((err) => {
+                    console.error(err);
+                    vm.$toast.add({
+                        severity: "error",
+                        summary: "Errore",
+                        detail: "Errore caricamento utente",
+                        life: 3000,
+                    });
+                })
+                .finally(() => (this.loading = false));
+        },
+
+        submit() {
+            if (!this.validate()) return;
+
+            this.loading = true;
+            let vm = this;
+
+            // Logica dinamica: URL e Metodo HTTP variano
+            const baseUrl = window.location.origin + "/admin/v1/users";
+            const url = this.isEditMode ? `${baseUrl}/${this.form.id}` : baseUrl;
+            const method = this.isEditMode ? "put" : "post";
+
+            // Costruiamo il payload
+            let payload = {
+                username: vm.form.username,
+                email: vm.form.email,
+                name: vm.form.name,
+                surname: vm.form.surname,
+            };
+
+            // Invieremo la password solo se l'utente l'ha digitata (per aggiornarla)
+            // o se stiamo creando un utente nuovo
+            if (vm.form.password) {
+                payload.password = vm.form.password;
+                payload.password_confirmation = vm.form.password_confirmation;
             }
 
-            let vm = this;
-            const url = window.location.origin + "/admin/users";
-            axios
-                .post(url, {
-                    username: vm.form.username,
-                    password: vm.form.password,
-                    password_confirmation: vm.form.password_confirmation,
-                    email: vm.form.email,
-                    name: vm.form.name,
-                    surname: vm.form.surname,
-                })
-                .then(function (data) {
+            axios[method](url, payload)
+                .then(function () {
                     vm.resetForm();
-                    vm.loadUsers();
-                    EventBus.$emit("newNotification", {
-                        message: "Utente aggiunto correttamente",
-                        type: "SUCCESS",
+                    // toast
+                    vm.$toast.add({
+                        severity: "success",
+                        summary: "Operazione completata",
+                        detail: vm.isEditMode ? "Utente aggiornato correttamente" : "Utente aggiunto correttamente",
+                        life: 3000,
                     });
+
+                    // Notifica il componente padre (UserPage) per chiudere la modale e ricaricare la tabella
+                    vm.$emit(vm.isEditMode ? "user-updated" : "user-created");
                 })
                 .catch(function (error) {
                     console.log(error);
-                    EventBus.$emit("newNotification", {
-                        message: "Errore durante la registrazione",
-                        type: "ERROR",
+                    vm.$toast.add({
+                        severity: "error",
+                        summary: "Errore",
+                        detail: vm.isEditMode ? "Errore aggiornamento utente" : "Errore aggiunta utente",
+                        life: 3000,
                     });
-                    // error.errors è un oggetto key => value, value è una stringa
-                    const errors = error.response.data.errors;
-                    // inserire il messaggio di errore nella validator
-                    vm.validator = { ...vm.validator, ...errors };
-                });
+                    if (error.response && error.response.data.errors) {
+                        vm.validator = { ...vm.validator, ...error.response.data.errors };
+                    }
+                })
+                .finally(() => (vm.loading = false));
         },
 
-        validate: function () {
+        validate() {
+            // Svuota prima i vecchi errori
+            Object.keys(this.validator).forEach((key) => (this.validator[key] = []));
+
             this.validator.username = !!this.form.username ? [] : ["Username obbligatorio"];
-            this.validator.password = !!this.form.password ? [] : ["Password obbligatoria"];
-            this.validator.password_confirmation = !!this.form.password_confirmation ? [] : ["Password obbligatoria"];
             this.validator.email = this.validateEmail(this.form.email) ? [] : ["Email non valida"];
             this.validator.name = !!this.form.name ? [] : ["Nome obbligatorio"];
             this.validator.surname = !!this.form.surname ? [] : ["Cognome obbligatorio"];
-            // salvare l' utente nel localStorage
-            localStorage.setItem(
-                "user",
-                JSON.stringify({
-                    username: this.form.username,
-                    email: this.form.email,
-                    name: this.form.name,
-                    surname: this.form.surname,
-                })
-            );
+
+            // La password è obbligatoria solo in creazione. In modifica è opzionale.
+            if (!this.isEditMode && !this.form.password) {
+                this.validator.password = ["Password obbligatoria"];
+            }
+
+            // ... Salva nel localStorage se ti serve ancora
+
             return (
                 this.validator.username.length === 0 &&
                 this.validator.password.length === 0 &&
-                this.validator.password_confirmation.length === 0 &&
                 this.validator.email.length === 0 &&
                 this.validator.name.length === 0 &&
                 this.validator.surname.length === 0
             );
         },
 
-        validateEmail: function validateEmail(email) {
+        validateEmail(email) {
             let re =
                 /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
             return re.test(String(email).toLowerCase());
         },
 
-        resetForm: function () {
+        resetForm() {
+            this.form.id = null;
             this.form.username = null;
             this.form.password = null;
             this.form.password_confirmation = null;
             this.form.email = null;
             this.form.name = null;
             this.form.surname = null;
+
+            // Pulisce anche gli errori del validatore
+            Object.keys(this.validator).forEach((key) => (this.validator[key] = []));
         },
     },
 };

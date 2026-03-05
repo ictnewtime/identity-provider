@@ -44,10 +44,27 @@ class RoleController extends Controller
             ],
         ),
     ]
-    public function all()
+    public function all(Request $request)
     {
-        return Role::all();
-        // return $this->roleRepository->all();
+        $query = Role::with("provider");
+        $provider_id = $request->input("provider_id");
+
+        if ($provider_id) {
+            $query->whereHas("provider", function ($q) use ($provider_id) {
+                $q->where("id", $provider_id);
+            });
+        }
+
+        if ($request->filled("q")) {
+            $searchTerm = "%" . $request->q . "%";
+
+            $query->where("name", "like", $searchTerm)->orWhereHas("provider", function ($q) use ($searchTerm) {
+                $q->where("domain", "like", $searchTerm);
+            });
+        }
+
+        $perPage = $request->input("per_page", 10);
+        return $query->paginate($perPage);
     }
 
     #[
@@ -292,10 +309,8 @@ class RoleController extends Controller
     ]
     public function delete(int $id)
     {
-        Log::info("Updating role" . $id);
         // $role = $this->roleRepository->find($id);
         $role = Role::find($id);
-        Log::info("Updating role" . $role);
 
         if (empty($role)) {
             return response()->json(

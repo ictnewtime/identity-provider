@@ -37,9 +37,14 @@ class ProviderController extends Controller
             ],
         ),
     ]
-    public function all()
+    public function all(Request $request)
     {
-        return Provider::all();
+        $query = Provider::query();
+        if ($request->filled("q")) {
+            $query->where("domain", "like", "%" . $request->q . "%");
+        }
+        $perPage = $request->input("per_page", 10);
+        return $query->paginate($perPage);
     }
 
     #[
@@ -101,13 +106,8 @@ class ProviderController extends Controller
     ]
     public function create(ProviderRequest $request)
     {
-        $data = $request->only("domain", "secret_key", "logoutUrl");
-
+        $data = $request->only("domain", "secret_key", "logoutUrl", "protocol");
         $provider = Provider::create($data);
-
-        if (empty($provider)) {
-            return response()->json(["message" => "Error during saving provider"], 500);
-        }
 
         return response()->json(["provider" => $provider], 201);
     }
@@ -237,7 +237,7 @@ class ProviderController extends Controller
     ]
     public function update(Request $request, $id)
     {
-        $data = $request->only("domain", "secret_key", "logoutUrl");
+        $data = $request->only("domain", "secret_key", "logoutUrl", "protocol");
 
         try {
             $provider = Provider::find($id);

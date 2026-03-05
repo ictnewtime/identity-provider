@@ -37235,42 +37235,42 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var vue__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! vue */ "./node_modules/vue/dist/vue.esm-bundler.js");
 
 var _hoisted_1 = {
-  "class": "col-12 md:col-6 field d-flex align-items-center justify-content-between"
+  "class": "col-lg-4 col-md-6 col-sm-12 field d-flex flex-column"
 };
 var _hoisted_2 = {
   key: 0,
   "class": "p-error"
 };
 var _hoisted_3 = {
-  "class": "col-12 md:col-6 field d-flex align-items-center justify-content-between"
+  "class": "col-lg-4 col-md-6 col-sm-12 field d-flex flex-column"
 };
 var _hoisted_4 = {
   key: 0,
   "class": "p-error"
 };
 var _hoisted_5 = {
-  "class": "col-12 md:col-6 field d-flex align-items-center justify-content-between"
+  "class": "col-lg-4 col-md-6 col-sm-12 field d-flex flex-column"
 };
 var _hoisted_6 = {
   key: 0,
   "class": "p-error"
 };
 var _hoisted_7 = {
-  "class": "col-12 md:col-6 field d-flex align-items-center justify-content-between"
+  "class": "col-lg-4 col-md-6 col-sm-12 field d-flex flex-column"
 };
 var _hoisted_8 = {
   key: 0,
   "class": "p-error"
 };
 var _hoisted_9 = {
-  "class": "col-12 md:col-6 field d-flex align-items-center justify-content-between"
+  "class": "col-lg-4 col-md-6 col-sm-12 field d-flex flex-column"
 };
 var _hoisted_10 = {
   key: 0,
   "class": "p-error"
 };
 var _hoisted_11 = {
-  "class": "col-12 md:col-6 field d-flex align-items-center justify-content-between"
+  "class": "col-lg-4 col-md-6 col-sm-12 field d-flex flex-column"
 };
 var _hoisted_12 = {
   key: 0,
@@ -37285,14 +37285,14 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
   var _component_Button = (0,vue__WEBPACK_IMPORTED_MODULE_0__.resolveComponent)("Button");
   var _component_Panel = (0,vue__WEBPACK_IMPORTED_MODULE_0__.resolveComponent)("Panel");
   return (0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createBlock)(_component_Panel, {
-    header: "Crea nuovo utente"
+    header: ""
   }, {
     "default": (0,vue__WEBPACK_IMPORTED_MODULE_0__.withCtx)(function () {
-      return [_cache[13] || (_cache[13] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createTextVNode)(" prova ", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("form", {
+      return [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("form", {
         onSubmit: _cache[6] || (_cache[6] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.withModifiers)(function () {
           return $options.submit && $options.submit.apply($options, arguments);
         }, ["prevent"])),
-        "class": "grid p-fluid"
+        "class": "row justify-content-start"
       }, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_1, [_cache[7] || (_cache[7] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", {
         "for": "username"
       }, "Username", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(_component_InputText, {
@@ -37337,9 +37337,10 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
         invalid: $data.validator.surname.length > 0,
         placeholder: "Rossi",
         size: "small"
-      }, null, 8 /* PROPS */, ["modelValue", "invalid"]), $data.validator.surname.length ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("small", _hoisted_8, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.validator.surname[0]), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_9, [_cache[11] || (_cache[11] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", {
-        "for": "password"
-      }, "Password", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(_component_Password, {
+      }, null, 8 /* PROPS */, ["modelValue", "invalid"]), $data.validator.surname.length ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("small", _hoisted_8, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.validator.surname[0]), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_9, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)(" margin left 3 "), _cache[11] || (_cache[11] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", {
+        "for": "password",
+        "class": "ms-1"
+      }, "Password123", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(_component_Password, {
         id: "password",
         modelValue: $data.form.password,
         "onUpdate:modelValue": _cache[4] || (_cache[4] = function ($event) {
@@ -37348,7 +37349,17 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
         invalid: $data.validator.password.length > 0,
         feedback: false,
         toggleMask: "",
-        size: "small"
+        size: "small",
+        pt: {
+          root: {
+            "class": 'w-100'
+          },
+          pcInputText: {
+            root: {
+              "class": 'w-100 p-inputtext-sm'
+            }
+          }
+        }
       }, null, 8 /* PROPS */, ["modelValue", "invalid"]), $data.validator.password.length ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("small", _hoisted_10, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.validator.password[0]), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_11, [_cache[12] || (_cache[12] = (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("label", {
         "for": "password_confirmation"
       }, "Conferma Password", -1 /* CACHED */)), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(_component_Password, {
@@ -37360,7 +37371,17 @@ function render(_ctx, _cache, $props, $setup, $data, $options) {
         invalid: $data.validator.password_confirmation.length > 0,
         feedback: false,
         toggleMask: "",
-        size: "small"
+        size: "small",
+        pt: {
+          root: {
+            "class": 'w-100'
+          },
+          pcInputText: {
+            root: {
+              "class": 'w-100 p-inputtext-sm'
+            }
+          }
+        }
       }, null, 8 /* PROPS */, ["modelValue", "invalid"]), $data.validator.password_confirmation.length ? ((0,vue__WEBPACK_IMPORTED_MODULE_0__.openBlock)(), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementBlock)("small", _hoisted_12, (0,vue__WEBPACK_IMPORTED_MODULE_0__.toDisplayString)($data.validator.password_confirmation[0]), 1 /* TEXT */)) : (0,vue__WEBPACK_IMPORTED_MODULE_0__.createCommentVNode)("v-if", true)]), (0,vue__WEBPACK_IMPORTED_MODULE_0__.createElementVNode)("div", _hoisted_13, [(0,vue__WEBPACK_IMPORTED_MODULE_0__.createVNode)(_component_Button, {
         label: "Reset",
         icon: "pi pi-refresh",

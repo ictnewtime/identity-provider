@@ -19,6 +19,9 @@ use App\Http\Controllers\Manage\UserController;
 use App\Http\Controllers\Manage\OauthClientsController;
 use App\Http\Controllers\Manage\ProviderUserRoleController;
 use App\Http\Controllers\Manage\RoleController;
+use App\Http\Controllers\Manage\SessionController;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Request;
 
 Route::get("/", function () {
     return redirect("loginForm");
@@ -50,19 +53,27 @@ Route::prefix("admin")
     ->group(function () {
         Route::get("/", function () {
             return redirect()->route("web-users");
-        })->name("board");
+        })->name("admin-home");
 
         Route::get("users", function () {
             return view("admin.users");
         })->name("web-users");
 
         Route::get("providers", function () {
-            return view("admin.create-provider");
+            return view("admin.providers");
         })->name("web-providers");
 
         Route::get("roles", function () {
-            return view("admin.create-role");
+            return view("admin.roles");
         })->name("web-roles");
+
+        Route::get("provider-user-roles", function () {
+            return view("admin.provider-user-roles");
+        })->name("web-provider-user-roles");
+
+        Route::get("sessions", function () {
+            return view("admin.sessions");
+        })->name("web-sessions");
 
         Route::get("oauth-clients", function () {
             return view("admin.oauth-clients");
@@ -106,8 +117,14 @@ Route::prefix("admin")
             // provider-user-roles/has-relation?provider_id=1&user_id=1
             // provider-user-roles/has-relation?role_id=1
             Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
+
+            // sessions
+            Route::get("sessions", [SessionController::class, "all"]);
+            Route::delete("sessions/{id}", [SessionController::class, "delete"])->where(["id" => "[0-9]+"]);
         });
     });
+
+Route::get("/sso/logout", [LoginController::class, "logout_sso"]);
 
 Route::prefix("v2")->group(function () {
     Route::middleware("web")

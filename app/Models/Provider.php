@@ -29,7 +29,7 @@ class Provider extends Model
      *
      * @var array
      */
-    protected $fillable = ["domain", "logoutUrl", "secret_key"];
+    protected $fillable = ["domain", "logoutUrl", "secret_key", "protocol"];
 
     /**
      * The attributes that should be hidden for arrays.
