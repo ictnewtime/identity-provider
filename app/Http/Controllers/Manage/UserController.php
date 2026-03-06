@@ -148,7 +148,15 @@ class UserController extends Controller
     ]
     public function create(UserRequest $request)
     {
-        $credentials = $request->only("username", "password", "password_confirmation", "email", "name", "surname");
+        $credentials = $request->only(
+            "username",
+            "password",
+            "password_confirmation",
+            "email",
+            "name",
+            "surname",
+            "enabled",
+        );
 
         DB::beginTransaction();
 
@@ -227,7 +235,8 @@ class UserController extends Controller
         if (empty($user)) {
             return response()->json(["message" => "User not found"], 404);
         }
-
+        Log::info("=== API /users/{id} CHIAMATA ===");
+        Log::info($user);
         return response()->json($user);
     }
 
@@ -317,24 +326,35 @@ class UserController extends Controller
     ]
     public function update(UserRequest $request, $id)
     {
-        $credentials = $request->only("email", "username", "password", "name", "surname");
+        // Prendo solo i dati base (SENZA password per ora)
+        $credentials = $request->only("email", "username", "name", "surname", "enabled");
 
+        // Se l'utente ha compilato la password nel form, la aggiungiamo e la criptiamo
+        if ($request->filled("password")) {
+            $credentials["password"] = bcrypt($request->password);
+            // Usa Hash::make($request->password) se preferisci usare la facade Hash
+        }
         $user = $this->userRepository->find($id);
+
         if (empty($user)) {
             return response()->json([], 404);
         }
+
         try {
             $user->update($credentials);
         } catch (\Exception $e) {
-            // errore 500
-            return response()->json([
-                "message" => "Error during updating user",
-                "error" => [
-                    "code" => 500,
-                    "message" => $e->getMessage(),
+            return response()->json(
+                [
+                    "message" => "Error during updating user",
+                    "error" => [
+                        "code" => 500,
+                        "message" => $e->getMessage(),
+                    ],
                 ],
-            ]);
+                500,
+            ); // <-- Ho aggiunto il codice di stato HTTP 500 qui
         }
+
         return response()->json(
             [
                 "user" => UserResource::make($user),

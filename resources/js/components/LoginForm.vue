@@ -107,8 +107,10 @@ export default {
                 .catch((error) => {
                     if (error.response) {
                         vm.errorMessage = error.response.data.message;
+                    } else if (error.message) {
+                        vm.errorMessage = error.message;
                     } else {
-                        vm.errorMessage = "Errore inaspettato";
+                        vm.errorMessage = error;
                     }
                 });
         },

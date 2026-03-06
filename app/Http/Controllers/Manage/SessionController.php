@@ -8,6 +8,7 @@ use App\Http\Requests\SessionRequest;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Session;
+use App\Models\User;
 use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Log;
@@ -117,6 +118,10 @@ class SessionController extends Controller
         $user_id = $request->query("user_id");
 
         Log::debug("SessionController.check: " . $ip_address . " " . $provider_id . " " . $user_id);
+        $user = User::find($user_id);
+        if (!$user || !$user->hasAccessToProvider($provider_id)) {
+            return response()->json(["message" => "Forbidden or Disabled"], 404);
+        }
 
         $result = $this->sessionService->validateAndRefreshSession(
             $ip_address,

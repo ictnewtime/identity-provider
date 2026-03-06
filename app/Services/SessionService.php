@@ -56,25 +56,35 @@ class SessionService
      */
     public function getValidProviderToken($user, $provider_id, $ip_address, TokenProviderService $tokenService)
     {
+        // 1. & 2. Controllo centralizzato: Abilitazione + Ruoli per il provider specifico
+        if (!$user->hasAccessToProvider($provider_id)) {
+            Log::warning(
+                "Accesso negato: Utente ID {$user->id} disabilitato o senza ruoli per Provider {$provider_id}.",
+            );
+            return null;
+        }
+
+        // 3. Gestione Sessione Esistente
         $existingSession = Session::where("user_id", $user->id)->where("provider_id", $provider_id)->first();
 
         if ($existingSession) {
             $isNotExpired = !$existingSession->expires_at || $existingSession->expires_at->isFuture();
 
+            // Se l'IP è uguale e non è scaduto, restituiamo il token vecchio
             if ($existingSession->ip_address === $ip_address && $isNotExpired) {
                 return $existingSession->token;
             }
         }
 
+        // 4. Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
         $token = $tokenService->tokenCretion($user, $provider_id);
 
-        Log::debug("SessionService.getValidProviderToken token: " . $token);
         if (!$token) {
             return null;
         }
+
         $ttlInSeconds = $tokenService->getTtlInSeconds();
         $expiresAt = now()->addSeconds($ttlInSeconds);
-        Log::debug("SessionService.getValidProviderToken expiresAt: " . $expiresAt);
 
         $this->upsertSession($user->id, $provider_id, $ip_address, $token, null, $expiresAt);
 

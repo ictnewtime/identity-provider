@@ -21,6 +21,7 @@ use App\Http\Controllers\Manage\ProviderUserRoleController;
 use App\Http\Controllers\Manage\RoleController;
 use App\Http\Controllers\Manage\SessionController;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
 
 Route::get("/", function () {
@@ -125,6 +126,11 @@ Route::prefix("admin")
     });
 
 Route::get("/sso/logout", [LoginController::class, "logout_sso"]);
+
+Route::get("login", function () {
+    Log::info("Redirecting to login form");
+    return redirect()->route("loginForm");
+});
 
 Route::prefix("v2")->group(function () {
     Route::middleware("web")

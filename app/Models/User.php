@@ -6,12 +6,11 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 // use App\Models\UserRole;
 
 //, OAuthenticatable
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable // implements JWTSubject
 {
     //HasApiTokens,
     use HasApiTokens, HasFactory, Notifiable;
@@ -23,7 +22,7 @@ class User extends Authenticatable implements JWTSubject
      *
      * @var array
      */
-    protected $fillable = ["username", "password", "email", "name", "surname", "is_verified"];
+    protected $fillable = ["username", "password", "email", "name", "surname", "is_verified", "enabled"];
 
     /**
      * The attributes that should be hidden for arrays.
@@ -42,26 +41,6 @@ class User extends Authenticatable implements JWTSubject
             ->get();
 
         return $provider_user_roles;
-    }
-
-    /**
-     * Get the identifier that will be stored in the subject claim of the JWT.
-     *
-     * @return mixed
-     */
-    public function getJWTIdentifier()
-    {
-        return $this->getKey();
-    }
-
-    /**
-     * Return a key value array, containing any custom claims to be added to the JWT.
-     *
-     * @return array
-     */
-    public function getJWTCustomClaims()
-    {
-        return [];
     }
 
     /**
@@ -89,4 +68,45 @@ class User extends Authenticatable implements JWTSubject
         }
         return false;
     }
+
+    /**
+     * Restituisce la Query Builder per i ruoli di un determinato provider
+     */
+    public function providerRoles($providerId)
+    {
+        return \App\Models\ProviderUserRole::where("user_id", $this->id)->where("provider_id", $providerId);
+    }
+
+    /**
+     * Semplice check: l'utente ha almeno un ruolo per questo provider?
+     */
+    public function hasAccessToProvider($providerId): bool
+    {
+        // Se l'utente è disabilitato globalmente, l'accesso è sempre negato
+        if (isset($this->enabled) && !$this->enabled) {
+            return false;
+        }
+
+        return $this->providerRoles($providerId)->exists();
+    }
+
+    // /**
+    //  * Get the identifier that will be stored in the subject claim of the JWT.
+    //  *
+    //  * @return mixed
+    //  */
+    // public function getJWTIdentifier()
+    // {
+    //     return $this->getKey();
+    // }
+
+    // /**
+    //  * Return a key value array, containing any custom claims to be added to the JWT.
+    //  *
+    //  * @return array
+    //  */
+    // public function getJWTCustomClaims()
+    // {
+    //     return [];
+    // }
 }

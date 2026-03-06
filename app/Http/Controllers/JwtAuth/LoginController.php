@@ -90,7 +90,7 @@ class LoginController extends Controller
         $credentials = $request->only("username", "password");
 
         if (!Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]])) {
-            return $this->createResponse(403, __("auth.err-verification"));
+            return $this->createResponse(403, __("auth.err-login"));
         }
 
         $user = Auth::user();
@@ -100,59 +100,26 @@ class LoginController extends Controller
         event(new LoginEvent($user, $ip_address));
 
         $provider_id = $request->input("provider_id");
-        $redirect_to = $request->input("redirect_to");
-
         if ($provider_id) {
-            $tokenService = new TokenProviderService();
-            $sessionService = new SessionService();
+            $ssoData = TokenProviderService::respondWithSsoRedirect(
+                Auth::user(),
+                $provider_id,
+                $request,
+                $request->input("redirect_to"),
+            );
 
-            try {
-                $token = $sessionService->getValidProviderToken($user, $provider_id, $ip_address, $tokenService);
-                Log::debug("Token: " . $token);
-
-                if (!$token) {
-                    return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
-                }
-
-                $provider = Provider::where("id", $provider_id)->first();
-                if (!$provider) {
-                    return $this->createResponse(404, "Provider non valido.");
-                }
-
-                // URL base del provider
-                $redirect_url = $provider->protocol . $provider->domain;
-                Log::debug("Provider base URL: " . $redirect_url);
-
-                // SICUREZZA: Se c'è un redirect_to, verifichiamo che appartenga al dominio autorizzato!
-                if ($redirect_to) {
-                    $parsedHost = parse_url($redirect_to, PHP_URL_HOST);
-                    // Accettiamo il redirect solo se è sullo stesso dominio del provider (o è localhost per i test)
-                    if ($parsedHost === $provider->domain || in_array($parsedHost, ["localhost", "127.0.0.1"])) {
-                        $redirect_url = $redirect_to;
-                    } else {
-                        Log::warning("Tentativo di Open Redirect bloccato verso: " . $redirect_to);
-                    }
-                }
-
-                // Logica SSO: accodiamo SEMPRE il token all'URL per passarlo all'App Client
-                $redirect_url = $tokenService->appendTokenToUrl($redirect_url, $token);
-
-                Log::debug("Redirect finale con token: " . $redirect_url);
-                Log::debug("Cookie creation IdP");
-
-                $cookie = $tokenService->cookieCretion($token, $provider_id);
-
-                return response()
-                    ->json(["redirect_url" => $redirect_url])
-                    ->withCookie($cookie);
-            } catch (\Exception $e) {
-                Log::error($e->getMessage());
-                return $this->createResponse(500, __("auth.err-jwt"));
+            if (!$ssoData) {
+                Auth::logout(); // Se non è abilitato all'app, lo slogghiamo anche dall'IdP? Spesso è meglio di sì.
+                return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
             }
+
+            return response()
+                ->json(["redirect_url" => $ssoData["url"]])
+                ->withCookie($ssoData["cookie"]);
         }
 
-        $userResource = UserResource::make($user);
-        return response()->json(["user" => $userResource]);
+        // Login diretto all'IdP
+        return response()->json(["user" => UserResource::make(Auth::user())]);
     }
 
     #[
@@ -197,31 +164,38 @@ class LoginController extends Controller
     public function logout(Request $request)
     {
         $user = Auth::user();
-        // event(new LogoutEvent($user));
-        // auth()->logout(true);
-        Auth::logout();
 
+        // 1. Esegui il logout fisico
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // 2. Prepariamo la distruzione del cookie (con il dominio corretto)
         $cookie = FacadeCookie::forget("token", "/", env("TOKEN_COOKIE_DOMAIN"));
 
+        // 3. Risposta per chiamate AJAX/JSON (es. da Vue senza redirect)
         if ($request->ajax() || $request->wantsJson()) {
             return $this->createResponse(200, null, $cookie);
         }
 
-        if ($request->input("redirect")) {
-            return redirect(
-                route("loginForm", [
-                    "redirect" => $request->input("redirect"),
-                ]),
-            )->withCookie($cookie);
+        /**
+         * 4. Gestione Redirect con mantenimento Query Params
+         * Recuperiamo tutti i parametri attuali (provider_id, redirect_to, ecc.)
+         * per passarli alla rotta loginForm.
+         */
+        $allParams = $request->query(); // Prende tutto ciò che c'è dopo il '?'
+
+        // Se preferisci usare un parametro specifico 'redirect' come nel tuo vecchio codice:
+        if ($request->has("redirect")) {
+            $allParams["redirect"] = $request->input("redirect");
         }
 
-        return redirect("loginForm")->withCookie($cookie);
+        // Reindirizziamo alla rotta 'loginForm' passando l'intero array di parametri
+        return redirect()->route("loginForm", $allParams)->withCookie($cookie);
     }
 
     public function logout_sso(Request $request)
     {
-        Log::info("--- INIZIO LOGOUT SSO (Lato IdP) ---");
-
         // 1. Recuperiamo i parametri
         $provider_id = $request->query("provider_id");
         $redirect_to = $request->query("redirect_to", url("/"));
@@ -231,22 +205,12 @@ class LoginController extends Controller
         // 2. Operazioni SULL'UTENTE (Prima di sloggarlo!)
         if (Auth::check()) {
             $user = Auth::user();
-            Log::info("Utente riconosciuto: ID " . $user->id);
 
-            // Lanciamo l'evento
-            // event(new LogoutEvent($user));
-
-            // CANCELLAZIONE DAL DATABASE (Spostata qui dentro!)
             if ($provider_id) {
-                $deletedCount = \App\Models\Session::where("provider_id", $provider_id)
-                    ->where("user_id", $user->id)
-                    ->delete();
-                Log::info(
-                    "Eliminate $deletedCount sessioni dal DB per l'utente " . $user->id . " sul provider $provider_id",
-                );
+                $deletedCount = Session::where("provider_id", $provider_id)->where("user_id", $user->id)->delete();
             } else {
                 // Se per qualche motivo non c'è il provider, per sicurezza pialliamo tutte le sue sessioni (Global Logout)
-                $deletedCount = \App\Models\Session::where("user_id", $user->id)->delete();
+                $deletedCount = Session::where("user_id", $user->id)->delete();
                 Log::info(
                     "Nessun provider specificato. Eliminate TUTTE le ($deletedCount) sessioni dal DB per l'utente " .
                         $user->id,
@@ -281,7 +245,6 @@ class LoginController extends Controller
             $response->withCookie(FacadeCookie::forget($cookie_name, "/", $cookieDomain));
         }
 
-        Log::info("--- FINE LOGOUT SSO ---");
         return $response;
     }
 

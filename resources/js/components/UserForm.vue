@@ -98,7 +98,22 @@
                 }}</small>
             </div>
 
-            <div class="col-12 mt-3">
+            <div class="col-md-6 col-sm-12 field d-flex flex-column mt-2">
+                <label for="enabled">Stato Utente</label>
+                <div class="flex align-items-center gap-2 mt-1">
+                    <ToggleSwitch id="enabled" v-model="form.enabled" />
+                </div>
+            </div>
+
+            <div class="col-12 d-flex justify-content-end align-items-center gap-3 mt-4">
+                <Button
+                    type="button"
+                    label="Reset"
+                    class="p-button-danger p-button-text"
+                    icon="pi pi-times"
+                    @click="resetForm"
+                />
+
                 <Button
                     type="submit"
                     :label="isEditMode ? 'Modifica Utente' : 'Crea Utente'"
@@ -115,9 +130,10 @@ import Panel from "primevue/panel";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
 import Button from "primevue/button";
+import ToggleSwitch from "primevue/toggleswitch";
 
 export default {
-    components: { Panel, InputText, Password, Button },
+    components: { Panel, InputText, Password, Button, ToggleSwitch },
     props: {
         // Riceve l'utente cliccato dalla tabella
         selectedUser: {
@@ -135,6 +151,7 @@ export default {
                 email: null,
                 name: null,
                 surname: null,
+                enabled: true,
             },
             validator: {
                 username: [],
@@ -182,6 +199,7 @@ export default {
                 this.form.email = user.email;
                 this.form.name = user.name;
                 this.form.surname = user.surname;
+                this.enabled = user.enabled;
             }
         },
 
@@ -197,7 +215,10 @@ export default {
                     this.form.email = data.email;
                     this.form.name = data.name;
                     this.form.surname = data.surname;
+                    this.form.enabled = data.enabled == 1 ? true : false;
                     // Le password non vengono mai restituite dal backend, le lasciamo vuote
+                    this.form.password = null;
+                    this.form.password_confirmation = null;
                 })
                 .catch((err) => {
                     console.error(err);
@@ -217,22 +238,22 @@ export default {
             this.loading = true;
             let vm = this;
 
-            // Logica dinamica: URL e Metodo HTTP variano
             const baseUrl = window.location.origin + "/admin/v1/users";
             const url = this.isEditMode ? `${baseUrl}/${this.form.id}` : baseUrl;
             const method = this.isEditMode ? "put" : "post";
 
-            // Costruiamo il payload
+            // 1. Payload base (sempre inviato)
             let payload = {
                 username: vm.form.username,
                 email: vm.form.email,
                 name: vm.form.name,
                 surname: vm.form.surname,
+                enabled: vm.form.enabled, // Assicurati di usare form.enabled
             };
 
-            // Invieremo la password solo se l'utente l'ha digitata (per aggiornarla)
-            // o se stiamo creando un utente nuovo
-            if (vm.form.password) {
+            // 2. Aggiungi password solo se presente
+            // In modifica: se l'utente non scrive nulla, la password non viene toccata
+            if (vm.form.password && vm.form.password.trim() !== "") {
                 payload.password = vm.form.password;
                 payload.password_confirmation = vm.form.password_confirmation;
             }
@@ -270,25 +291,41 @@ export default {
             // Svuota prima i vecchi errori
             Object.keys(this.validator).forEach((key) => (this.validator[key] = []));
 
-            this.validator.username = !!this.form.username ? [] : ["Username obbligatorio"];
-            this.validator.email = this.validateEmail(this.form.email) ? [] : ["Email non valida"];
-            this.validator.name = !!this.form.name ? [] : ["Nome obbligatorio"];
-            this.validator.surname = !!this.form.surname ? [] : ["Cognome obbligatorio"];
+            let isValid = true;
 
-            // La password è obbligatoria solo in creazione. In modifica è opzionale.
-            if (!this.isEditMode && !this.form.password) {
-                this.validator.password = ["Password obbligatoria"];
+            // Validazioni standard
+            if (!this.form.username) {
+                this.validator.username = ["Username obbligatorio"];
+                isValid = false;
+            }
+            if (!this.validateEmail(this.form.email)) {
+                this.validator.email = ["Email non valida"];
+                isValid = false;
+            }
+            if (!this.form.name) {
+                this.validator.name = ["Nome obbligatorio"];
+                isValid = false;
+            }
+            if (!this.form.surname) {
+                this.validator.surname = ["Cognome obbligatorio"];
+                isValid = false;
             }
 
-            // ... Salva nel localStorage se ti serve ancora
+            // VALIDAZIONE PASSWORD LOGICA:
+            // Se NON siamo in modifica (Creazione), la password è OBBLIGATORIA.
+            // Se siamo in modifica, la controlliamo SOLO se l'utente ha iniziato a scriverla.
+            if (!this.isEditMode && !this.form.password) {
+                this.validator.password = ["Password obbligatoria per nuovi utenti"];
+                isValid = false;
+            }
 
-            return (
-                this.validator.username.length === 0 &&
-                this.validator.password.length === 0 &&
-                this.validator.email.length === 0 &&
-                this.validator.name.length === 0 &&
-                this.validator.surname.length === 0
-            );
+            // Se c'è qualcosa nel campo password, verifichiamo la conferma (sia in Edit che Create)
+            if (this.form.password && this.form.password !== this.form.password_confirmation) {
+                this.validator.password_confirmation = ["Le password non coincidono"];
+                isValid = false;
+            }
+
+            return isValid;
         },
 
         validateEmail(email) {
@@ -305,6 +342,7 @@ export default {
             this.form.email = null;
             this.form.name = null;
             this.form.surname = null;
+            this.enabled = true;
 
             // Pulisce anche gli errori del validatore
             Object.keys(this.validator).forEach((key) => (this.validator[key] = []));
