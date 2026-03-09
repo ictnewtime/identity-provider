@@ -10,6 +10,7 @@ use App\Http\Middleware\Localization;
 use App\Http\Middleware\Authenticated;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\RedirectIfUnauthenticated;
+use App\Http\Middleware\HandleInertiaRequests;
 // use App\Http\Middleware\CheckClientCredentials;
 use Laravel\Passport\Http\Middleware\CheckClientCredentials;
 
@@ -35,6 +36,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->remove(\Illuminate\Cookie\Middleware\EncryptCookies::class);
         $middleware->prependToGroup("web", \App\Http\Middleware\EncryptCookies::class);
+
+        // TODO debug locale . da rimuovere
+        $middleware->web(append: [\App\Http\Middleware\SetLocale::class]);
+
         // $middleware->prependToGroup("guest", \App\Http\Middleware\EncryptCookies::class);
         $middleware->alias([
             "role" => CheckRole::class,
@@ -50,6 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
             "scope" => \Laravel\Passport\Http\Middleware\CheckForAnyScope::class,
             "Illuminate\Cookie\Middleware\EncryptCookies" => \App\Http\Middleware\EncryptCookies::class,
         ]);
+        $middleware->web(append: [HandleInertiaRequests::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

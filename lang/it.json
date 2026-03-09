@@ -1,0 +1,53 @@
+{
+    "username": "Username",
+    "email": "Email",
+    "password": "Password",
+    "name": "Nome",
+    "surname": "Cognome",
+    "enabled": "Abilitato",
+    "reset": "Reset",
+    "save": "Save",
+    "delete": "Elimina",
+    "cancel": "Annulla",
+    "confirm_delete": "Conferma eliminazione",
+
+    "users": "Utenti",
+    "roles": "Ruoli",
+    "providers": "Providers",
+    "sessions": "Sessioni",
+    "language": "Lingua",
+
+    "admin.nav.provider_user_roles": "Provider-User",
+
+    "admin.users.title": "Gestione Utenti",
+    "admin.users.new_user": "Nuovo Utente",
+
+    "user_table.title": "Lista Utenti",
+    "user_table.table_empty": "Nessun utente trovato.",
+    "user_table.search_placeholder": "Cerca email...",
+
+    "user_form.validate.username.mandalory": "Username obbligatorio",
+    "user_form.validate.email.mandalory": "Email non valida o mancante",
+    "user_form.validate.name.mandalory": "Nome obbligatorio",
+    "user_form.validate.surname.mandalory": "Cognome obbligatorio",
+    "user_form.validate.password.mandalory": "Password obbligatoria per i nuovi utenti",
+    "user_form.validate.password_confirmation.mandalory": "Le password non coincidono",
+    "user_form.toast.error.load_user": "Errore durante il caricamento dell'utente",
+
+    "user_form.title_create": "Crea Utente",
+    "user_form.title_edit": "Modifica Utente",
+    "user_form.password_confirmation": "Conferma Password",
+    "user_form.password_tip": "Lasciare vuoto per mantenere la password attuale",
+    "user_form.toast.submit.success": "Operazione completata",
+    "user_form.toast.submit.detail.created": "Utente creato",
+    "user_form.toast.submit.detail.updated": "Utente aggiornato",
+    "user_form.toast.submit.error": "Errore",
+    "user_form.toast.submit.detail.error": "Si è verificato un errore durante il salvataggio",
+
+    "admin.roles.title": "Gestione Ruoli",
+    "admin.roles.new_role": "Nuovo Ruolo",
+
+    "roles.title": "Lista Ruoli",
+    "roles.table_empty": "Nessun ruolo trovato.",
+    "roles.search_placeholder": "Cerca ruolo o dominio..."
+}

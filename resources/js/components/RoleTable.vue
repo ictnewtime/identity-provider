@@ -1,29 +1,117 @@
-<template>
-    <div class="web-role-container p-4">
-        <div class="mb-4 d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="text-3xl font-bold m-0">Gestione Ruoli</h1>
-                <p class="text-gray-600 mt-1 mb-0">Crea e assegna ruoli ai provider</p>
-            </div>
-            <Button label="Nuovo Ruolo" icon="pi pi-plus" @click="openCreateModal" />
-        </div>
+<script setup>
+import { ref, onMounted } from "vue";
+import { useToast } from "primevue/usetoast";
 
-        <div class="card mt-4">
-            <DataTable
-                :value="pagination.data"
-                :loading="loading"
-                responsiveLayout="scroll"
-                stripedRows
-                class="p-datatable-sm"
-            >
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Paginator from "primevue/paginator";
+import IconField from "primevue/iconfield";
+import InputIcon from "primevue/inputicon";
+import InputText from "primevue/inputtext";
+import Dialog from "primevue/dialog";
+import Button from "primevue/button";
+
+import RoleForm from "./RoleForm.vue";
+
+const toast = useToast();
+
+const filter = ref("");
+const loading = ref(false);
+const pagination = ref({ data: [], total: 0, per_page: 10 });
+const displayModal = ref(false);
+const selectedRole = ref(null);
+const displayDeleteModal = ref(false);
+const roleToDelete = ref(null);
+let searchTimeout = null;
+
+const loadRoles = (page = 1) => {
+    loading.value = true;
+
+    // Usiamo window.axios per sfruttare il token CSRF globale
+    window.axios
+        .get("/admin/v1/roles", {
+            params: { page: page, per_page: pagination.value.per_page, q: filter.value },
+        })
+        .then((res) => {
+            pagination.value = res.data;
+        })
+        .catch((err) => {
+            toast.add({ severity: "error", summary: "Errore", detail: "Impossibile caricare i ruoli", life: 3000 });
+        })
+        .finally(() => {
+            loading.value = false;
+        });
+};
+
+const onPage = (event) => {
+    loadRoles(event.page + 1);
+};
+
+const onFilterChange = () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        loadRoles(1);
+    }, 500);
+};
+
+// Funzione esposta al padre (es. Roles.vue) per aprire la modale
+const openCreateModal = () => {
+    selectedRole.value = null;
+    displayModal.value = true;
+};
+
+// ESPONIAMO LA FUNZIONE
+defineExpose({
+    openCreateModal,
+});
+
+const onRoleSaved = () => {
+    displayModal.value = false;
+    loadRoles();
+};
+
+const editRole = (role) => {
+    selectedRole.value = role;
+    displayModal.value = true;
+};
+
+const confirmDelete = (role) => {
+    roleToDelete.value = role;
+    displayDeleteModal.value = true;
+};
+
+const deleteRole = () => {
+    if (!roleToDelete.value) return;
+    window.axios
+        .delete(`/admin/v1/roles/${roleToDelete.value.id}`)
+        .then(() => {
+            displayDeleteModal.value = false;
+            roleToDelete.value = null;
+            loadRoles();
+            toast.add({ severity: "success", summary: "Fatto", detail: "Ruolo eliminato correttamente", life: 3000 });
+        })
+        .catch((error) => {
+            toast.add({ severity: "error", summary: "Errore", detail: "Errore durante l'eliminazione", life: 3000 });
+        });
+};
+
+onMounted(() => {
+    loadRoles();
+});
+</script>
+
+<template>
+    <div class="max-w-7xl mx-auto">
+        <div class="bg-surface-0 border border-surface-200 rounded-xl shadow-sm p-4">
+            <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
                 <template #header>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="m-0">Lista Ruoli</h3>
+                    <div class="flex justify-between items-center pb-2">
+                        <h3 class="text-lg font-semibold m-0">Lista Ruoli</h3>
                         <IconField iconPosition="left">
+                            <InputIcon class="pi pi-search" />
                             <InputText
                                 v-model="filter"
                                 placeholder="Cerca ruolo o dominio..."
-                                size="small"
                                 @input="onFilterChange"
                             />
                         </IconField>
@@ -34,28 +122,46 @@
                 <Column field="name" header="Nome Ruolo"></Column>
                 <Column header="Provider (Dominio)">
                     <template #body="slotProps">
-                        {{ slotProps.data.provider ? slotProps.data.provider.domain : "Nessun Provider" }}
+                        <span v-if="slotProps.data.provider" class="text-surface-700 font-medium">
+                            {{ slotProps.data.provider.domain }}
+                        </span>
+                        <span v-else class="text-surface-400 italic"> Nessun Provider </span>
                     </template>
                 </Column>
 
                 <Column header="Azioni" :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined class="me-2" @click="editRole(slotProps.data)" />
+                        <Button
+                            icon="pi pi-pencil"
+                            outlined
+                            severity="warn"
+                            class="mr-2"
+                            @click="editRole(slotProps.data)"
+                        />
                         <Button icon="pi pi-trash" outlined severity="danger" @click="confirmDelete(slotProps.data)" />
                     </template>
                 </Column>
 
-                <template #empty> Nessun ruolo trovato. </template>
+                <template #empty>
+                    <div class="text-center p-4 text-surface-500">Nessun ruolo trovato.</div>
+                </template>
             </DataTable>
 
-            <Paginator :rows="pagination.per_page" :totalRecords="pagination.total" @page="onPage" class="mt-2" />
+            <Paginator
+                v-if="pagination.total > 0"
+                :rows="pagination.per_page"
+                :totalRecords="pagination.total"
+                @page="onPage"
+                class="mt-4"
+            />
         </div>
 
         <Dialog
             v-model:visible="displayModal"
             :header="selectedRole ? 'Modifica Ruolo' : 'Nuovo Ruolo'"
-            :style="{ width: '50vw' }"
-            :modal="true"
+            :style="{ width: '60vw' }"
+            modal
+            :draggable="false"
         >
             <RoleForm :selectedRole="selectedRole" @role-saved="onRoleSaved" />
         </Dialog>
@@ -64,125 +170,21 @@
             v-model:visible="displayDeleteModal"
             header="Conferma Eliminazione"
             :style="{ width: '450px' }"
-            :modal="true"
+            modal
+            :draggable="false"
         >
-            <div class="d-flex align-items-center">
-                <i class="pi pi-exclamation-triangle me-3 text-warning" style="font-size: 2rem" />
-                <span v-if="roleToDelete">
-                    Sei sicuro di voler eliminare il ruolo <b>{{ roleToDelete.name }}</b
+            <div class="flex items-center gap-4">
+                <i class="pi pi-exclamation-triangle text-amber-500 text-3xl"></i>
+                <span v-if="roleToDelete" class="text-surface-700">
+                    Sei sicuro di voler eliminare il ruolo <b class="text-surface-900">{{ roleToDelete.name }}</b
                     >?
                 </span>
             </div>
+
             <template #footer>
-                <Button label="Annulla" icon="pi pi-times" text @click="displayDeleteModal = false" />
+                <Button label="Annulla" icon="pi pi-times" @click="displayDeleteModal = false" outlined />
                 <Button label="Elimina" icon="pi pi-check" severity="danger" @click="deleteRole" />
             </template>
         </Dialog>
     </div>
 </template>
-
-<script>
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import Paginator from "primevue/paginator";
-import IconField from "primevue/iconfield";
-import InputText from "primevue/inputtext";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import RoleForm from "./RoleForm.vue";
-
-export default {
-    name: "RolePage",
-    components: { DataTable, Column, Paginator, IconField, InputText, Dialog, Button, RoleForm },
-    data() {
-        return {
-            filter: "",
-            loading: false,
-            pagination: { data: [], total: 0, per_page: 10 },
-
-            // Gestione Modale Form
-            displayModal: false,
-            selectedRole: null,
-
-            // Gestione Modale Eliminazione
-            displayDeleteModal: false,
-            roleToDelete: null,
-
-            searchTimeout: null,
-        };
-    },
-    methods: {
-        loadRoles(page = 1) {
-            this.loading = true;
-            axios
-                .get("/admin/v1/roles", {
-                    params: { page: page, per_page: this.pagination.per_page, q: this.filter },
-                })
-                .then((res) => (this.pagination = res.data))
-                .finally(() => (this.loading = false));
-        },
-        onPage(event) {
-            this.loadRoles(event.page + 1);
-        },
-        onFilterChange() {
-            clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => this.loadRoles(1), 500);
-        },
-
-        // Apre la modale per un NUOVO ruolo
-        openCreateModal() {
-            this.selectedRole = null;
-            this.displayModal = true;
-        },
-
-        // Apre la modale per MODIFICARE un ruolo
-        editRole(role) {
-            this.selectedRole = role;
-            this.displayModal = true;
-        },
-
-        // Chiude la modale form e ricarica i dati
-        onRoleSaved() {
-            this.displayModal = false;
-            this.loadRoles();
-        },
-
-        // Apre la modale di CONFERMA eliminazione
-        confirmDelete(role) {
-            this.roleToDelete = role;
-            this.displayDeleteModal = true;
-        },
-
-        // Esegue l'eliminazione effettiva via API
-        deleteRole() {
-            if (!this.roleToDelete) return;
-
-            axios
-                .delete(`/admin/v1/roles/${this.roleToDelete.id}`)
-                .then(() => {
-                    this.$toast.add({
-                        severity: "success",
-                        summary: "Operazione completata",
-                        detail: "Ruolo eliminato correttamente",
-                        life: 3000,
-                    });
-                    this.displayDeleteModal = false;
-                    this.roleToDelete = null;
-                    this.loadRoles();
-                })
-                .catch((error) => {
-                    console.error(error);
-                    this.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: "Errore eliminazione ruolo",
-                        life: 3000,
-                    });
-                });
-        },
-    },
-    mounted() {
-        this.loadRoles();
-    },
-};
-</script>

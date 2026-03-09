@@ -16,17 +16,22 @@ use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie as FacadeCookie;
 use OpenApi\Attributes as OA;
+use Inertia\Inertia;
 
 class LoginController extends Controller
 {
     /**
      * Shows the login form or redirect the user to the application if he is authenticated.
      *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
+     * @return \Inertia\Response|\Illuminate\Http\RedirectResponse
      */
     public function showLoginForm()
     {
-        return view("auth.login");
+        // 2. Sostituisci view() con Inertia::render()
+        return Inertia::render("Auth/Login", [
+            // Qui in futuro potrai passare dati alla pagina Vue, ad esempio:
+            // 'status' => session('status'),
+        ]);
     }
 
     /**
@@ -90,7 +95,9 @@ class LoginController extends Controller
         $credentials = $request->only("username", "password");
 
         if (!Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]])) {
-            return $this->createResponse(403, __("auth.err-login"));
+            return back()->withErrors([
+                "login" => __("auth.err-login"),
+            ]);
         }
 
         $user = Auth::user();
@@ -102,24 +109,31 @@ class LoginController extends Controller
         $provider_id = $request->input("provider_id");
         if ($provider_id) {
             $ssoData = TokenProviderService::respondWithSsoRedirect(
-                Auth::user(),
+                $user,
                 $provider_id,
                 $request,
                 $request->input("redirect_to"),
             );
 
             if (!$ssoData) {
-                Auth::logout(); // Se non è abilitato all'app, lo slogghiamo anche dall'IdP? Spesso è meglio di sì.
-                return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
+                Auth::logout();
+                return back()->withErrors([
+                    "login" => "Utente non abilitato per il servizio richiesto.",
+                ]);
             }
 
-            return response()
-                ->json(["redirect_url" => $ssoData["url"]])
-                ->withCookie($ssoData["cookie"]);
+            // Accodiamo il cookie in modo che venga inviato con la risposta HTTP
+            Cookie::queue($ssoData["cookie"]);
+
+            // Inertia::location è FONDAMENTALE qui: dice ad Inertia di forzare
+            // il browser a fare un redirect "reale" verso un dominio/app esterna.
+            return Inertia::location($ssoData["url"]);
         }
 
-        // Login diretto all'IdP
-        return response()->json(["user" => UserResource::make(Auth::user())]);
+        // 3. FLUSSO DIRETTO (Login locale all'IdP, es. per il pannello Admin)
+        // Invece di restituire l'utente in JSON, facciamo un redirect HTTP standard
+        // verso la dashboard interna di Laravel. Inertia capirà e caricherà la nuova pagina Vue.
+        return redirect()->intended("/admin/users");
     }
 
     #[
@@ -173,8 +187,8 @@ class LoginController extends Controller
         // 2. Prepariamo la distruzione del cookie (con il dominio corretto)
         $cookie = FacadeCookie::forget("token", "/", env("TOKEN_COOKIE_DOMAIN"));
 
-        // 3. Risposta per chiamate AJAX/JSON (es. da Vue senza redirect)
-        if ($request->ajax() || $request->wantsJson()) {
+        // 3. Risposta per chiamate AJAX/JSON (escludiamo Inertia che necessita del redirect)
+        if (($request->ajax() || $request->wantsJson()) && !$request->header("X-Inertia")) {
             return $this->createResponse(200, null, $cookie);
         }
 

@@ -5,18 +5,27 @@
  */
 
 import axios from "axios";
-window.axios = axios;
 
+window.axios = axios;
 window.axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
+
+// Pesca il token dall'HTML e lo attacca a TUTTE le chiamate
+const csrfToken = document.head.querySelector('meta[name="csrf-token"]');
+
+if (csrfToken) {
+    window.axios.defaults.headers.common["X-CSRF-TOKEN"] = csrfToken.content;
+} else {
+    console.error("CSRF token non trovato: controlla app.blade.php");
+}
 
 // window._ = require('lodash');
 // window.Popper = require('popper.js').default;
-import $ from "jquery";
-window.$ = window.jQuery = $;
+// import $ from "jquery";
+// window.$ = window.jQuery = $;
 // Uncaught ReferenceError: _ is not defined
-import _ from "lodash";
+// import _ from "lodash";
 
-import "bootstrap";
+// import "bootstrap";
 
 /**
  * Next we will register the CSRF Token as a common header with Axios so that
@@ -24,13 +33,13 @@ import "bootstrap";
  * a simple convenience so we don't have to attach every token manually.
  */
 
-let token = document.head.querySelector('meta[name="csrf-token"]');
+// let token = document.head.querySelector('meta[name="csrf-token"]');
 
-if (token) {
-    window.axios.defaults.headers.common["X-CSRF-TOKEN"] = token.content;
-} else {
-    console.error("CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token");
-}
+// if (token) {
+//     window.axios.defaults.headers.common["X-CSRF-TOKEN"] = token.content;
+// } else {
+//     console.error("CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token");
+// }
 
 /**
  * Echo exposes an expressive API for subscribing to channels and listening

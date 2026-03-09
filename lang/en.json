@@ -1,0 +1,46 @@
+{
+    "username": "Username",
+    "email": "Email",
+    "name": "First Name",
+    "surname": "Last Name",
+    "password": "Password",
+    "enabled": "Enabled",
+    "reset": "Reset",
+    "save": "Save",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirm_delete": "Confirm delete",
+
+    "users": "Users",
+    "roles": "Roles",
+    "providers": "Providers",
+    "sessions": "Sessions",
+    "language": "Language",
+
+    "admin.nav.provider_user_roles": "Provider-User",
+
+    "admin.users.title": "User Management",
+    "admin.users.new_user": "New User",
+
+    "user_table.title": "User List",
+    "user_table.table_empty": "No users.",
+    "user_table.search_placeholder": "Search email...",
+
+    "user_form.validate.username.mandalory": "Username is mandalory",
+    "user_form.validate.email.mandalory": "Email is mandalory or not valid",
+    "user_form.validate.name.mandalory": "Name is mandalory",
+    "user_form.validate.surname.mandalory": "Surname is mandalory",
+    "user_form.validate.password.mandalory": "Password is mandalory",
+    "user_form.validate.password_confirmation.mandalory": "Passwords do not match",
+    "user_form.toast.error.load_user": "Error during user loading",
+
+    "user_form.title_create": "New User",
+    "user_form.title_edit": "Edit User",
+    "user_form.password_confirmation": "Confirm Password",
+    "user_form.password_tip": "Leave empty to not change password",
+    "user_form.toast.submit.success": "Success",
+    "user_form.toast.submit.detail.created": "User created",
+    "user_form.toast.submit.detail.updated": "User updated",
+    "user_form.toast.submit.error": "Error",
+    "user_form.toast.submit.detail.error": "An error occurred while saving"
+}

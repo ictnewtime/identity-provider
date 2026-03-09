@@ -1,29 +1,99 @@
-<template>
-    <div class="web-role-container p-4">
-        <div class="mb-4 d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="text-3xl font-bold m-0">Gestione Sessioni</h1>
-                <p class="text-gray-600 mt-1 mb-0">Crea e assegna sessioni ai provider</p>
-            </div>
-            <Button label="Nuovo Ruolo" icon="pi pi-plus" @click="openCreateModal" />
-        </div>
+<script setup>
+import { ref, onMounted } from "vue";
+import { useToast } from "primevue/usetoast";
 
-        <div class="card mt-4">
-            <DataTable
-                :value="pagination.data"
-                :loading="loading"
-                responsiveLayout="scroll"
-                stripedRows
-                class="p-datatable-sm"
-            >
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Paginator from "primevue/paginator";
+import IconField from "primevue/iconfield";
+import InputIcon from "primevue/inputicon";
+import InputText from "primevue/inputtext";
+import Dialog from "primevue/dialog";
+import Button from "primevue/button";
+
+const toast = useToast();
+
+const filter = ref("");
+const loading = ref(false);
+const pagination = ref({ data: [], total: 0, per_page: 10 });
+const displayDeleteModal = ref(false);
+const sessionToDelete = ref(null);
+let searchTimeout = null;
+
+const loadSessions = (page = 1) => {
+    loading.value = true;
+
+    window.axios
+        .get("/admin/v1/sessions", {
+            params: { page: page, per_page: pagination.value.per_page, q: filter.value },
+        })
+        .then((res) => {
+            pagination.value = res.data;
+        })
+        .catch((err) => {
+            console.error(err);
+            toast.add({ severity: "error", summary: "Errore", detail: "Impossibile caricare le sessioni", life: 3000 });
+        })
+        .finally(() => {
+            loading.value = false;
+        });
+};
+
+const onPage = (event) => {
+    loadSessions(event.page + 1);
+};
+
+const onFilterChange = () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        loadSessions(1);
+    }, 500);
+};
+
+const confirmDelete = (session) => {
+    sessionToDelete.value = session;
+    displayDeleteModal.value = true;
+};
+
+const deleteSession = () => {
+    if (!sessionToDelete.value) return;
+
+    window.axios
+        .delete(`/admin/v1/sessions/${sessionToDelete.value.id}`)
+        .then(() => {
+            displayDeleteModal.value = false;
+            sessionToDelete.value = null;
+            loadSessions();
+            toast.add({
+                severity: "success",
+                summary: "Fatto",
+                detail: "Sessione terminata correttamente",
+                life: 3000,
+            });
+        })
+        .catch((error) => {
+            console.error(error);
+            toast.add({ severity: "error", summary: "Errore", detail: "Errore durante l'eliminazione", life: 3000 });
+        });
+};
+
+onMounted(() => {
+    loadSessions();
+});
+</script>
+
+<template>
+    <div class="max-w-7xl mx-auto">
+        <div class="bg-surface-0 border border-surface-200 rounded-xl shadow-sm p-4">
+            <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
                 <template #header>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="m-0">Lista Sessioni</h3>
+                    <div class="flex justify-between items-center pb-2">
+                        <h3 class="text-lg font-semibold m-0">Lista Sessioni Attive</h3>
                         <IconField iconPosition="left">
+                            <InputIcon class="pi pi-search" />
                             <InputText
                                 v-model="filter"
-                                placeholder="Cerca per username o dominio"
-                                size="small"
+                                placeholder="Cerca username o dominio..."
                                 @input="onFilterChange"
                             />
                         </IconField>
@@ -32,110 +102,63 @@
 
                 <Column field="id" header="ID" style="width: 5%"></Column>
                 <Column field="username" header="Username"></Column>
+
                 <Column header="Provider (Dominio)">
                     <template #body="slotProps">
-                        {{ slotProps.data.provider ? slotProps.data.provider.domain : "Nessun Provider" }}
+                        <span v-if="slotProps.data.provider" class="text-surface-700 font-medium">
+                            {{ slotProps.data.provider.domain }}
+                        </span>
+                        <span v-else class="text-surface-400 italic">Nessun Provider</span>
                     </template>
                 </Column>
 
                 <Column header="Azioni" :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Button icon="pi pi-trash" outlined severity="danger" @click="confirmDelete(slotProps.data)" />
+                        <Button
+                            icon="pi pi-trash"
+                            outlined
+                            severity="danger"
+                            @click="confirmDelete(slotProps.data)"
+                            v-tooltip.top="'Termina Sessione'"
+                        />
                     </template>
                 </Column>
 
-                <template #empty> Nessuna sessione trovata. </template>
+                <template #empty>
+                    <div class="text-center p-4 text-surface-500">Nessuna sessione attiva trovata.</div>
+                </template>
             </DataTable>
 
-            <Paginator :rows="pagination.per_page" :totalRecords="pagination.total" @page="onPage" class="mt-2" />
+            <Paginator
+                v-if="pagination.total > 0"
+                :rows="pagination.per_page"
+                :totalRecords="pagination.total"
+                @page="onPage"
+                class="mt-4"
+            />
         </div>
+
         <Dialog
             v-model:visible="displayDeleteModal"
-            header="Conferma Eliminazione"
+            header="Conferma Chiusura Sessione"
             :style="{ width: '450px' }"
-            :modal="true"
+            modal
+            :draggable="false"
         >
-            <div class="d-flex align-items-center">
-                <i class="pi pi-exclamation-triangle me-3 text-warning" style="font-size: 2rem" />
-                <span v-if="sessionToDelete">
-                    Sei sicuro di voler eliminare la sessione di <b>{{ sessionToDelete.username }}</b> per il dominio
-                    <b>{{ sessionToDelete.provider.domain }}</b
+            <div class="flex items-center gap-4">
+                <i class="pi pi-exclamation-triangle text-amber-500 text-3xl"></i>
+                <span v-if="sessionToDelete" class="text-surface-700">
+                    Sei sicuro di voler chiudere la sessione di
+                    <b class="text-surface-900">{{ sessionToDelete.username }}</b>
+                    <span v-if="sessionToDelete.provider">
+                        sul dominio <b class="text-surface-900">{{ sessionToDelete.provider.domain }}</b> </span
                     >?
                 </span>
             </div>
             <template #footer>
-                <Button label="Annulla" icon="pi pi-times" text @click="displayDeleteModal = false" />
-                <Button label="Elimina" icon="pi pi-check" severity="danger" @click="deleteSession" />
+                <Button label="Annulla" icon="pi pi-times" outlined @click="displayDeleteModal = false" />
+                <Button label="Termina" icon="pi pi-power-off" severity="danger" @click="deleteSession" />
             </template>
         </Dialog>
     </div>
 </template>
-
-<script>
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import Paginator from "primevue/paginator";
-import IconField from "primevue/iconfield";
-import InputText from "primevue/inputtext";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-
-export default {
-    name: "UserPage",
-    components: {
-        DataTable,
-        Column,
-        Paginator,
-        IconField,
-        InputText,
-        Dialog,
-        Button,
-    },
-    data() {
-        return {
-            filter: "",
-            loading: false,
-            pagination: { data: [], total: 0, per_page: 10 },
-            displayModal: false,
-            selectedSession: null,
-            searchTimeout: null, // Per gestire il debounce sulla ricerca
-            displayDeleteModal: false,
-            sessionToDelete: null,
-        };
-    },
-    methods: {
-        openCreateModal() {
-            this.displayModal = true;
-        },
-        confirmDelete(session) {
-            this.sessionToDelete = session;
-            this.displayDeleteModal = true;
-        },
-        deleteSession() {
-            if (!this.sessionToDelete) return;
-            axios
-                .delete(`/admin/v1/sessions/${this.sessionToDelete.id}`)
-                .then(() => {
-                    this.displayDeleteModal = false;
-                    this.sessionToDelete = null;
-                    this.loadSessions();
-                    this.$toast.add({
-                        severity: "success",
-                        summary: "Operazione completata",
-                        detail: "Sessione eliminata correttamente",
-                        life: 3000,
-                    });
-                })
-                .catch((error) => {
-                    console.error(error);
-                    this.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: "Errore eliminazione sessione",
-                        life: 3000,
-                    });
-                });
-        },
-    },
-};
-</script>

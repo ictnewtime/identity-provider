@@ -62,7 +62,6 @@
 </template>
 
 <script>
-import { EventBus } from "../event-bus";
 import OauthClientRow from "./OauthClientRow.vue";
 import Paginator from "./Paginator.bkp.vue";
 

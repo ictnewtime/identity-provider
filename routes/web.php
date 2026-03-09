@@ -1,18 +1,8 @@
 <?php
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
-
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
+use Inertia\Inertia; // <-- Aggiunto per le risposte Inertia
 use App\Http\Controllers\JwtAuth\LoginController;
 use App\Http\Controllers\Manage\ProviderController;
 use App\Http\Controllers\Manage\UserController;
@@ -20,120 +10,109 @@ use App\Http\Controllers\Manage\OauthClientsController;
 use App\Http\Controllers\Manage\ProviderUserRoleController;
 use App\Http\Controllers\Manage\RoleController;
 use App\Http\Controllers\Manage\SessionController;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Request;
 
+// 1. Redirect Home -> Login
 Route::get("/", function () {
-    return redirect("loginForm");
+    return redirect()->route("loginForm");
 });
 
+// 2. Lingua
 Route::get("locale/{locale}", function ($locale) {
     Session::put("locale", $locale);
     return redirect()->back();
 });
 
-Route::middleware("guest")
-    ->get("loginForm", [LoginController::class, "showLoginForm"])
-    ->name("loginForm");
+// 3. Autenticazione (Gestita da Inertia)
+Route::middleware("guest")->group(function () {
+    Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
+    Route::get("login", function () {
+        return redirect()->route("loginForm");
+    });
+});
 
-Route::get("logout", [LoginController::class, "logout"])->name("logout");
+Route::post("v2/login", [LoginController::class, "login"])->name("login");
+Route::post("logout", [LoginController::class, "logout"])->name("logout");
+Route::get("/sso/logout", [LoginController::class, "logout_sso"]);
 
 Route::middleware("web.authenticated")
     ->get("authenticated", [LoginController::class, "authenticated"])
     ->name("authenticated");
 
+// Inertia: Pagina completamento registrazione
 Route::get("complete-registration", function () {
-    return view("auth.complete-registration-form");
+    return Inertia::render("Auth/CompleteRegistration");
 })->name("complete-registration");
 
 /********* ADMIN ROUTES ************/
 
 Route::prefix("admin")
-    ->middleware("role:admin")
+    ->middleware(["role:admin"]) // Assicurati che il middleware 'role' funzioni ancora!
     ->group(function () {
+        // 4. LE NUOVE ROTTE DELLE PAGINE (Inertia sostituisce view())
         Route::get("/", function () {
             return redirect()->route("web-users");
         })->name("admin-home");
 
         Route::get("users", function () {
-            return view("admin.users");
+            return Inertia::render("Admin/Users"); // Renderizza resources/js/Pages/Admin/Users.vue
         })->name("web-users");
 
         Route::get("providers", function () {
-            return view("admin.providers");
+            return Inertia::render("Admin/Providers");
         })->name("web-providers");
 
         Route::get("roles", function () {
-            return view("admin.roles");
+            return Inertia::render("Admin/Roles");
         })->name("web-roles");
 
         Route::get("provider-user-roles", function () {
-            return view("admin.provider-user-roles");
+            return Inertia::render("Admin/ProviderUserRoles");
         })->name("web-provider-user-roles");
 
         Route::get("sessions", function () {
-            return view("admin.sessions");
+            return Inertia::render("Admin/Sessions");
         })->name("web-sessions");
 
         Route::get("oauth-clients", function () {
-            return view("admin.oauth-clients");
+            return Inertia::render("Admin/OauthClients");
         })->name("oauth-clients");
 
-        // Route::get("oauth-clients-all", [OauthClientsController::class, "all"]);
-
+        // 5. LE ROTTE API (Lasciale intatte per non rompere i tuoi vecchi componenti Vue)
+        // In futuro, potrai eliminare questo blocco e passare i dati direttamente
+        // nei metodi Inertia::render() qui sopra.
         Route::prefix("v1")->group(function () {
+            // providers
             Route::get("providers", [ProviderController::class, "all"]);
             Route::post("providers", [ProviderController::class, "create"]);
-            Route::get("providers/{id}", [ProviderController::class, "find"])->where(["id" => "[0-9]+"]);
-            Route::put("providers/{id}", [ProviderController::class, "update"])->where(["id" => "[0-9]+"]);
-            Route::delete("providers/{id}", [ProviderController::class, "delete"])->where(["id" => "[0-9]+"]);
+            Route::get("providers/{id}", [ProviderController::class, "find"])->whereNumber("id");
+            Route::put("providers/{id}", [ProviderController::class, "update"])->whereNumber("id");
+            Route::delete("providers/{id}", [ProviderController::class, "delete"])->whereNumber("id");
 
             // roles
             Route::get("roles", [RoleController::class, "all"]);
             Route::post("roles", [RoleController::class, "create"]);
-            Route::get("roles/{id}", [RoleController::class, "find"])->where(["id" => "[0-9]+"]);
-            Route::put("roles/{id}", [RoleController::class, "update"])->where(["id" => "[0-9]+"]);
-            Route::delete("roles/{id}", [RoleController::class, "delete"])->where(["id" => "[0-9]+"]);
+            Route::get("roles/{id}", [RoleController::class, "find"])->whereNumber("id");
+            Route::put("roles/{id}", [RoleController::class, "update"])->whereNumber("id");
+            Route::delete("roles/{id}", [RoleController::class, "delete"])->whereNumber("id");
 
             // users
             Route::get("users", [UserController::class, "all"]);
             Route::post("users", [UserController::class, "create"]);
-            Route::get("users/{id}", [UserController::class, "find"])->where(["id" => "[0-9]+"]);
-            Route::put("users/{id}", [UserController::class, "update"])->where(["id" => "[0-9]+"]);
-            Route::delete("users/{id}", [UserController::class, "delete"])->where(["id" => "[0-9]+"]);
+            Route::get("users/{id}", [UserController::class, "find"])->whereNumber("id");
+            Route::put("users/{id}", [UserController::class, "update"])->whereNumber("id");
+            Route::delete("users/{id}", [UserController::class, "delete"])->whereNumber("id");
 
             // provider-user-roles
             Route::get("provider-user-roles", [ProviderUserRoleController::class, "all"]);
             Route::post("provider-user-roles", [ProviderUserRoleController::class, "create"]);
-            Route::get("provider-user-roles/{id}", [ProviderUserRoleController::class, "find"])->where([
-                "id" => "[0-9]+",
-            ]);
-            Route::put("provider-user-roles/{id}", [ProviderUserRoleController::class, "update"])->where([
-                "id" => "[0-9]+",
-            ]);
-            Route::delete("provider-user-roles/{id}", [ProviderUserRoleController::class, "delete"])->where([
-                "id" => "[0-9]+",
-            ]);
-            // provider-user-roles/has-relation?provider_id=1&user_id=1
-            // provider-user-roles/has-relation?role_id=1
+            Route::get("provider-user-roles/{id}", [ProviderUserRoleController::class, "find"])->whereNumber("id");
+            Route::put("provider-user-roles/{id}", [ProviderUserRoleController::class, "update"])->whereNumber("id");
+            Route::delete("provider-user-roles/{id}", [ProviderUserRoleController::class, "delete"])->whereNumber("id");
             Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
 
             // sessions
             Route::get("sessions", [SessionController::class, "all"]);
-            Route::delete("sessions/{id}", [SessionController::class, "delete"])->where(["id" => "[0-9]+"]);
+            Route::delete("sessions/{id}", [SessionController::class, "delete"])->whereNumber("id");
         });
     });
-
-Route::get("/sso/logout", [LoginController::class, "logout_sso"]);
-
-Route::get("login", function () {
-    Log::info("Redirecting to login form");
-    return redirect()->route("loginForm");
-});
-
-Route::prefix("v2")->group(function () {
-    Route::middleware("web")
-        ->post("login", [LoginController::class, "login"])
-        ->name("login");
-});
