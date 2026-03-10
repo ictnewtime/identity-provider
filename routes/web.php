@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
-use Inertia\Inertia; // <-- Aggiunto per le risposte Inertia
+use Inertia\Inertia;
 use App\Http\Controllers\JwtAuth\LoginController;
 use App\Http\Controllers\Manage\ProviderController;
 use App\Http\Controllers\Manage\UserController;
@@ -24,12 +24,14 @@ Route::get("locale/{locale}", function ($locale) {
 });
 
 // 3. Autenticazione (Gestita da Inertia)
-Route::middleware("guest")->group(function () {
-    Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
-    Route::get("login", function () {
-        return redirect()->route("loginForm");
-    });
-});
+Route::middleware("guest")
+    ->group(function () {
+        Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
+        Route::get("login", function () {
+            return redirect()->route("loginForm");
+        });
+    })
+    ->name("login");
 
 Route::post("v2/login", [LoginController::class, "login"])->name("login");
 Route::post("logout", [LoginController::class, "logout"])->name("logout");
@@ -82,6 +84,14 @@ Route::prefix("admin")
         // In futuro, potrai eliminare questo blocco e passare i dati direttamente
         // nei metodi Inertia::render() qui sopra.
         Route::prefix("v1")->group(function () {
+            // sessions
+            Route::get("sessions", [SessionController::class, "all"]);
+            // id is uuid
+            Route::delete("sessions/{id}", [SessionController::class, "delete"])->where(
+                "id",
+                "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            );
+
             // providers
             Route::get("providers", [ProviderController::class, "all"]);
             Route::post("providers", [ProviderController::class, "create"]);
@@ -110,9 +120,19 @@ Route::prefix("admin")
             Route::put("provider-user-roles/{id}", [ProviderUserRoleController::class, "update"])->whereNumber("id");
             Route::delete("provider-user-roles/{id}", [ProviderUserRoleController::class, "delete"])->whereNumber("id");
             Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
+        });
+    });
 
-            // sessions
-            Route::get("sessions", [SessionController::class, "all"]);
-            Route::delete("sessions/{id}", [SessionController::class, "delete"])->whereNumber("id");
+/********** END ADMIN ROUTES ************/
+
+/********** CLIENT ROUTES ************/
+
+Route::prefix("client")
+    ->middleware(["web", "auth"])
+    ->group(function () {
+        Route::prefix("v1")->group(function () {
+            Route::get("unauthorized", function () {
+                return Inertia::render("Client/Unauthorized");
+            })->name("sso.unauthorized");
         });
     });

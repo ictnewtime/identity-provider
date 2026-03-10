@@ -3,19 +3,16 @@
 namespace App\Http\Controllers\JwtAuth;
 
 use App\Events\LoginEvent;
-use App\Events\LogoutEvent;
 use Illuminate\Http\Request;
 use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
-use App\Models\Provider;
 use App\Models\Session;
-use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cookie as FacadeCookie;
 use OpenApi\Attributes as OA;
+use Illuminate\Support\Facades\Cookie;
 use Inertia\Inertia;
 
 class LoginController extends Controller
@@ -48,7 +45,7 @@ class LoginController extends Controller
         if ($is_role_admin) {
             return redirect()->route("web-users");
         }
-        return view("auth.logged");
+        return redirect()->route("sso.unauthorized");
     }
 
     #[
@@ -105,8 +102,8 @@ class LoginController extends Controller
 
         // L'evento di login va scatenato SEMPRE, a prescindere dal provider
         event(new LoginEvent($user, $ip_address));
-
         $provider_id = $request->input("provider_id");
+
         if ($provider_id) {
             $ssoData = TokenProviderService::respondWithSsoRedirect(
                 $user,
@@ -116,9 +113,10 @@ class LoginController extends Controller
             );
 
             if (!$ssoData) {
+                // return redirect()->route("sso.unauthorized");
                 Auth::logout();
                 return back()->withErrors([
-                    "login" => "Utente non abilitato per il servizio richiesto.",
+                    "login" => __("auth.err-login"),
                 ]);
             }
 
@@ -128,12 +126,28 @@ class LoginController extends Controller
             // Inertia::location è FONDAMENTALE qui: dice ad Inertia di forzare
             // il browser a fare un redirect "reale" verso un dominio/app esterna.
             return Inertia::location($ssoData["url"]);
+        } else {
+            // L'utente sta tentando di accedere direttamente al pannello IdP (nessun provider_id esterno)
+            if ($user->isAdmin()) {
+                // È un admin: rigeneriamo la sessione e lo facciamo entrare
+                $request->session()->regenerate();
+
+                // Usiamo Inertia::location per l'hard redirect della SPA
+                return Inertia::location(route("admin-home"));
+            }
+
+            // Non è un admin (o è disabilitato): niente accesso al pannello IdP
+            Auth::logout();
+            return back()->withErrors([
+                "login" => __("auth.err-login"), // O un messaggio più specifico
+            ]);
         }
 
         // 3. FLUSSO DIRETTO (Login locale all'IdP, es. per il pannello Admin)
         // Invece di restituire l'utente in JSON, facciamo un redirect HTTP standard
         // verso la dashboard interna di Laravel. Inertia capirà e caricherà la nuova pagina Vue.
-        return redirect()->intended("/admin/users");
+        $request->session()->regenerate();
+        return Inertia::location(route("admin-home"));
     }
 
     #[
@@ -185,7 +199,7 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         // 2. Prepariamo la distruzione del cookie (con il dominio corretto)
-        $cookie = FacadeCookie::forget("token", "/", env("TOKEN_COOKIE_DOMAIN"));
+        $cookie = Cookie::forget("token", "/", env("TOKEN_COOKIE_DOMAIN"));
 
         // 3. Risposta per chiamate AJAX/JSON (escludiamo Inertia che necessita del redirect)
         if (($request->ajax() || $request->wantsJson()) && !$request->header("X-Inertia")) {
@@ -250,13 +264,13 @@ class LoginController extends Controller
         Log::info("Eliminazione cookie. Dominio usato: " . ($cookieDomain ?? "Nessuno (default)"));
 
         // Distruggiamo il cookie generico "token"
-        $response->withCookie(FacadeCookie::forget("token", "/", $cookieDomain));
+        $response->withCookie(Cookie::forget("token", "/", $cookieDomain));
 
         // Ho de-commentato questa parte: è FONDAMENTALE distruggere il cookie specifico, altrimenti il frontend client si incastra!
         if ($provider_id) {
             $cookie_name = "idp_token_" . $provider_id;
             Log::info("Accodata distruzione del cookie client: " . $cookie_name);
-            $response->withCookie(FacadeCookie::forget($cookie_name, "/", $cookieDomain));
+            $response->withCookie(Cookie::forget($cookie_name, "/", $cookieDomain));
         }
 
         return $response;

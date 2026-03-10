@@ -2,12 +2,10 @@
 
 namespace App\Http\Middleware;
 
-use App\Models\Provider;
 use App\Services\TokenProviderService;
-use App\Services\SessionService;
 use Closure;
-use Doctrine\Common\Lexer\Token;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 
 class RedirectIfAuthenticated
@@ -20,7 +18,7 @@ class RedirectIfAuthenticated
 
         $provider_id = $request->input("provider_id");
         if (empty($provider_id)) {
-            return redirect("authenticated");
+            return redirect()->route("sso.unauthorized");
         }
 
         $ssoData = TokenProviderService::respondWithSsoRedirect(
@@ -31,12 +29,12 @@ class RedirectIfAuthenticated
         );
 
         if (!$ssoData) {
-            // Se arrivo qui, l'utente è loggato all'IdP ma NON può entrare in questa App
-            // Eseguiamo il logout per sicurezza o rimandiamo a una pagina di errore
-            Auth::logout();
-            return redirect("login")->withErrors(["msg" => "Accesso negato all'applicazione."]);
+            // Se non è autorizzato, lo mandiamo alla pagina "Accesso Negato"
+            // Passiamo l'ID del provider per fargli capire dove ha provato ad andare
+            return redirect()->route("sso.unauthorized");
         }
 
+        Cookie::queue($ssoData["cookie"]);
         return redirect()->away($ssoData["url"])->withCookie($ssoData["cookie"]);
     }
 }

@@ -28,6 +28,7 @@ const loadSessions = (page = 1) => {
             params: { page: page, per_page: pagination.value.per_page, q: filter.value },
         })
         .then((res) => {
+            console.log(res.data);
             pagination.value = res.data;
         })
         .catch((err) => {
@@ -91,17 +92,29 @@ onMounted(() => {
                         <h3 class="text-lg font-semibold m-0">Lista Sessioni Attive</h3>
                         <IconField iconPosition="left">
                             <InputIcon class="pi pi-search" />
-                            <InputText
-                                v-model="filter"
-                                placeholder="Cerca username o dominio..."
-                                @input="onFilterChange"
-                            />
+                            <InputText v-model="filter" placeholder="Cerca" @input="onFilterChange" />
                         </IconField>
                     </div>
                 </template>
 
-                <Column field="id" header="ID" style="width: 5%"></Column>
-                <Column field="username" header="Username"></Column>
+                <Column header="ID">
+                    <template #body="slotProps">
+                        <span
+                            class="inline-block max-w-[100px] sm:max-w-[150px] md:max-w-none truncate md:overflow-visible md:whitespace-nowrap text-surface-500"
+                            v-tooltip.top="slotProps.data.id"
+                        >
+                            {{ slotProps.data.id }}
+                        </span>
+                    </template>
+                </Column>
+                <Column header="Username">
+                    <template #body="slotProps">
+                        <span v-if="slotProps.data.user" class="text-surface-700 font-medium">
+                            {{ slotProps.data.user.username }}
+                        </span>
+                        <span v-else class="text-surface-400 italic">Nessun Provider</span>
+                    </template>
+                </Column>
 
                 <Column header="Provider (Dominio)">
                     <template #body="slotProps">

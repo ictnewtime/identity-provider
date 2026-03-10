@@ -1,6 +1,5 @@
 <script setup>
 import { ref, watch, computed } from "vue";
-// import axios from "axios";
 import { useToast } from "primevue/usetoast";
 
 // Componenti PrimeVue
@@ -42,6 +41,7 @@ const errors = ref({
     surname: "",
     password: "",
     password_confirmation: "",
+    form: "",
 });
 
 // Computed
@@ -58,12 +58,20 @@ const resetForm = () => {
         password: "",
         password_confirmation: "",
         enabled: true,
+        form: "",
     };
     resetErrors();
 };
 
 const resetErrors = () => {
     Object.keys(errors.value).forEach((key) => (errors.value[key] = ""));
+};
+
+const clearPasswords = () => {
+    form.value.password = "";
+    form.value.password_confirmation = "";
+    errors.value.password = "";
+    errors.value.password_confirmation = "";
 };
 
 const validateEmail = (email) => {
@@ -164,8 +172,10 @@ const submit = async () => {
         await axios[method](url, payload);
         toast.add({
             severity: "success",
-            summary: $t("user_form.toast.submit.success"),
-            detail: trans("user_form.toast.submit.detail." + isEditMode.value ? "updated" : "created"),
+            summary: trans("user_form.toast.submit.success"),
+            detail: isEditMode.value
+                ? trans("user_form.toast.submit.detail.updated")
+                : trans("user_form.toast.submit.detail.created"),
             life: 3000,
         });
         emit(isEditMode.value ? "user-updated" : "user-created");
@@ -185,6 +195,10 @@ const submit = async () => {
                     errors.value[key] = backendErrors[key][0];
                 }
             });
+        }
+        if (error.response?.data?.message) {
+            const backendErrors = error?.response?.data?.message || "Errore sconosciuto";
+            errors.value.form = backendErrors;
         }
     } finally {
         loading.value = false;
@@ -237,26 +251,40 @@ watch(
             </div>
 
             <div class="flex flex-col gap-1">
-                <div class="flex items-center gap-2">
-                    <label for="password" class="font-medium text-surface-900">{{ $t("password") }} </label>
-                    <i
-                        class="pi pi-question-circle"
-                        style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
-                        v-tooltip.top="{ value: $t('user_form.password_tip'), escape: true }"
-                    ></i>
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <label for="password" class="font-medium text-surface-900">{{ $t("password") }}</label>
+                        <i
+                            class="pi pi-question-circle"
+                            style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
+                            v-tooltip.top="{ value: $t('user_form.password_tip'), escape: true }"
+                        ></i>
+                    </div>
+
+                    <Button
+                        v-if="isEditMode && form.password.length > 0"
+                        icon="pi pi-eraser"
+                        label="Svuota"
+                        severity="secondary"
+                        size="small"
+                        text
+                        @click="clearPasswords"
+                        class="p-0 h-auto text-surface-500 hover:text-surface-900"
+                    />
                 </div>
 
                 <Password
                     id="password"
                     v-model="form.password"
+                    autocomplete="new-password"
                     :invalid="!!errors.password"
                     :feedback="false"
                     toggleMask
                     fluid
                 />
-                <Message v-if="errors.password" severity="error" size="small" variant="simple">{{
-                    errors.password
-                }}</Message>
+                <Message v-if="errors.password" severity="error" size="small" variant="simple">
+                    {{ errors.password }}
+                </Message>
             </div>
 
             <div class="flex flex-col gap-1">
@@ -266,14 +294,15 @@ watch(
                 <Password
                     id="password_confirmation"
                     v-model="form.password_confirmation"
+                    autocomplete="new-password"
                     :invalid="!!errors.password_confirmation"
                     :feedback="false"
                     toggleMask
                     fluid
                 />
-                <Message v-if="errors.password_confirmation" severity="error" size="small" variant="simple">{{
-                    errors.password_confirmation
-                }}</Message>
+                <Message v-if="errors.password_confirmation" severity="error" size="small" variant="simple">
+                    {{ errors.password_confirmation }}
+                </Message>
             </div>
 
             <div class="flex items-center gap-3 mt-2 md:col-span-2">
@@ -282,6 +311,8 @@ watch(
                 <ToggleSwitch id="enabled" v-model="form.enabled" />
             </div>
         </div>
+        <!-- errore form -->
+        <Message v-if="errors.form" severity="error" size="small" variant="simple">{{ errors.form }} </Message>
 
         <div class="flex justify-end gap-3 mt-4 border-t border-surface-200 pt-4">
             <Button

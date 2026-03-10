@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: andreadecastri
- * Date: 22/02/19
- * Time: 15.56
- */
 
 namespace App\Models;
 
@@ -29,7 +23,7 @@ class Provider extends Model
      *
      * @var array
      */
-    protected $fillable = ["domain", "logoutUrl", "secret_key", "protocol"];
+    protected $fillable = ["domain", "logoutUrl", "secret_key", "protocol", "url"];
 
     /**
      * The attributes that should be hidden for arrays.
@@ -37,4 +31,10 @@ class Provider extends Model
      * @var array
      */
     protected $hidden = ["secret_key"];
+
+    public function providerUserRoles()
+    {
+        // Sostituisci ProviderUserRole::class col nome esatto del tuo modello, se diverso
+        return $this->hasMany(ProviderUserRole::class, "provider_id", "id");
+    }
 }

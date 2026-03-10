@@ -4,10 +4,9 @@ namespace App\Models;
 
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Passport\HasApiTokens;
-// use App\Models\UserRole;
+use App\Models\Session;
 
 //, OAuthenticatable
 class User extends Authenticatable // implements JWTSubject
@@ -90,23 +89,44 @@ class User extends Authenticatable // implements JWTSubject
         return $this->providerRoles($providerId)->exists();
     }
 
-    // /**
-    //  * Get the identifier that will be stored in the subject claim of the JWT.
-    //  *
-    //  * @return mixed
-    //  */
-    // public function getJWTIdentifier()
-    // {
-    //     return $this->getKey();
-    // }
+    /**
+     * Verifica se l'utente è un Amministratore dell'IdP.
+     * * @return bool
+     */
+    public function isAdmin(): bool
+    {
+        // 1. Se l'utente è disabilitato globalmente, non può essere admin
+        if (isset($this->enabled) && !$this->enabled) {
+            return false;
+        }
 
-    // /**
-    //  * Return a key value array, containing any custom claims to be added to the JWT.
-    //  *
-    //  * @return array
-    //  */
-    // public function getJWTCustomClaims()
-    // {
-    //     return [];
-    // }
+        // 2. Recuperiamo gli ID dalle configurazioni
+        $idpProviderId = config("idp.provider_id");
+        $adminRoleId = config("role.admin_id");
+
+        // 3. Verifica veloce e diretta a database (prestazioni massime)
+        return \App\Models\ProviderUserRole::where("user_id", $this->id)
+            ->where("provider_id", $idpProviderId)
+            ->where("role_id", $adminRoleId)
+            ->exists();
+    }
+
+    /**
+     * Bootstrap the model and its traits.
+     */
+    protected static function booted(): void
+    {
+        // 1. Intercettiamo l'aggiornamento dell'utente
+        static::updated(function ($user) {
+            if ($user->wasChanged("enabled,password")) {
+                Session::where("user_id", $user->id)->delete();
+            }
+        });
+
+        // 2. Intercettiamo l'eliminazione dell'utente
+        static::deleting(function ($user) {
+            // Prima che l'utente venga cancellato dal DB, radiamo al suolo le sue sessioni
+            Session::where("user_id", $user->id)->delete();
+        });
+    }
 }

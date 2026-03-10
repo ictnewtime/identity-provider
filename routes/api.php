@@ -24,7 +24,7 @@ Route::prefix("v1")->group(function () {
     // middleware client per le rotte protetto dalla classe CheckClientCredentials
     // di Passport
 
-    Route::middleware(["client"])->group(function () {
+    Route::middleware(["role:admin"])->group(function () {
         // providers
         Route::get("providers", [ProviderController::class, "all"]);
         Route::post("providers", [ProviderController::class, "create"]);
@@ -64,6 +64,8 @@ Route::prefix("v1")->group(function () {
     });
 
     // sessions
-    Route::get("sessions/check", [SessionController::class, "check"]);
-    Route::post("sessions/logout", [SessionController::class, "logout"]);
+    Route::middleware(["client"])->group(function () {
+        Route::get("sessions/check", [SessionController::class, "check"]);
+        Route::post("sessions/logout", [SessionController::class, "logout"]);
+    });
 });

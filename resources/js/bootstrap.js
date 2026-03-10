@@ -9,12 +9,14 @@ import axios from "axios";
 window.axios = axios;
 window.axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
 
+window.axios.defaults.withCredentials = true;
 // Pesca il token dall'HTML e lo attacca a TUTTE le chiamate
 const csrfToken = document.head.querySelector('meta[name="csrf-token"]');
 
 if (csrfToken) {
     window.axios.defaults.headers.common["X-CSRF-TOKEN"] = csrfToken.content;
 } else {
+    console.error("CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token");
     console.error("CSRF token non trovato: controlla app.blade.php");
 }
 

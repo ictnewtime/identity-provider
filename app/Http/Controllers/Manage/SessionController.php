@@ -50,23 +50,29 @@ class SessionController extends Controller
     ]
     public function all(Request $request)
     {
-        $query = Session::with(["user", "provider"]);
+        // 1. Selezioniamo solo i campi necessari della Sessione (id, e le due chiavi esterne per i collegamenti)
+        $query = Session::select("id", "user_id", "provider_id")->with([
+            // 2. Limitiamo le colonne delle relazioni (l'ID serve sempre per il legame)
+            "user:id,username",
+            "provider:id,domain", // Se hai anche il nome metti: id,domain,name
+        ]);
 
         // Ricerca per user.username o provider.domain
         if ($request->filled("q")) {
             $searchTerm = "%" . $request->q . "%";
 
-            $query
-                ->whereHas("user", function ($q) use ($searchTerm) {
-                    $q->where("username", "like", $searchTerm);
-                })
-                ->orWhereHas("provider", function ($q) use ($searchTerm) {
-                    $q->where("domain", "like", $searchTerm);
+            // 3. Racchiudiamo la ricerca in una funzione per raggruppare le condizioni OR
+            // SQL risultante: WHERE (user.username LIKE ? OR provider.domain LIKE ?)
+            $query->where(function ($q) use ($searchTerm) {
+                $q->whereHas("user", function ($subQuery) use ($searchTerm) {
+                    $subQuery->where("username", "like", $searchTerm);
+                })->orWhereHas("provider", function ($subQuery) use ($searchTerm) {
+                    $subQuery->where("domain", "like", $searchTerm);
                 });
+            });
         }
 
         $perPage = $request->input("per_page", 10);
-
         return $query->paginate($perPage);
     }
 
@@ -111,18 +117,15 @@ class SessionController extends Controller
     ]
     public function check(Request $request): JsonResponse
     {
-        Log::debug("SessionController.check: ");
-        // Recuperiamo l'IP passato dall'extension, o usiamo quello della request in fallback
         $ip_address = $request->query("ip_address", $request->ip());
         $provider_id = $request->query("provider_id");
         $user_id = $request->query("user_id");
 
-        Log::debug("SessionController.check: " . $ip_address . " " . $provider_id . " " . $user_id);
-        $user = User::find($user_id);
-        if (!$user || !$user->hasAccessToProvider($provider_id)) {
-            return response()->json(["message" => "Forbidden or Disabled"], 404);
-        }
+        Log::debug("SessionController.check: IP {$ip_address} | Provider {$provider_id} | User {$user_id}");
 
+        // 1. Delegato TUTTO al SessionService.
+        // Se l'utente è stato eliminato, disabilitato o gli hanno tolto il ruolo,
+        // la sessione non esisterà più nel DB (grazie agli Eventi) e ci tornerà 404.
         $result = $this->sessionService->validateAndRefreshSession(
             $ip_address,
             $provider_id,
@@ -130,20 +133,22 @@ class SessionController extends Controller
             $this->tokenService,
         );
 
+        // 2. Se non c'è sessione, sbarriamo la porta
         if ($result["status"] === 404) {
             return response()->json(
                 [
                     "valid" => false,
-                    "message" => "Session expired or not found.",
+                    "message" => "Session expired, not found, or access revoked.",
                 ],
-                404,
+                404, // Il middleware sull'app client intercetterà il 404 e forzerà il logout!
             );
         }
 
+        // 3. Via libera
         return response()->json(
             [
                 "valid" => true,
-                "token" => $result["token"], // Sarà null se l'IP non è cambiato, o il nuovo JWT se è cambiato
+                "token" => $result["token"], // Null se l'IP non cambia, JWT nuovo se cambia
             ],
             200,
         );
@@ -192,35 +197,6 @@ class SessionController extends Controller
     /**
      * Delete session by id
      */
-    #[
-        OA\Post(
-            path: "/api/v1/sessions",
-            summary: "Create new session",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "Session.create",
-            tags: ["Session"],
-            security: [["passport" => []]],
-            requestBody: new OA\RequestBody(
-                required: true,
-                content: new OA\MediaType(
-                    mediaType: "application/json",
-                    schema: new OA\Schema(ref: "#/components/schemas/SessionRequest"),
-                ),
-            ),
-            responses: [
-                new OA\Response(
-                    response: 201,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 500,
-                    description: "Internal server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
     #[
         OA\Delete(
             path: "/api/v1/sessions/{id}",

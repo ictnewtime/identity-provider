@@ -10,6 +10,11 @@ class Session extends Model
     use HasFactory;
 
     protected $table = "sessions";
+
+    // AGGIUNGI QUESTE DUE RIGHE PER RISOLVERE L'ID = 0
+    public $incrementing = false;
+    protected $keyType = "string";
+
     protected $fillable = [
         "id",
         "user_id",

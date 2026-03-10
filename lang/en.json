@@ -1,4 +1,6 @@
 {
+    "auth.err-login": "Invalid credentials",
+
     "username": "Username",
     "email": "Email",
     "name": "First Name",

@@ -1,4 +1,6 @@
 {
+    "auth.err-login": "Credenziali non valide",
+
     "username": "Username",
     "email": "Email",
     "password": "Password",

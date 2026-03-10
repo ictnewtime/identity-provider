@@ -26,4 +26,21 @@ class ProviderUserRole extends Model
     {
         return $this->belongsTo(Role::class);
     }
+
+    protected static function booted(): void
+    {
+        // 1. Intercettiamo Creazione e Aggiornamento (quando gli diamo o cambiamo un ruolo)
+        static::saved(function ($providerUserRole) {
+            Session::where("user_id", $providerUserRole->user_id)
+                ->where("provider_id", $providerUserRole->provider_id)
+                ->delete();
+        });
+
+        // 2. Intercettiamo l'Eliminazione (quando gli togliamo del tutto un ruolo)
+        static::deleted(function ($providerUserRole) {
+            Session::where("user_id", $providerUserRole->user_id)
+                ->where("provider_id", $providerUserRole->provider_id)
+                ->delete();
+        });
+    }
 }
