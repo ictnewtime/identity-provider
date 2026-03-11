@@ -157,7 +157,13 @@ class TokenProviderService
         $sessionService = new SessionService();
 
         // L'UNICA fonte di verità per l'abilitazione
-        $token = $sessionService->getValidProviderToken($user, $providerId, $request->ip(), $tokenService);
+        $token = $sessionService->getValidProviderToken(
+            $user,
+            $providerId,
+            $request->ip(),
+            $request->header("User-Agent"),
+            $tokenService,
+        );
 
         if (!$token) {
             return null; // Segnale che l'utente non è autorizzato

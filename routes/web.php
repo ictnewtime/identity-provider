@@ -6,10 +6,11 @@ use Inertia\Inertia;
 use App\Http\Controllers\JwtAuth\LoginController;
 use App\Http\Controllers\Manage\ProviderController;
 use App\Http\Controllers\Manage\UserController;
-use App\Http\Controllers\Manage\OauthClientsController;
+// use App\Http\Controllers\Manage\OauthClientsController;
 use App\Http\Controllers\Manage\ProviderUserRoleController;
 use App\Http\Controllers\Manage\RoleController;
 use App\Http\Controllers\Manage\SessionController;
+use App\Http\Controllers\Manage\AuditController;
 use Illuminate\Support\Facades\Log;
 
 // 1. Redirect Home -> Login
@@ -24,14 +25,12 @@ Route::get("locale/{locale}", function ($locale) {
 });
 
 // 3. Autenticazione (Gestita da Inertia)
-Route::middleware("guest")
-    ->group(function () {
-        Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
-        Route::get("login", function () {
-            return redirect()->route("loginForm");
-        });
-    })
-    ->name("login");
+Route::middleware("guest")->group(function () {
+    Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
+    Route::get("login", function () {
+        return redirect()->route("loginForm");
+    });
+});
 
 Route::post("v2/login", [LoginController::class, "login"])->name("login");
 Route::post("logout", [LoginController::class, "logout"])->name("logout");
@@ -76,22 +75,18 @@ Route::prefix("admin")
             return Inertia::render("Admin/Sessions");
         })->name("web-sessions");
 
-        Route::get("oauth-clients", function () {
-            return Inertia::render("Admin/OauthClients");
-        })->name("oauth-clients");
+        Route::get("audits", function () {
+            return Inertia::render("Admin/Audits");
+        })->name("web-audits");
+
+        // Route::get("oauth-clients", function () {
+        //     return Inertia::render("Admin/OauthClients");
+        // })->name("oauth-clients");
 
         // 5. LE ROTTE API (Lasciale intatte per non rompere i tuoi vecchi componenti Vue)
         // In futuro, potrai eliminare questo blocco e passare i dati direttamente
         // nei metodi Inertia::render() qui sopra.
         Route::prefix("v1")->group(function () {
-            // sessions
-            Route::get("sessions", [SessionController::class, "all"]);
-            // id is uuid
-            Route::delete("sessions/{id}", [SessionController::class, "delete"])->where(
-                "id",
-                "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
-            );
-
             // providers
             Route::get("providers", [ProviderController::class, "all"]);
             Route::post("providers", [ProviderController::class, "create"]);
@@ -120,6 +115,17 @@ Route::prefix("admin")
             Route::put("provider-user-roles/{id}", [ProviderUserRoleController::class, "update"])->whereNumber("id");
             Route::delete("provider-user-roles/{id}", [ProviderUserRoleController::class, "delete"])->whereNumber("id");
             Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
+
+            // sessions
+            Route::get("sessions", [SessionController::class, "all"]);
+            // id is uuid
+            Route::delete("sessions/{id}", [SessionController::class, "delete"])->where(
+                "id",
+                "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+            );
+
+            // audit
+            Route::get("audits", [AuditController::class, "all"]);
         });
     });
 

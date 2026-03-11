@@ -26,6 +26,7 @@ class SessionRequest extends FormRequest
             "role_id" => "required|exists:roles,id",
             "provider_id" => "required|exists:providers,id",
             "ip_address" => "required|ip",
+            "user_agent" => "required|string",
             "token" => "required|string",
             "refresh_token" => "string",
             "expires_at" => "timestamp",

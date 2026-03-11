@@ -3,12 +3,17 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use OwenIt\Auditing\Contracts\Auditable;
 use App\Models\Provider;
 use App\Models\User;
 use App\Models\Role;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-class ProviderUserRole extends Model
+class ProviderUserRole extends Model implements Auditable
 {
+    use SoftDeletes;
+    use \OwenIt\Auditing\Auditable;
+
     protected $fillable = ["user_id", "provider_id", "role_id"];
     public $timestamps = true;
 

@@ -1,37 +1,48 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { Link, router, usePage } from "@inertiajs/vue3";
-import Menubar from "primevue/menubar";
 import Button from "primevue/button";
 import Select from "primevue/select";
 import { trans } from "laravel-vue-i18n";
 
-// Definizione delle voci della Navbar
+// Stato per collassare/espandere la Sidebar
+const isSidebarCollapsed = ref(false);
+
+const toggleSidebar = () => {
+    isSidebarCollapsed.value = !isSidebarCollapsed.value;
+};
+
+// Definizione delle voci della Navbar con il nuovo namespace
 const items = computed(() => [
     {
-        label: trans("users"),
+        label: trans("admin.nav.users"),
         icon: "pi pi-users",
         route: "/admin/users",
     },
     {
-        label: trans("roles"),
+        label: trans("admin.nav.roles"),
         icon: "pi pi-id-card",
         route: "/admin/roles",
     },
     {
-        label: trans("providers"),
+        label: trans("admin.nav.providers"),
         icon: "pi pi-server",
         route: "/admin/providers",
     },
     {
         label: trans("admin.nav.provider_user_roles"),
-        icon: "pi pi-server",
+        icon: "pi pi-link",
         route: "/admin/provider-user-roles",
     },
     {
-        label: trans("sessions"),
-        icon: "pi pi-history",
+        label: trans("admin.nav.sessions"),
+        icon: "pi pi-sitemap",
         route: "/admin/sessions",
+    },
+    {
+        label: trans("admin.nav.audits"),
+        icon: "pi pi-history",
+        route: "/admin/audits",
     },
 ]);
 
@@ -42,86 +53,124 @@ const locales = ref([
     { name: "English", code: "en", flag: "🇺🇸" },
 ]);
 
-// Sincronizziamo la lingua visualizzata con quella attuale di Laravel
 onMounted(() => {
     const currentLocale = usePage().props.locale || "it";
     selectedLocale.value = locales.value.find((l) => l.code === currentLocale);
 });
 
-// Funzione per cambiare lingua
 const changeLanguage = (event) => {
-    // Chiamiamo la rotta che abbiamo nel web.php
-    // Usiamo window.location invece di router.get per forzare il refresh
-    // e ricaricare tutti i file di traduzione correttamente
     window.location.href = `/locale/${event.value.code}`;
 };
 
-// Metodo di logout pulito tramite Inertia
 const logout = () => {
-    // Peschiamo il token aggiornato dalle props di Inertia!
     const token = usePage().props.csrf_token;
-
     router.post("/logout", {
-        // Puoi passarlo direttamente nel payload (Inertia lo mappa sul _token di Laravel)
         _token: token,
     });
 };
 </script>
 
 <template>
-    <div class="min-h-screen bg-surface-50">
-        <Menubar :model="items" class="px-6 py-2 border-b border-surface-200 rounded-none bg-surface-0">
-            <template #start>
-                <Link href="/admin/users" class="mr-8">
-                    <img src="/images/logo.png" alt="Logo" class="h-8" />
+    <div class="flex h-screen bg-slate-100 overflow-hidden font-sans text-surface-900 antialiased">
+        <aside
+            :class="[
+                'bg-white flex flex-col flex-shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.04)] transition-all duration-300 ease-in-out relative',
+                isSidebarCollapsed ? 'w-[80px]' : 'w-[280px]',
+            ]"
+        >
+            <div class="h-[72px] flex items-center justify-between px-4">
+                <Link
+                    v-if="!isSidebarCollapsed"
+                    href="/admin/users"
+                    class="flex items-center gap-3 overflow-hidden ml-2"
+                >
+                    <img src="/images/logo.png" alt="Logo" class="h-8 object-contain drop-shadow-sm" />
                 </Link>
-            </template>
 
-            <template #item="{ item, props }">
-                <Link v-if="item.route" :href="item.route" v-bind="props.action">
-                    <span :class="item.icon" class="p-menuitem-icon" />
-                    <span class="p-menuitem-text">{{ item.label }}</span>
+                <Button
+                    icon="pi pi-bars"
+                    text
+                    rounded
+                    class="!text-surface-600 hover:!bg-surface-100 shrink-0"
+                    :class="isSidebarCollapsed ? 'mx-auto' : ''"
+                    @click="toggleSidebar"
+                />
+            </div>
+
+            <nav class="flex-1 overflow-y-auto p-3 flex flex-col gap-1.5 mt-2">
+                <Link
+                    v-for="item in items"
+                    :key="item.route"
+                    :href="item.route"
+                    v-tooltip.right="isSidebarCollapsed ? item.label : ''"
+                    class="group flex items-center px-3 py-3 rounded-xl transition-all duration-200 cursor-pointer"
+                    :class="[
+                        $page.url.startsWith(item.route)
+                            ? 'bg-primary-600 font-bold shadow-md shadow-primary-500/30'
+                            : 'text-surface-600 font-medium hover:bg-surface-100 hover:text-surface-900',
+                        isSidebarCollapsed ? 'justify-center' : 'gap-3',
+                    ]"
+                >
+                    <i
+                        :class="[
+                            item.icon,
+                            'text-xl transition-colors',
+                            $page.url.startsWith(item.route) ? '' : 'text-surface-400 group-hover:text-surface-600',
+                        ]"
+                    ></i>
+                    <span v-if="!isSidebarCollapsed" class="mt-0.5 whitespace-nowrap">{{ item.label }}</span>
                 </Link>
-                <a v-else :href="item.url" :target="item.target" v-bind="props.action">
-                    <span :class="item.icon" class="p-menuitem-icon" />
-                    <span class="p-menuitem-text">{{ item.label }}</span>
-                </a>
-            </template>
+            </nav>
+        </aside>
 
-            <template #end>
+        <div class="flex-1 flex flex-col overflow-hidden relative z-10">
+            <header class="h-[72px] bg-white shadow-sm flex items-center justify-end px-6 gap-6 shrink-0 relative z-10">
+                <Select
+                    v-model="selectedLocale"
+                    :options="locales"
+                    optionLabel="name"
+                    class="w-26 !border-none !shadow-none hover:bg-surface-50 !rounded-lg"
+                    @change="changeLanguage"
+                >
+                    <template #value="slotProps">
+                        <div
+                            v-if="slotProps.value"
+                            class="flex items-center gap-2 text-sm font-medium text-surface-700"
+                        >
+                            <span class="text-base leading-none">{{ slotProps.value.flag }}</span>
+                            <span>{{ slotProps.value.code.toUpperCase() }}</span>
+                        </div>
+                    </template>
+                    <template #option="slotProps">
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="text-base leading-none">{{ slotProps.option.flag }}</span>
+                            <span>{{ slotProps.option.code.toUpperCase() }}</span>
+                        </div>
+                    </template>
+                </Select>
+
                 <div class="flex items-center gap-4">
-                    <Select
-                        v-model="selectedLocale"
-                        :options="locales"
-                        optionLabel="name"
-                        placeholder="Lingua"
-                        class="w-40 h-10 items-center"
-                        @change="changeLanguage"
-                    >
-                        <template #value="slotProps">
-                            <div v-if="slotProps.value" class="flex items-center gap-2">
-                                <span>{{ slotProps.value.flag }}</span>
-                                <span>{{ slotProps.value.name }}</span>
-                            </div>
-                        </template>
-                        <template #option="slotProps">
-                            <div class="flex items-center gap-2">
-                                <span>{{ slotProps.option.flag }}</span>
-                                <span>{{ slotProps.option.name }}</span>
-                            </div>
-                        </template>
-                    </Select>
+                    <div class="flex items-center gap-3">
+                        <span class="text-surface-900 font-bold text-sm">
+                            {{ $page.props.auth?.user?.username }}
+                        </span>
+                    </div>
 
-                    <span class="text-surface-600 font-medium ml-2">
-                        {{ $page.props.auth?.user?.username }}
-                    </span>
-                    <Button icon="pi pi-sign-out" severity="danger" text rounded @click="logout" />
+                    <Button
+                        icon="pi pi-sign-out"
+                        text
+                        rounded
+                        severity="secondary"
+                        class="hover:!text-red-600 hover:!bg-red-50 transition-colors"
+                        @click="logout"
+                        v-tooltip.bottom="$t('common.logout')"
+                    />
                 </div>
-            </template>
-        </Menubar>
+            </header>
 
-        <main class="max-w-7xl mx-auto p-6">
-            <slot />
-        </main>
+            <main class="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10">
+                <slot />
+            </main>
+        </div>
     </div>
 </template>

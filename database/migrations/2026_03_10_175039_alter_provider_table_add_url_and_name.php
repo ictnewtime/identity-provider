@@ -14,6 +14,7 @@ return new class extends Migration {
         //
         Schema::table("providers", function (Blueprint $table) {
             $table->string("url")->after("domain");
+            $table->string("name")->before("domain");
         });
     }
 
@@ -25,6 +26,7 @@ return new class extends Migration {
         //
         Schema::table("providers", function (Blueprint $table) {
             $table->dropColumn("url");
+            $table->dropColumn("name");
         });
     }
 };

@@ -7,10 +7,16 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Laravel\Passport\HasApiTokens;
 use App\Models\Session;
+use App\Models\ProviderUserRole;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use OwenIt\Auditing\Contracts\Auditable;
 
 //, OAuthenticatable
-class User extends Authenticatable // implements JWTSubject
+// implements JWTSubject
+class User extends Authenticatable implements Auditable
 {
+    use SoftDeletes;
+    use \OwenIt\Auditing\Auditable;
     //HasApiTokens,
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -29,6 +35,11 @@ class User extends Authenticatable // implements JWTSubject
      * @var array
      */
     protected $hidden = ["password", "remember_token"];
+
+    /**
+     * The attributes that should be hiddend for auditing.
+     */
+    protected $auditExclude = ["password"];
 
     public function roles()
     {

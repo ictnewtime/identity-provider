@@ -5,7 +5,7 @@ import { trans } from "laravel-vue-i18n";
 
 // Componenti PrimeVue
 import InputText from "primevue/inputtext";
-import Select from "primevue/select"; // Usiamo Select invece di Dropdown in PrimeVue 4
+import Select from "primevue/select";
 import Button from "primevue/button";
 import Message from "primevue/message";
 
@@ -42,7 +42,6 @@ const isEditMode = computed(() => !!props.selectedRole);
 // Metodi di utilità
 const resetForm = () => {
     form.value = {
-        id: null,
         name: "",
         provider_id: null,
     };
@@ -59,11 +58,11 @@ const validate = () => {
     let isValid = true;
 
     if (!form.value.name) {
-        errors.value.name = trans("admin.role_form.validate.name.mandatory");
+        errors.value.name = trans("admin.roles.form.validate.name.mandatory");
         isValid = false;
     }
     if (!form.value.provider_id) {
-        errors.value.provider_id = trans("admin.role_form.validate.provider.mandatory");
+        errors.value.provider_id = trans("admin.roles.form.validate.provider.mandatory");
         isValid = false;
     }
 
@@ -82,8 +81,8 @@ const loadProvidersList = async () => {
         console.error("Errore caricamento provider", err);
         toast.add({
             severity: "error",
-            summary: trans("admin.global.error"),
-            detail: trans("admin.role_form.toast.error.load_providers"),
+            summary: trans("common.error"),
+            detail: trans("admin.roles.toast.load_providers_error"),
             life: 3000,
         });
     } finally {
@@ -110,10 +109,10 @@ const submit = async () => {
         await window.axios[method](url, payload);
         toast.add({
             severity: "success",
-            summary: trans("admin.global.success"),
+            summary: trans("common.success"),
             detail: isEditMode.value
-                ? trans("admin.role_form.toast.success.updated")
-                : trans("admin.role_form.toast.success.created"),
+                ? trans("admin.roles.toast.detail_updated")
+                : trans("admin.roles.toast.detail_created"),
             life: 3000,
         });
 
@@ -122,8 +121,8 @@ const submit = async () => {
     } catch (error) {
         toast.add({
             severity: "error",
-            summary: trans("admin.global.error"),
-            detail: trans("admin.role_form.toast.error.submit"),
+            summary: trans("common.error"),
+            detail: trans("admin.roles.toast.submit_error"),
             life: 3000,
         });
 
@@ -141,14 +140,35 @@ const submit = async () => {
     }
 };
 
+// Carica il ruolo da modificare
+const fetchRole = async (id) => {
+    loading.value = true;
+    try {
+        const res = await window.axios.get(`/admin/v1/roles/${id}`);
+        const data = res.data;
+        form.value = {
+            id: data.id,
+            name: data.name,
+            provider_id: data.provider_id,
+        };
+    } catch (err) {
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.roles.toast.load_role_error"),
+            life: 3000,
+        });
+    } finally {
+        loading.value = false;
+    }
+};
+
 // Watcher per riempire il form quando il padre ci passa un ruolo da modificare
 watch(
     () => props.selectedRole,
     (newVal) => {
         if (newVal && newVal.id) {
-            form.value.id = newVal.id;
-            form.value.name = newVal.name;
-            form.value.provider_id = newVal.provider_id;
+            fetchRole(newVal.id);
             resetErrors();
         } else {
             resetForm();
@@ -168,13 +188,13 @@ onMounted(() => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
                 <label for="name" class="font-medium text-surface-900">
-                    {{ $t("admin.role_form.name_label") }}
+                    {{ $t("admin.roles.form.name_label") }}
                 </label>
                 <InputText
                     id="name"
                     v-model="form.name"
                     :invalid="!!errors.name"
-                    :placeholder="$t('admin.role_form.name_placeholder')"
+                    :placeholder="$t('admin.roles.form.name_placeholder')"
                     fluid
                 />
                 <Message v-if="errors.name" severity="error" size="small" variant="simple">
@@ -184,15 +204,15 @@ onMounted(() => {
 
             <div class="flex flex-col gap-1">
                 <label for="provider" class="font-medium text-surface-900">
-                    {{ $t("admin.role_form.provider_label") }}
+                    {{ $t("admin.roles.form.provider_label") }}
                 </label>
                 <Select
                     id="provider"
                     v-model="form.provider_id"
                     :options="providers"
-                    optionLabel="domain"
+                    optionLabel="name"
                     optionValue="id"
-                    :placeholder="$t('admin.role_form.provider_placeholder')"
+                    :placeholder="$t('admin.roles.form.provider_placeholder')"
                     :invalid="!!errors.provider_id"
                     :loading="loadingProviders"
                     fluid
@@ -206,7 +226,7 @@ onMounted(() => {
         <div class="flex justify-end gap-3 mt-4 border-t border-surface-200 pt-4">
             <Button
                 type="button"
-                :label="$t('admin.global.reset')"
+                :label="$t('common.reset')"
                 severity="secondary"
                 text
                 icon="pi pi-refresh"
@@ -215,7 +235,7 @@ onMounted(() => {
             />
             <Button
                 type="submit"
-                :label="isEditMode ? $t('admin.global.save_changes') : $t('admin.global.create')"
+                :label="isEditMode ? $t('common.save_changes') : $t('admin.roles.form.btn_create')"
                 icon="pi pi-check"
                 :loading="loading"
             />

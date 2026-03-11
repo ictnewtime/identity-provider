@@ -51,10 +51,18 @@ class SessionController extends Controller
     public function all(Request $request)
     {
         // 1. Selezioniamo solo i campi necessari della Sessione (id, e le due chiavi esterne per i collegamenti)
-        $query = Session::select("id", "user_id", "provider_id")->with([
+        $query = Session::select(
+            "id",
+            "user_id",
+            "provider_id",
+            "ip_address",
+            "user_agent",
+            "created_at",
+            "updated_at",
+        )->with([
             // 2. Limitiamo le colonne delle relazioni (l'ID serve sempre per il legame)
             "user:id,username",
-            "provider:id,domain", // Se hai anche il nome metti: id,domain,name
+            "provider:id,domain,name", // Se hai anche il nome metti: id,domain,name
         ]);
 
         // Ricerca per user.username o provider.domain
@@ -120,8 +128,7 @@ class SessionController extends Controller
         $ip_address = $request->query("ip_address", $request->ip());
         $provider_id = $request->query("provider_id");
         $user_id = $request->query("user_id");
-
-        Log::debug("SessionController.check: IP {$ip_address} | Provider {$provider_id} | User {$user_id}");
+        $user_agent = $request->query("user_agent");
 
         // 1. Delegato TUTTO al SessionService.
         // Se l'utente è stato eliminato, disabilitato o gli hanno tolto il ruolo,
@@ -130,6 +137,7 @@ class SessionController extends Controller
             $ip_address,
             $provider_id,
             $user_id,
+            $user_agent,
             $this->tokenService,
         );
 

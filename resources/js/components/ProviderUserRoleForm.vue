@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, computed, onMounted } from "vue";
 import { useToast } from "primevue/usetoast";
+import { trans } from "laravel-vue-i18n"; // Import per le traduzioni nello script
 
 import Select from "primevue/select";
 import Button from "primevue/button";
@@ -53,8 +54,8 @@ const loadInitialData = async () => {
         console.error(err);
         toast.add({
             severity: "error",
-            summary: "Errore",
-            detail: "Errore nel caricamento dei dati di base",
+            summary: trans("common.error"),
+            detail: trans("admin.provider_user_roles.toast.load_error"),
             life: 3000,
         });
     } finally {
@@ -72,13 +73,17 @@ const fetchRoles = async (providerId) => {
         roles.value = res.data.data || res.data;
     } catch (err) {
         console.error(err);
-        toast.add({ severity: "error", summary: "Errore", detail: "Impossibile caricare i ruoli", life: 3000 });
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.provider_user_roles.toast.roles_error"),
+            life: 3000,
+        });
     } finally {
         loadingRoles.value = false;
     }
 };
 
-// Evento quando cambia il provider nella Select
 const onProviderChange = () => {
     form.value.role_id = null;
     roles.value = [];
@@ -90,7 +95,6 @@ const onProviderChange = () => {
 
 const resetForm = () => {
     form.value = {
-        id: null,
         user_id: null,
         provider_id: null,
         role_id: null,
@@ -112,15 +116,15 @@ const validate = () => {
     let isValid = true;
 
     if (!form.value.user_id) {
-        errors.value.user_id = "Utente obbligatorio";
+        errors.value.user_id = trans("admin.provider_user_roles.form.validate.user.mandatory");
         isValid = false;
     }
     if (!form.value.provider_id) {
-        errors.value.provider_id = "Provider obbligatorio";
+        errors.value.provider_id = trans("admin.provider_user_roles.form.validate.provider.mandatory");
         isValid = false;
     }
     if (!form.value.role_id) {
-        errors.value.role_id = "Ruolo obbligatorio";
+        errors.value.role_id = trans("admin.provider_user_roles.form.validate.role.mandatory");
         isValid = false;
     }
 
@@ -146,14 +150,21 @@ const submit = async () => {
         await window.axios[method](url, payload);
         toast.add({
             severity: "success",
-            summary: "Operazione completata",
-            detail: isEditMode.value ? "Associazione aggiornata correttamente" : "Associazione creata correttamente",
+            summary: trans("common.success"),
+            detail: isEditMode.value
+                ? trans("admin.provider_user_roles.toast.detail_updated")
+                : trans("admin.provider_user_roles.toast.detail_created"),
             life: 3000,
         });
         emit("item-saved");
         resetForm();
     } catch (error) {
-        toast.add({ severity: "error", summary: "Errore", detail: "Impossibile salvare i dati", life: 3000 });
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.provider_user_roles.toast.submit_error"),
+            life: 3000,
+        });
 
         if (error.response?.data?.errors) {
             const backendErrors = error.response.data.errors;
@@ -197,68 +208,74 @@ onMounted(() => {
     <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1 md:col-span-2">
-                <label for="user_id" class="font-medium text-surface-900">Utente</label>
+                <label for="user_id" class="font-medium text-surface-900">
+                    {{ $t("admin.provider_user_roles.form.user_label") }}
+                </label>
                 <Select
                     id="user_id"
                     v-model="form.user_id"
                     :options="users"
-                    optionLabel="email"
+                    optionLabel="username"
                     optionValue="id"
-                    placeholder="Seleziona un Utente"
+                    :placeholder="$t('admin.provider_user_roles.form.user_placeholder')"
                     :invalid="!!errors.user_id"
                     :loading="loadingData"
                     filter
                     fluid
                 />
-                <Message v-if="errors.user_id" severity="error" size="small" variant="simple">{{
-                    errors.user_id
-                }}</Message>
+                <Message v-if="errors.user_id" severity="error" size="small" variant="simple">
+                    {{ errors.user_id }}
+                </Message>
             </div>
 
             <div class="flex flex-col gap-1">
-                <label for="provider_id" class="font-medium text-surface-900">Provider</label>
+                <label for="provider_id" class="font-medium text-surface-900">
+                    {{ $t("admin.provider_user_roles.form.provider_label") }}
+                </label>
                 <Select
                     id="provider_id"
                     v-model="form.provider_id"
                     :options="providers"
-                    optionLabel="domain"
+                    optionLabel="name"
                     optionValue="id"
-                    placeholder="Seleziona Provider"
+                    :placeholder="$t('admin.provider_user_roles.form.provider_placeholder')"
                     :invalid="!!errors.provider_id"
                     :loading="loadingData"
                     @change="onProviderChange"
                     filter
                     fluid
                 />
-                <Message v-if="errors.provider_id" severity="error" size="small" variant="simple">{{
-                    errors.provider_id
-                }}</Message>
+                <Message v-if="errors.provider_id" severity="error" size="small" variant="simple">
+                    {{ errors.provider_id }}
+                </Message>
             </div>
 
             <div class="flex flex-col gap-1">
-                <label for="role_id" class="font-medium text-surface-900">Ruolo</label>
+                <label for="role_id" class="font-medium text-surface-900">
+                    {{ $t("admin.provider_user_roles.form.role_label") }}
+                </label>
                 <Select
                     id="role_id"
                     v-model="form.role_id"
                     :options="roles"
                     optionLabel="name"
                     optionValue="id"
-                    placeholder="Seleziona Ruolo"
+                    :placeholder="$t('admin.provider_user_roles.form.role_placeholder')"
                     :invalid="!!errors.role_id"
                     :loading="loadingRoles"
                     :disabled="!form.provider_id || loadingRoles"
                     fluid
                 />
-                <Message v-if="errors.role_id" severity="error" size="small" variant="simple">{{
-                    errors.role_id
-                }}</Message>
+                <Message v-if="errors.role_id" severity="error" size="small" variant="simple">
+                    {{ errors.role_id }}
+                </Message>
             </div>
         </div>
 
         <div class="flex justify-end gap-3 mt-4 border-t border-surface-200 pt-4">
             <Button
                 type="button"
-                label="Reset"
+                :label="$t('common.reset')"
                 severity="secondary"
                 text
                 icon="pi pi-refresh"
@@ -267,7 +284,7 @@ onMounted(() => {
             />
             <Button
                 type="submit"
-                :label="isEditMode ? 'Salva Modifiche' : 'Crea Associazione'"
+                :label="isEditMode ? $t('common.save_changes') : $t('admin.provider_user_roles.form.btn_create')"
                 icon="pi pi-check"
                 :loading="loadingSubmit"
             />

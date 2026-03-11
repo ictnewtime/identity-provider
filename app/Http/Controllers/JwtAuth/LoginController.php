@@ -128,9 +128,21 @@ class LoginController extends Controller
             return Inertia::location($ssoData["url"]);
         } else {
             // L'utente sta tentando di accedere direttamente al pannello IdP (nessun provider_id esterno)
+
             if ($user->isAdmin()) {
                 // È un admin: rigeneriamo la sessione e lo facciamo entrare
                 $request->session()->regenerate();
+
+                $idpProviderId = config("idp.provider_id");
+                \App\Models\Session::create([
+                    "id" => \Illuminate\Support\Str::uuid()->toString(),
+                    "user_id" => $user->id,
+                    "provider_id" => $idpProviderId,
+                    "ip_address" => $request->ip(),
+                    "user_agent" => $request->userAgent(),
+                    "token" => $user->username,
+                    "refresh_token" => null,
+                ]);
 
                 // Usiamo Inertia::location per l'hard redirect della SPA
                 return Inertia::location(route("admin-home"));

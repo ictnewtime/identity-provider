@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * Class Attribute
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Provider extends Model
 {
+    use SoftDeletes;
     protected $table = "providers";
 
     public $timestamps = false;
@@ -23,7 +25,12 @@ class Provider extends Model
      *
      * @var array
      */
-    protected $fillable = ["domain", "logoutUrl", "secret_key", "protocol", "url"];
+    protected $fillable = ["domain", "logoutUrl", "secret_key", "protocol", "url", "name"];
+
+    /**
+     * The attributes that should be hiddend for auditing.
+     */
+    protected $auditExclude = ["secret_key"];
 
     /**
      * The attributes that should be hidden for arrays.

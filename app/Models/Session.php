@@ -4,14 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class Session extends Model
+class Session extends Model implements Auditable
 {
     use HasFactory;
+    use \OwenIt\Auditing\Auditable;
 
     protected $table = "sessions";
 
-    // AGGIUNGI QUESTE DUE RIGHE PER RISOLVERE L'ID = 0
     public $incrementing = false;
     protected $keyType = "string";
 
@@ -20,6 +21,7 @@ class Session extends Model
         "user_id",
         "provider_id",
         "ip_address",
+        "user_agent",
         "token",
         "refresh_token",
         "expires_at",

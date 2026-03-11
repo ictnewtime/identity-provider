@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useToast } from "primevue/usetoast";
+import { trans } from "laravel-vue-i18n";
 
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -10,6 +11,7 @@ import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
+import Tag from "primevue/tag";
 
 import UserForm from "./UserForm.vue";
 
@@ -26,7 +28,7 @@ let searchTimeout = null;
 
 const loadUsers = (page = 1) => {
     loading.value = true;
-    axios
+    window.axios
         .get("/admin/v1/users", {
             params: { page: page, per_page: pagination.value.per_page, q: filter.value },
         })
@@ -34,7 +36,12 @@ const loadUsers = (page = 1) => {
             pagination.value = res.data;
         })
         .catch((err) => {
-            toast.add({ severity: "error", summary: "Errore", detail: "Impossibile caricare gli utenti", life: 3000 });
+            toast.add({
+                severity: "error",
+                summary: trans("common.error"),
+                detail: trans("admin.users.toast.load_error"),
+                life: 3000,
+            });
         })
         .finally(() => {
             loading.value = false;
@@ -78,16 +85,26 @@ const confirmDelete = (user) => {
 
 const deleteUser = () => {
     if (!userToDelete.value) return;
-    axios
+    window.axios
         .delete(`/admin/v1/users/${userToDelete.value.id}`)
         .then(() => {
             displayDeleteModal.value = false;
             userToDelete.value = null;
             loadUsers();
-            toast.add({ severity: "success", summary: "Fatto", detail: "Utente eliminato correttamente", life: 3000 });
+            toast.add({
+                severity: "success",
+                summary: trans("common.success"),
+                detail: trans("admin.users.toast.delete_success"),
+                life: 3000,
+            });
         })
         .catch((error) => {
-            toast.add({ severity: "error", summary: "Errore", detail: "Errore durante l'eliminazione", life: 3000 });
+            toast.add({
+                severity: "error",
+                summary: trans("common.error"),
+                detail: trans("admin.users.toast.delete_error"),
+                life: 3000,
+            });
         });
 };
 
@@ -97,43 +114,81 @@ onMounted(() => {
 </script>
 
 <template>
-    <div class="max-w-7xl mx-auto">
-        <div class="bg-surface-0 border border-surface-200 rounded-xl shadow-sm p-4">
+    <div>
+        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
             <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
                 <template #header>
-                    <div class="flex justify-between items-center pb-2">
-                        <h3 class="text-lg font-semibold m-0">{{ $t("user_table.title") }}</h3>
+                    <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
+                        <h3 class="text-lg font-semibold m-0 text-surface-800">
+                            {{ $t("admin.users.table.title") }}
+                        </h3>
                         <IconField iconPosition="left">
-                            <InputIcon class="pi pi-search" />
+                            <InputIcon class="pi pi-search text-surface-400" />
                             <InputText
                                 v-model="filter"
-                                :placeholder="$t('user_table.search_placeholder')"
+                                :placeholder="$t('admin.users.table.search_placeholder')"
                                 @input="onFilterChange"
+                                class="!rounded-lg"
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <Column field="username" header="Username"></Column>
-                <Column field="email" header="Email"></Column>
-                <Column field="name" header="Nome"></Column>
-                <Column field="surname" header="Cognome"></Column>
-                <Column header="Azioni" :exportable="false" style="min-width: 8rem">
+                <Column field="username" :header="$t('admin.users.table.username')">
                     <template #body="slotProps">
-                        <!-- color yellow -->
+                        <span class="font-medium text-surface-900">{{ slotProps.data.username }}</span>
+                    </template>
+                </Column>
+
+                <Column field="email" :header="$t('admin.users.table.email')">
+                    <template #body="slotProps">
+                        <span class="text-surface-600">{{ slotProps.data.email }}</span>
+                    </template>
+                </Column>
+
+                <Column field="enabled" :header="$t('admin.users.table.status')">
+                    <template #body="slotProps">
+                        <Tag
+                            :severity="slotProps.data.enabled ? 'success' : 'danger'"
+                            :value="
+                                (slotProps.data.enabled
+                                    ? $t('admin.users.table.status_active')
+                                    : $t('admin.users.table.status_blocked')
+                                ).toUpperCase()
+                            "
+                        />
+                    </template>
+                </Column>
+
+                <Column field="name" :header="$t('admin.users.table.name')"></Column>
+                <Column field="surname" :header="$t('admin.users.table.surname')"></Column>
+
+                <Column :header="$t('common.actions')" :exportable="false" style="min-width: 8rem">
+                    <template #body="slotProps">
                         <Button
                             icon="pi pi-pencil"
-                            outlined
+                            text
+                            rounded
                             severity="warn"
-                            class="mr-2"
+                            class="mr-1 hover:!bg-orange-50"
                             @click="editUser(slotProps.data)"
                         />
-                        <Button icon="pi pi-trash" outlined severity="danger" @click="confirmDelete(slotProps.data)" />
+                        <Button
+                            icon="pi pi-trash"
+                            text
+                            rounded
+                            severity="danger"
+                            class="hover:!bg-red-50"
+                            @click="confirmDelete(slotProps.data)"
+                        />
                     </template>
                 </Column>
 
                 <template #empty>
-                    <div class="text-center p-4 text-surface-500">{{ $t("user_table.empty") }}</div>
+                    <div class="text-center p-8 text-surface-500">
+                        <i class="pi pi-users text-4xl mb-4 text-surface-300"></i>
+                        <p class="m-0">{{ $t("admin.users.table.empty") }}</p>
+                    </div>
                 </template>
             </DataTable>
 
@@ -142,14 +197,14 @@ onMounted(() => {
                 :rows="pagination.per_page"
                 :totalRecords="pagination.total"
                 @page="onPage"
-                class="mt-4"
+                class="mt-4 border-t border-surface-100 pt-4"
             />
         </div>
 
         <Dialog
             v-model:visible="displayModal"
-            :header="$t(selectedUser ? 'user_form.title_edit' : 'user_form.title_create')"
-            :style="{ width: '60vw' }"
+            :header="selectedUser ? $t('admin.users.form.title_edit') : $t('admin.users.form.title_create')"
+            :style="{ width: '60vw', maxWidth: '800px' }"
             modal
             :draggable="false"
         >
@@ -158,14 +213,28 @@ onMounted(() => {
 
         <Dialog
             v-model:visible="displayDeleteModal"
-            :header="$t('confirm_delete')"
+            :header="$t('common.confirm_delete_title')"
             :style="{ width: '450px' }"
             modal
             :draggable="false"
         >
+            <div class="flex items-center gap-4 pt-2">
+                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
+                <span v-if="userToDelete" class="text-surface-700">
+                    {{ $t("admin.users.delete.prompt") }}
+                    <b class="text-surface-900">{{ userToDelete.username }}</b
+                    >?
+                </span>
+            </div>
             <template #footer>
-                <Button :label="$t('cancel')" icon="pi pi-times" @click="displayDeleteModal = false" />
-                <Button :label="$t('delete')" icon="pi pi-check" severity="danger" @click="deleteUser" />
+                <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="displayDeleteModal = false" />
+                <Button
+                    :label="$t('common.delete')"
+                    icon="pi pi-check"
+                    severity="danger"
+                    @click="deleteUser"
+                    autofocus
+                />
             </template>
         </Dialog>
     </div>

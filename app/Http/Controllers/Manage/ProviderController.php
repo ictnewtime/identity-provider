@@ -106,7 +106,7 @@ class ProviderController extends Controller
     ]
     public function create(ProviderRequest $request)
     {
-        $data = $request->only("domain", "secret_key", "logoutUrl", "protocol", "url");
+        $data = $request->only("domain", "secret_key", "logoutUrl", "protocol", "url", "name");
         $provider = Provider::create($data);
 
         return response()->json(["provider" => $provider], 201);
@@ -237,7 +237,7 @@ class ProviderController extends Controller
     ]
     public function update(Request $request, $id)
     {
-        $data = $request->only("domain", "secret_key", "logoutUrl", "protocol", "url");
+        $data = $request->only("domain", "secret_key", "logoutUrl", "protocol", "url", "name");
 
         try {
             $provider = Provider::find($id);
@@ -249,6 +249,10 @@ class ProviderController extends Controller
             return response()->json(["message" => "Provider not found"], 404);
         }
 
+        // se secret_key non viene passato, non lo aggiorna
+        if (empty($data["secret_key"])) {
+            unset($data["secret_key"]);
+        }
         $provider->update($data);
 
         return response()->json(["provider" => $provider], 200);

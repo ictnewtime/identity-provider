@@ -20,9 +20,9 @@ const handleNewProviderClick = () => {
 </script>
 
 <template>
-    <div class="mb-6 flex justify-between items-center">
+    <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-3xl font-bold text-surface-900">
+            <h1 class="text-2xl font-bold text-surface-900 tracking-tight">
                 {{ $t("admin.providers.title") }}
             </h1>
         </div>
