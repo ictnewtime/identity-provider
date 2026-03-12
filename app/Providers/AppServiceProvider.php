@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Se non siamo in locale, forza tutti i link generati da Laravel ad usare HTTPS
+        if (config("app.env") !== "local") {
+            URL::forceScheme("https");
+        }
     }
 }
