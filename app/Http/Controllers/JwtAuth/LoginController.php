@@ -151,7 +151,7 @@ class LoginController extends Controller
                 if (!$token) {
                     Auth::logout();
                     return back()->withErrors([
-                        "login" => "Non sei autorizzato per accedere al pannello IdP.",
+                        "login" => __("auth.err-login"),
                     ]);
                 }
 

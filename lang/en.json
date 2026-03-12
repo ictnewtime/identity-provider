@@ -1,5 +1,9 @@
 {
     "auth.err-login": "Invalid credentials",
+    "auth.verification.errors.invalid_code": "The verification code is invalid or has already been used.",
+    "auth.verification.errors.user_not_found": "Unable to find the user associated with this code.",
+    "auth.verification.errors.save_failed": "An error occurred while activating the account.",
+    "auth.verification.errors.delete_failed": "Account activated, but unable to remove security code.",
 
     "common.id": "ID",
     "common.actions": "Actions",
@@ -106,6 +110,10 @@
     "admin.roles.toast.detail_created": "The new role has been successfully created",
     "admin.roles.toast.detail_updated": "The role has been successfully updated",
 
+    "admin.roles.form.error.domain.unique": "Il dominio del provider deve essere univoco",
+    "admin.roles.form.error.domain.mandatory": "The provider domain cannot be empty",
+    "admin.roles.form.error.logout_url.invalid": "The logout URL is invalid",
+
     "admin.providers.title": "Provider Management",
     "admin.providers.new_provider": "New Provider",
 
@@ -197,6 +205,8 @@
     "admin.provider_user_roles.toast.delete_error": "An error occurred while deleting the association",
 
     "admin.provider_user_roles.delete.prompt": "Are you sure you want to remove the association for the user ",
+    "admin.provider_user_roles.errors.unique_role": "This user already has this role for the provider selected.",
+    "admin.provider_user_roles.errors.creation": "An error occurred while creating the association",
 
     "admin.sessions.title": "Session Management",
 

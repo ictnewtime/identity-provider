@@ -37,9 +37,9 @@ class ProviderRequest extends FormRequest
     public function messages(): array
     {
         return [
-            "domain.unique" => "Il dominio inserito è già registrato a sistema.",
-            "domain.required" => "Il campo dominio è obbligatorio.",
-            "logoutUrl.url" => 'Il formato dell\'URL di logout non è valido.',
+            "domain.unique" => __("admin.roles.form.error.domain.unique"),
+            "admin.roles.form.error.domain.mandatory" => __("admin.providers.errors.required_domain"),
+            "admin.roles.form.error.logout_url.invalid" => __("admin.providers.errors.invalid_logout_url"),
         ];
     }
 }

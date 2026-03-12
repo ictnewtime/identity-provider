@@ -98,7 +98,7 @@ class ProviderUserRoleController extends Controller
 
         $providerUserRole = ProviderUserRole::create($data);
         if (empty($providerUserRole)) {
-            return response()->json(["message" => "Error creating the relation between provider user role"], 500);
+            return response()->json(["message" => __("admin.provider_user_roles.errors.creation")], 500);
         }
 
         return response()->json(["providerUserRole" => $providerUserRole], 201);

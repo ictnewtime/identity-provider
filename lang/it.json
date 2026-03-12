@@ -1,5 +1,9 @@
 {
     "auth.err-login": "Credenziali non valide",
+    "auth.verification.errors.invalid_code": "Il codice di verifica non è valido o è già stato utilizzato.",
+    "auth.verification.errors.user_not_found": "Impossibile trovare l'utente associato a questo codice.",
+    "auth.verification.errors.save_failed": "Si è verificato un errore durante l'attivazione dell'account.",
+    "auth.verification.errors.delete_failed": "Account attivato, ma impossibile rimuovere il codice di sicurezza.",
 
     "common.id": "ID",
     "common.actions": "Azioni",
@@ -106,6 +110,10 @@
     "admin.roles.toast.detail_created": "Il nuovo ruolo è stato creato con successo",
     "admin.roles.toast.detail_updated": "Il ruolo è stato aggiornato con successo",
 
+    "admin.roles.form.error.domain.unique": "Il dominio del provider deve essere univoco",
+    "admin.roles.form.error.domain.mandatory": "Il dominio del provider non puo' essere vuoto",
+    "admin.roles.form.error.logout_url.invalid": "L'URL di logout non è valido",
+
     "admin.providers.title": "Gestione Providers",
     "admin.providers.new_provider": "Nuovo Provider",
 
@@ -197,6 +205,8 @@
     "admin.provider_user_roles.toast.delete_error": "Si è verificato un errore durante l'eliminazione",
 
     "admin.provider_user_roles.delete.prompt": "Sei sicuro di voler rimuovere l'associazione per l'utente ",
+    "admin.provider_user_roles.errors.unique_role": "Questo utente possiede già questo ruolo per il provider selezionato.",
+    "admin.provider_user_roles.errors.creation": "Si è verificato un errore durante la creazione.",
 
     "admin.sessions.title": "Gestione Sessioni",
 

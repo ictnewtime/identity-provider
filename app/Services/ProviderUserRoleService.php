@@ -36,6 +36,7 @@ class ProviderUserRoleService
                 "email" => $user->email,
                 "name" => $user->name,
                 "surname" => $user->surname,
+                "username" => $user->username,
             ],
             "roles" => $providerUserRoles,
         ];
