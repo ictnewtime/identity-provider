@@ -17,7 +17,9 @@ class RedirectIfAuthenticated
         }
 
         $provider_id = $request->input("provider_id");
+
         if (empty($provider_id)) {
+            Log::warning("SSO Fallito: Nessun provider_id passato nell'URL.");
             return redirect()->route("sso.unauthorized");
         }
 
@@ -27,10 +29,8 @@ class RedirectIfAuthenticated
             $request,
             $request->input("redirect_to"),
         );
-
         if (!$ssoData) {
-            // Se non è autorizzato, lo mandiamo alla pagina "Accesso Negato"
-            // Passiamo l'ID del provider per fargli capire dove ha provato ad andare
+            Log::warning("SSO Fallito: TokenProviderService ha restituito null. Eseguo redirect a sso.unauthorized.");
             return redirect()->route("sso.unauthorized");
         }
 

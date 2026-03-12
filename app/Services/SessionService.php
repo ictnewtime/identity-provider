@@ -22,10 +22,8 @@ class SessionService
         Carbon $expires_at = null,
     ) {
         // Cerchiamo la sessione
-        Log::debug("SessionService.upsertSession user_id: " . $user_id);
         $session = Session::where("user_id", $user_id)->where("provider_id", $provider_id)->first();
 
-        Log::debug("SessionService.upsertSession session: " . ($session ? "Yes" : "No"));
         if ($session) {
             // Aggiorniamo se esiste (mantenendo lo stesso UUID)
             $session->update([
@@ -118,13 +116,7 @@ class SessionService
             ->where("provider_id", $providerId)
             ->where("user_agent", $user_agent)
             ->first();
-        Log::debug("SessionService.validateAndRefreshSession session: " . ($session ? "Yes" : "No"));
-        Log::debug("SessionService.validateAndRefreshSession clientIp: " . $clientIp);
-        Log::debug("CERCO SESSIONE PER:", [
-            "user_id" => $clientId,
-            "provider_id" => $providerId,
-            "ua" => $user_agent,
-        ]);
+
         // 1. Sessione non trovata
         if (!$session) {
             // Se non la trova, cerchiamo di capire se esiste ALMENO per l'utente
@@ -147,7 +139,6 @@ class SessionService
         if ($session->user_agent === $user_agent) {
             // Se l'IP è cambiato, lo aggiorniamo silenziosamente senza cambiare token
             if ($session->ip_address !== $clientIp) {
-                Log::info("SessionService: IP cambiato da {$session->ip_address} a {$clientIp}. Aggiorno sessione.");
                 $session->ip_address = $clientIp;
             }
 

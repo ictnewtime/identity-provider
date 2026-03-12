@@ -9,6 +9,7 @@ use Laravel\Passport\HasApiTokens;
 use App\Models\Session;
 use App\Models\ProviderUserRole;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
 use OwenIt\Auditing\Contracts\Auditable;
 
 //, OAuthenticatable
@@ -84,7 +85,7 @@ class User extends Authenticatable implements Auditable
      */
     public function providerRoles($providerId)
     {
-        return \App\Models\ProviderUserRole::where("user_id", $this->id)->where("provider_id", $providerId);
+        return ProviderUserRole::where("user_id", $this->id)->where("provider_id", $providerId);
     }
 
     /**
@@ -92,12 +93,24 @@ class User extends Authenticatable implements Auditable
      */
     public function hasAccessToProvider($providerId): bool
     {
-        // Se l'utente è disabilitato globalmente, l'accesso è sempre negato
+        // Logghiamo lo stato esatto della colonna enabled
+        $enabledStatus = isset($this->enabled) ? ($this->enabled ? "true" : "false") : "null";
+
         if (isset($this->enabled) && !$this->enabled) {
+            Log::warning("Bloccato: L'utente è disabilitato (enabled = false).");
             return false;
         }
 
-        return $this->providerRoles($providerId)->exists();
+        // Facciamo la query e logghiamo esattamente cosa trova nel database
+        $query = $this->providerRoles($providerId);
+        $rolesCount = $query->count();
+
+        if ($rolesCount === 0) {
+            // Se è 0, stampiamo anche la query SQL generata per capire se c'è qualche anomalia
+            Log::warning("Bloccato: Nessun ruolo trovato. Query eseguita: " . $query->toSql());
+        }
+
+        return $rolesCount > 0;
     }
 
     /**
@@ -116,7 +129,7 @@ class User extends Authenticatable implements Auditable
         $adminRoleId = config("role.admin_id");
 
         // 3. Verifica veloce e diretta a database (prestazioni massime)
-        return \App\Models\ProviderUserRole::where("user_id", $this->id)
+        return ProviderUserRole::where("user_id", $this->id)
             ->where("provider_id", $idpProviderId)
             ->where("role_id", $adminRoleId)
             ->exists();

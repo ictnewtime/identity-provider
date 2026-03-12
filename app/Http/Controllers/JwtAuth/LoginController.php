@@ -239,13 +239,9 @@ class LoginController extends Controller
             try {
                 \Tymon\JWTAuth\Facades\JWTAuth::setToken($token)->invalidate();
             } catch (\Exception $e) {
-                // Se usi Lcobucci con chiavi custom, Tymon potrebbe fallire.
-                // Nessun problema, il DB è già stato ripulito!
-                \Illuminate\Support\Facades\Log::info("Impossibile inserire in blacklist Tymon: " . $e->getMessage());
+                Log::error("Impossibile inserire in blacklist Tymon: " . $e->getMessage());
             }
         }
-        // --- FINE NUOVA LOGICA ---
-
         // 2. Esegui il logout fisico di Laravel (Sessione web nativa)
         Auth::logout();
         $request->session()->invalidate();
@@ -267,14 +263,8 @@ class LoginController extends Controller
             return $this->createResponse(200, null, $dynamicCookie);
         }
 
-        /**
-         * 5. Gestione Redirect con mantenimento Query Params
-         * Recuperiamo tutti i parametri attuali (provider_id, redirect_to, ecc.)
-         * per passarli alla rotta loginForm.
-         */
-        $allParams = $request->query(); // Prende tutto ciò che c'è dopo il '?'
+        $allParams = $request->query();
 
-        // Se preferisci usare un parametro specifico 'redirect' come nel tuo vecchio codice:
         if ($request->has("redirect")) {
             $allParams["redirect"] = $request->input("redirect");
         }
@@ -290,9 +280,7 @@ class LoginController extends Controller
         $provider_id = $request->query("provider_id");
         $redirect_to = $request->query("redirect_to", url("/"));
 
-        Log::info("Richiesta di logout. Provider ID: " . ($provider_id ?? "Nullo") . " | Redirect: " . $redirect_to);
-
-        // 2. Operazioni SULL'UTENTE (Prima di sloggarlo!)
+        // 2. Operazioni SULL'UTENTE
         if (Auth::check()) {
             $user = Auth::user();
 
@@ -301,10 +289,6 @@ class LoginController extends Controller
             } else {
                 // Se per qualche motivo non c'è il provider, per sicurezza pialliamo tutte le sue sessioni (Global Logout)
                 $deletedCount = Session::where("user_id", $user->id)->delete();
-                Log::info(
-                    "Nessun provider specificato. Eliminate TUTTE le ($deletedCount) sessioni dal DB per l'utente " .
-                        $user->id,
-                );
             }
         } else {
             Log::warning(
@@ -316,14 +300,12 @@ class LoginController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        Log::info("Logout di sistema eseguito (sessione e token rigenerati).");
 
         // 4. Prepariamo la risposta di redirect
         $response = redirect($redirect_to);
 
         // 5. DISTRUZIONE COOKIE
         $cookieDomain = env("TOKEN_COOKIE_DOMAIN");
-        Log::info("Eliminazione cookie. Dominio usato: " . ($cookieDomain ?? "Nessuno (default)"));
 
         // Distruggiamo il cookie generico "token"
         $response->withCookie(Cookie::forget("token", "/", $cookieDomain));
@@ -331,7 +313,6 @@ class LoginController extends Controller
         // Ho de-commentato questa parte: è FONDAMENTALE distruggere il cookie specifico, altrimenti il frontend client si incastra!
         if ($provider_id) {
             $cookie_name = "idp_token_" . $provider_id;
-            Log::info("Accodata distruzione del cookie client: " . $cookie_name);
             $response->withCookie(Cookie::forget($cookie_name, "/", $cookieDomain));
         }
 

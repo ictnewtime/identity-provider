@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 // use App\Repositories\RepositoryInterface;
 // use App\Repositories\UserRepositoryInterface;
 use OpenApi\Attributes as OA;
@@ -51,12 +52,10 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        // 1. Ricerca (Filter)
         if ($request->filled("q")) {
             $query->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
         }
 
-        // 2. Ordinamento
         if ($request->filled("sortField")) {
             $field = $request->sortField;
             $direction = $request->sortOrder == 1 ? "asc" : "desc";
@@ -65,7 +64,6 @@ class UserController extends Controller
             $query->orderBy("created_at", "asc");
         }
 
-        // 3. Paginazione
         $perPage = $request->get("per_page", 10);
         $users = $query->paginate($perPage);
 
@@ -148,39 +146,25 @@ class UserController extends Controller
     ]
     public function create(UserRequest $request)
     {
-        $credentials = $request->only(
-            "username",
-            "password",
-            "password_confirmation",
-            "email",
-            "name",
-            "surname",
-            "enabled",
-        );
+        $data = $request->only(["username", "password", "email", "name", "surname", "enabled"]);
 
         DB::beginTransaction();
 
         try {
-            // unset password_confirmation
-            unset($credentials["password_confirmation"]);
-            $user = User::create($credentials);
-            // TODO: in un secondo momento va gestita la verifica degli utenti
-            // $verificationToken = $this->verificationTokenRepository->create([
-            //     "token" => Str::random(60),
-            //     "user_id" => $user->id,
-            // ]);
+            $data["password"] = Hash::make($data["password"]);
+
+            $data["enabled"] = $request->input("enabled", true);
+            $data["is_verified"] = true;
+
+            $user = User::create($data);
+
+            DB::commit();
+            return response()->json(["user" => $user], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error($e);
+            Log::error("Errore creazione utente: " . $e->getMessage());
             return response()->json(["message" => "Error during saving user"], 500);
         }
-
-        DB::commit();
-
-        // $body = view("mail.complete-registration", ["token" => $verificationToken->token, "user" => $user])->render();
-        // $this->mailerService->dispatchEmail($body, [$user->email], "Completa la registrazione");
-
-        return response()->json(["user" => $user], 200);
     }
 
     #[
@@ -235,12 +219,9 @@ class UserController extends Controller
         if (empty($user)) {
             return response()->json(["message" => "User not found"], 404);
         }
-        Log::info("=== API /users/{id} CHIAMATA ===");
-        Log::info($user);
         return response()->json($user);
     }
 
-    // user update
     #[
         OA\Put(
             path: "/api/v1/users/{id}",
@@ -326,13 +307,10 @@ class UserController extends Controller
     ]
     public function update(UserRequest $request, $id)
     {
-        // Prendo solo i dati base (SENZA password per ora)
         $credentials = $request->only("email", "username", "name", "surname", "enabled");
 
-        // Se l'utente ha compilato la password nel form, la aggiungiamo e la criptiamo
         if ($request->filled("password")) {
-            $credentials["password"] = bcrypt($request->password);
-            // Usa Hash::make($request->password) se preferisci usare la facade Hash
+            $credentials["password"] = Hash::make($request->password);
         }
         $user = User::find($id);
 
@@ -352,7 +330,7 @@ class UserController extends Controller
                     ],
                 ],
                 500,
-            ); // <-- Ho aggiunto il codice di stato HTTP 500 qui
+            );
         }
 
         return response()->json(
@@ -363,7 +341,6 @@ class UserController extends Controller
         );
     }
 
-    // user delete
     #[
         OA\Delete(
             path: "/api/v1/users/{id}",
@@ -410,7 +387,6 @@ class UserController extends Controller
         try {
             $user->delete();
         } catch (\Exception $e) {
-            // errore 500
             return response()->json([
                 "message" => "Error during deleting user",
                 "error" => [
