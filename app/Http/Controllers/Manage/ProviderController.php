@@ -8,7 +8,6 @@ use App\Models\Provider;
 // use App\Repositories\RepositoryInterface;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 
 class ProviderController extends Controller

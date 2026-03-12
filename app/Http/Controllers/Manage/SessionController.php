@@ -50,7 +50,6 @@ class SessionController extends Controller
     ]
     public function all(Request $request)
     {
-        // 1. Selezioniamo solo i campi necessari della Sessione (id, e le due chiavi esterne per i collegamenti)
         $query = Session::select(
             "id",
             "user_id",
@@ -59,18 +58,11 @@ class SessionController extends Controller
             "user_agent",
             "created_at",
             "updated_at",
-        )->with([
-            // 2. Limitiamo le colonne delle relazioni (l'ID serve sempre per il legame)
-            "user:id,username",
-            "provider:id,domain,name", // Se hai anche il nome metti: id,domain,name
-        ]);
+        )->with(["user:id,username", "provider:id,domain,name"]);
 
-        // Ricerca per user.username o provider.domain
         if ($request->filled("q")) {
             $searchTerm = "%" . $request->q . "%";
 
-            // 3. Racchiudiamo la ricerca in una funzione per raggruppare le condizioni OR
-            // SQL risultante: WHERE (user.username LIKE ? OR provider.domain LIKE ?)
             $query->where(function ($q) use ($searchTerm) {
                 $q->whereHas("user", function ($subQuery) use ($searchTerm) {
                     $subQuery->where("username", "like", $searchTerm);
@@ -130,9 +122,6 @@ class SessionController extends Controller
         $user_id = $request->query("user_id");
         $user_agent = $request->query("user_agent");
 
-        // 1. Delegato TUTTO al SessionService.
-        // Se l'utente è stato eliminato, disabilitato o gli hanno tolto il ruolo,
-        // la sessione non esisterà più nel DB (grazie agli Eventi) e ci tornerà 404.
         $result = $this->sessionService->validateAndRefreshSession(
             $ip_address,
             $provider_id,
@@ -141,18 +130,16 @@ class SessionController extends Controller
             $this->tokenService,
         );
 
-        // 2. Se non c'è sessione, sbarriamo la porta
         if ($result["status"] === 404) {
             return response()->json(
                 [
                     "valid" => false,
                     "message" => "Session expired, not found, or access revoked.",
                 ],
-                404, // Il middleware sull'app client intercetterà il 404 e forzerà il logout!
+                404,
             );
         }
 
-        // 3. Via libera
         return response()->json(
             [
                 "valid" => true,
@@ -164,10 +151,6 @@ class SessionController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        Log::info("=== API /sessions/logout CHIAMATA ===");
-        Log::info("Dati ricevuti dal client: ", $request->all());
-
-        // Validazione base di sicurezza
         $request->validate([
             "user_id" => "required|integer",
             "provider_id" => "required|integer",
@@ -176,13 +159,9 @@ class SessionController extends Controller
         $userId = $request->input("user_id");
         $providerId = $request->input("provider_id");
 
-        // Chiamiamo il service per eliminare la riga dal DB
         $deleted = $this->sessionService->destroySession($userId, $providerId);
 
-        Log::info("Risultato destroySession: " . ($deleted ? "CANCELLATA" : "NON TROVATA"));
-
         if (!$deleted) {
-            Log::warning("Restituisco 404: Sessione già cancellata o inesistente.");
             return response()->json(
                 [
                     "success" => false,
@@ -192,7 +171,6 @@ class SessionController extends Controller
             );
         }
 
-        Log::info("Restituisco 200: Sessione distrutta con successo.");
         return response()->json(
             [
                 "success" => true,

@@ -131,7 +131,6 @@ class RoleController extends Controller
         }
 
         try {
-            // $role = $this->roleRepository->create($data);
             $role = Role::create($data);
 
             return response()->json($role, 201);
@@ -140,7 +139,6 @@ class RoleController extends Controller
         }
     }
 
-    // find
     #[
         OA\Get(
             path: "/api/v1/roles/{id}",
@@ -186,7 +184,6 @@ class RoleController extends Controller
         return response()->json($role);
     }
 
-    // update
     #[
         OA\Put(
             path: "/api/v1/roles/{id}",
@@ -254,7 +251,6 @@ class RoleController extends Controller
     public function update(RoleRequest $request, $id)
     {
         $data = $request->only("name", "provider_id");
-        // find role
         $role = Role::find($id);
 
         if (empty($role)) {
@@ -308,7 +304,6 @@ class RoleController extends Controller
     ]
     public function delete(int $id)
     {
-        // $role = $this->roleRepository->find($id);
         $role = Role::find($id);
 
         if (empty($role)) {

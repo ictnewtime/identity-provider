@@ -139,7 +139,6 @@ class ProviderUserRoleController extends Controller
         return response()->json(["providerUserRole" => $providerUserRole], 200);
     }
 
-    // update
     #[
         OA\Put(
             path: "/api/v1/provider-user-roles/{id}",
@@ -270,7 +269,6 @@ class ProviderUserRoleController extends Controller
             $providerUserRole = ProviderUserRole::where("provider_id", $provider_id)
                 ->where("user_id", $user_id)
                 ->where("role_id", $role_id)
-                // get array
                 ->get();
 
             return response()->json(["data" => $providerUserRole], 200);

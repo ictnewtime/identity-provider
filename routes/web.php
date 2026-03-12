@@ -36,9 +36,9 @@ Route::post("v2/login", [LoginController::class, "login"])->name("login");
 Route::post("logout", [LoginController::class, "logout"])->name("logout");
 Route::get("/sso/logout", [LoginController::class, "logout_sso"]);
 
-Route::middleware("web.authenticated")
-    ->get("authenticated", [LoginController::class, "authenticated"])
-    ->name("authenticated");
+// Route::middleware("web.authenticated")
+//     ->get("authenticated", [LoginController::class, "authenticated"])
+//     ->name("authenticated");
 
 // Inertia: Pagina completamento registrazione
 Route::get("complete-registration", function () {
@@ -129,6 +129,7 @@ Route::prefix("admin")
 
 /********** CLIENT ROUTES ************/
 
+// TODO da rimuovere
 Route::prefix("client")
     ->middleware(["web", "authenticated"])
     ->group(function () {
