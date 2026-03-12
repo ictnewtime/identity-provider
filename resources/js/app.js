@@ -5,7 +5,6 @@ import { createInertiaApp } from "@inertiajs/vue3";
 // Import PrimeVue e i suoi stili
 import PrimeVue from "primevue/config";
 import { definePreset } from "@primeuix/themes";
-import "primeicons/primeicons.css";
 import Aura from "@primeuix/themes/aura";
 import { i18nVue } from "laravel-vue-i18n";
 import ToastService from "primevue/toastservice";
