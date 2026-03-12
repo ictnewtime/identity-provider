@@ -34,18 +34,28 @@ class ProviderUserRole extends Model implements Auditable
 
     protected static function booted(): void
     {
-        // 1. Intercettiamo Creazione e Aggiornamento (quando gli diamo o cambiamo un ruolo)
+        // 1. Intercettiamo Creazione e Aggiornamento
         static::saved(function ($providerUserRole) {
-            Session::where("user_id", $providerUserRole->user_id)
-                ->where("provider_id", $providerUserRole->provider_id)
-                ->delete();
+            $idpProviderId = config("idp.provider_id");
+
+            // Distruggiamo la sessione SOLO se il ruolo modificato NON appartiene all'IdP
+            if ($providerUserRole->provider_id != $idpProviderId) {
+                \App\Models\Session::where("user_id", $providerUserRole->user_id)
+                    ->where("provider_id", $providerUserRole->provider_id)
+                    ->delete();
+            }
         });
 
-        // 2. Intercettiamo l'Eliminazione (quando gli togliamo del tutto un ruolo)
+        // 2. Intercettiamo l'Eliminazione
         static::deleted(function ($providerUserRole) {
-            Session::where("user_id", $providerUserRole->user_id)
-                ->where("provider_id", $providerUserRole->provider_id)
-                ->delete();
+            $idpProviderId = config("idp.provider_id");
+
+            // Distruggiamo la sessione SOLO se il ruolo eliminato NON appartiene all'IdP
+            if ($providerUserRole->provider_id != $idpProviderId) {
+                \App\Models\Session::where("user_id", $providerUserRole->user_id)
+                    ->where("provider_id", $providerUserRole->provider_id)
+                    ->delete();
+            }
         });
     }
 }

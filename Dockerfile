@@ -54,8 +54,7 @@ RUN if [ ! -f /var/www/storage/oauth-private.key ] || [ ! -f /var/www/storage/oa
     fi
 
 # Change ownership and permissions
-RUN chown -R www-data:www-data /var/www/storage && \
-    chmod -R 755 /var/www && \
+RUN chmod -R 755 /var/www && \
     chmod -R 755 /var/www/public
 
 # Create PHP-FPM configuration
@@ -84,6 +83,7 @@ RUN mkdir -p /var/log/supervisor /var/run/supervisor /var/run/php-fpm && \
     chmod 755 /var/run/supervisor
 
 
+RUN chown -R www-data:www-data storage
 RUN npm run build
 
 # Create entrypoint script
