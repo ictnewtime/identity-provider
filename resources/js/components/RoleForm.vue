@@ -1,178 +1,245 @@
+<script setup>
+import { ref, watch, computed, onMounted } from "vue";
+import { useToast } from "primevue/usetoast";
+import { trans } from "laravel-vue-i18n";
+
+// Componenti PrimeVue
+import InputText from "primevue/inputtext";
+import Select from "primevue/select";
+import Button from "primevue/button";
+import Message from "primevue/message";
+
+// Props & Emits
+const props = defineProps({
+    selectedRole: {
+        type: Object,
+        default: null,
+    },
+});
+
+const emit = defineEmits(["role-saved"]);
+const toast = useToast();
+
+// Stato Form
+const loading = ref(false);
+const loadingProviders = ref(false);
+const providers = ref([]);
+
+const form = ref({
+    id: null,
+    name: "",
+    provider_id: null,
+});
+
+const errors = ref({
+    name: "",
+    provider_id: "",
+});
+
+// Computed
+const isEditMode = computed(() => !!props.selectedRole);
+
+// Metodi di utilità
+const resetForm = () => {
+    form.value = {
+        name: "",
+        provider_id: null,
+    };
+    resetErrors();
+};
+
+const resetErrors = () => {
+    Object.keys(errors.value).forEach((key) => (errors.value[key] = ""));
+};
+
+// Logica di validazione lato client
+const validate = () => {
+    resetErrors();
+    let isValid = true;
+
+    if (!form.value.name) {
+        errors.value.name = trans("admin.roles.form.validate.name.mandatory");
+        isValid = false;
+    }
+    if (!form.value.provider_id) {
+        errors.value.provider_id = trans("admin.roles.form.validate.provider.mandatory");
+        isValid = false;
+    }
+
+    return isValid;
+};
+
+// Carica la lista dei provider dal backend
+const loadProvidersList = async () => {
+    loadingProviders.value = true;
+    try {
+        const res = await window.axios.get("/admin/v1/providers", {
+            params: { per_page: 1000 },
+        });
+        providers.value = res.data.data || res.data;
+    } catch (err) {
+        console.error("Errore caricamento provider", err);
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.roles.toast.load_providers_error"),
+            life: 3000,
+        });
+    } finally {
+        loadingProviders.value = false;
+    }
+};
+
+// Submit Form
+const submit = async () => {
+    if (!validate()) return;
+
+    loading.value = true;
+
+    const baseUrl = "/admin/v1/roles";
+    const url = isEditMode.value ? `${baseUrl}/${form.value.id}` : baseUrl;
+    const method = isEditMode.value ? "put" : "post";
+
+    const payload = {
+        name: form.value.name,
+        provider_id: form.value.provider_id,
+    };
+
+    try {
+        await window.axios[method](url, payload);
+        toast.add({
+            severity: "success",
+            summary: trans("common.success"),
+            detail: isEditMode.value
+                ? trans("admin.roles.toast.detail_updated")
+                : trans("admin.roles.toast.detail_created"),
+            life: 3000,
+        });
+
+        emit("role-saved");
+        resetForm();
+    } catch (error) {
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.roles.toast.submit_error"),
+            life: 3000,
+        });
+
+        if (error.response?.data?.errors) {
+            // Mappa gli errori di validazione del backend
+            const backendErrors = error.response.data.errors;
+            Object.keys(backendErrors).forEach((key) => {
+                if (errors.value[key] !== undefined) {
+                    errors.value[key] = backendErrors[key][0];
+                }
+            });
+        }
+    } finally {
+        loading.value = false;
+    }
+};
+
+// Carica il ruolo da modificare
+const fetchRole = async (id) => {
+    loading.value = true;
+    try {
+        const res = await window.axios.get(`/admin/v1/roles/${id}`);
+        const data = res.data;
+        form.value = {
+            id: data.id,
+            name: data.name,
+            provider_id: data.provider_id,
+        };
+    } catch (err) {
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.roles.toast.load_role_error"),
+            life: 3000,
+        });
+    } finally {
+        loading.value = false;
+    }
+};
+
+// Watcher per riempire il form quando il padre ci passa un ruolo da modificare
+watch(
+    () => props.selectedRole,
+    (newVal) => {
+        if (newVal && newVal.id) {
+            fetchRole(newVal.id);
+            resetErrors();
+        } else {
+            resetForm();
+        }
+    },
+    { immediate: true }
+);
+
+// Lifecycle
+onMounted(() => {
+    loadProvidersList();
+});
+</script>
+
 <template>
-    <form @submit.prevent="submit" class="row justify-content-start">
-        <div class="col-lg-6 field d-flex flex-column mb-3">
-            <label for="input-name">Nome Ruolo</label>
-            <InputText
-                id="input-name"
-                v-model="form.name"
-                :invalid="validator.name.length > 0"
-                placeholder="es. Amministratore"
-            />
-            <small class="p-error" v-if="validator.name.length">{{ validator.name[0] }}</small>
+    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1">
+                <label for="name" class="font-medium text-surface-900">
+                    {{ $t("admin.roles.form.name_label") }}
+                </label>
+                <InputText
+                    id="name"
+                    v-model="form.name"
+                    :invalid="!!errors.name"
+                    :placeholder="$t('admin.roles.form.name_placeholder')"
+                    fluid
+                />
+                <Message v-if="errors.name" severity="error" size="small" variant="simple">
+                    {{ errors.name }}
+                </Message>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="provider" class="font-medium text-surface-900">
+                    {{ $t("admin.roles.form.provider_label") }}
+                </label>
+                <Select
+                    id="provider"
+                    v-model="form.provider_id"
+                    :options="providers"
+                    optionLabel="name"
+                    optionValue="id"
+                    :placeholder="$t('admin.roles.form.provider_placeholder')"
+                    :invalid="!!errors.provider_id"
+                    :loading="loadingProviders"
+                    fluid
+                    filter
+                />
+                <Message v-if="errors.provider_id" severity="error" size="small" variant="simple">
+                    {{ errors.provider_id }}
+                </Message>
+            </div>
         </div>
 
-        <div class="col-lg-6 field d-flex flex-column mb-3">
-            <label for="input-provider">Provider</label>
-            <Dropdown
-                id="input-provider"
-                v-model="form.provider_id"
-                :options="providers"
-                optionLabel="domain"
-                optionValue="id"
-                placeholder="Seleziona un Provider"
-                :invalid="validator.provider_id.length > 0"
-                :loading="loadingProviders"
-                class="w-full"
+        <div class="flex justify-end gap-3 mt-4 border-t border-surface-200 pt-4">
+            <Button
+                type="button"
+                :label="$t('common.reset')"
+                severity="secondary"
+                text
+                icon="pi pi-refresh"
+                @click="resetForm"
+                :disabled="loading"
             />
-            <small class="p-error" v-if="validator.provider_id.length">{{ validator.provider_id[0] }}</small>
-        </div>
-
-        <div class="col-12 mt-3 d-flex justify-content-end">
             <Button
                 type="submit"
-                :label="isEditMode ? 'Salva Modifiche' : 'Crea Ruolo'"
-                :loading="loading"
+                :label="isEditMode ? $t('common.save_changes') : $t('admin.roles.form.btn_create')"
                 icon="pi pi-check"
+                :loading="loading"
             />
         </div>
     </form>
 </template>
-
-<script>
-import InputText from "primevue/inputtext";
-import Dropdown from "primevue/dropdown";
-import Button from "primevue/button";
-
-export default {
-    name: "RoleForm",
-    components: { InputText, Dropdown, Button },
-    props: {
-        selectedRole: {
-            type: Object,
-            default: null,
-        },
-    },
-    data() {
-        return {
-            form: {
-                id: null,
-                name: null,
-                provider_id: null,
-            },
-            providers: [], // Popolato via API
-            loadingProviders: false,
-            validator: {
-                name: [],
-                provider_id: [],
-            },
-            loading: false,
-        };
-    },
-    computed: {
-        isEditMode() {
-            return !!this.selectedRole;
-        },
-    },
-    watch: {
-        selectedRole: {
-            immediate: true,
-            handler(newVal) {
-                if (newVal && newVal.id) {
-                    this.form.id = newVal.id;
-                    this.form.name = newVal.name;
-                    this.form.provider_id = newVal.provider_id;
-                    this.clearErrors();
-                } else {
-                    this.resetForm();
-                }
-            },
-        },
-    },
-    mounted() {
-        this.loadProvidersList();
-    },
-    methods: {
-        // Carica i provider per riempire il Dropdown
-        loadProvidersList() {
-            this.loadingProviders = true;
-            // Richiediamo un numero alto per averli tutti nella select
-            axios
-                .get("/admin/v1/providers", { params: { per_page: 1000 } })
-                .then((res) => {
-                    // res.data.data perché l'API restituisce un oggetto paginato
-                    this.providers = res.data.data || res.data;
-                })
-                .catch((err) => {
-                    console.error("Errore caricamento provider", err);
-                    this.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: "Errore caricamento provider",
-                        life: 3000,
-                    });
-                })
-                .finally(() => (this.loadingProviders = false));
-        },
-
-        submit() {
-            if (!this.validate()) return;
-
-            this.loading = true;
-            let vm = this;
-
-            const baseUrl = "/admin/v1/roles";
-            const url = this.isEditMode ? `${baseUrl}/${this.form.id}` : baseUrl;
-            const method = this.isEditMode ? "put" : "post";
-
-            let payload = {
-                name: vm.form.name,
-                provider_id: vm.form.provider_id,
-            };
-
-            axios[method](url, payload)
-                .then(() => {
-                    vm.resetForm();
-                    this.$toast.add({
-                        severity: "success",
-                        summary: "Operazione completata",
-                        detail: vm.isEditMode ? "Ruolo aggiornato correttamente" : "Ruolo aggiunto correttamente",
-                        life: 3000,
-                    });
-                    vm.$emit("role-saved");
-                })
-                .catch((error) => {
-                    this.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: "Errore salvataggio ruolo",
-                        life: 3000,
-                    });
-                    console.error("Errore salvataggio ruolo", error);
-                    // if (error.response?.data?.errors) {
-                    //     vm.validator = { ...vm.validator, ...error.response.data.errors };
-                    // }
-                })
-                .finally(() => (vm.loading = false));
-        },
-
-        validate() {
-            this.clearErrors();
-            this.validator.name = !!this.form.name ? [] : ["Nome obbligatorio"];
-            this.validator.provider_id = !!this.form.provider_id ? [] : ["Provider obbligatorio"];
-            return this.validator.name.length === 0 && this.validator.provider_id.length === 0;
-        },
-
-        clearErrors() {
-            this.validator.name = [];
-            this.validator.provider_id = [];
-        },
-
-        resetForm() {
-            this.form.id = null;
-            this.form.name = null;
-            this.form.provider_id = null;
-            this.clearErrors();
-        },
-    },
-};
-</script>

@@ -1,314 +1,333 @@
-<template>
-    <Panel header="">
-        <form @submit.prevent="submit" class="row justify-content-start">
-            <div class="col-md-6 col-sm-12 field d-flex flex-column">
-                <label for="username">Username</label>
-                <InputText
-                    id="username"
-                    v-model="form.username"
-                    :invalid="validator.username.length > 0"
-                    placeholder="mario.rossi"
-                    size="small"
-                />
-                <small class="p-error" v-if="validator.username.length">{{ validator.username[0] }}</small>
-            </div>
+<script setup>
+import { ref, watch, computed } from "vue";
+import { useToast } from "primevue/usetoast";
+import { trans } from "laravel-vue-i18n";
 
-            <div class="col-md-6 col-sm-12 field d-flex flex-column">
-                <label for="email">Email</label>
-                <InputText
-                    id="email"
-                    v-model="form.email"
-                    :invalid="validator.email.length > 0"
-                    placeholder="mario.rossi@example.com"
-                    size="small"
-                />
-                <small class="p-error" v-if="validator.email.length">{{ validator.email[0] }}</small>
-            </div>
-
-            <div class="col-md-6 col-sm-12 field d-flex flex-column">
-                <label for="name">Nome</label>
-                <InputText
-                    id="name"
-                    v-model="form.name"
-                    :invalid="validator.name.length > 0"
-                    placeholder="Mario"
-                    size="small"
-                />
-                <small class="p-error" v-if="validator.name.length">{{ validator.name[0] }}</small>
-            </div>
-
-            <div class="col-md-6 col-sm-12 field d-flex flex-column">
-                <label for="surname">Cognome</label>
-                <InputText
-                    id="surname"
-                    v-model="form.surname"
-                    :invalid="validator.surname.length > 0"
-                    placeholder="Rossi"
-                    size="small"
-                />
-                <small class="p-error" v-if="validator.surname.length">{{ validator.surname[0] }}</small>
-            </div>
-
-            <div class="col-md-6 col-sm-12 field d-flex flex-column">
-                <!-- margin left 3 -->
-                <label for="password" class="ms-1">Password</label>
-                <Password
-                    id="password"
-                    v-model="form.password"
-                    :invalid="validator.password.length > 0"
-                    :feedback="false"
-                    toggleMask
-                    size="small"
-                    :pt="{
-                        root: {
-                            class: 'w-100',
-                        },
-                        pcInputText: {
-                            root: {
-                                class: 'w-100 p-inputtext-sm',
-                            },
-                        },
-                    }"
-                />
-                <small class="p-error" v-if="validator.password.length">{{ validator.password[0] }}</small>
-            </div>
-
-            <div class="col-md-6 col-sm-12 field d-flex flex-column">
-                <label for="password_confirmation">Conferma Password</label>
-                <Password
-                    id="password_confirmation"
-                    v-model="form.password_confirmation"
-                    :invalid="validator.password_confirmation.length > 0"
-                    :feedback="false"
-                    toggleMask
-                    size="small"
-                    :pt="{
-                        root: {
-                            class: 'w-100',
-                        },
-                        pcInputText: {
-                            root: {
-                                class: 'w-100 p-inputtext-sm',
-                            },
-                        },
-                    }"
-                />
-                <small class="p-error" v-if="validator.password_confirmation.length">{{
-                    validator.password_confirmation[0]
-                }}</small>
-            </div>
-
-            <div class="col-12 mt-3">
-                <Button
-                    type="submit"
-                    :label="isEditMode ? 'Modifica Utente' : 'Crea Utente'"
-                    :loading="loading"
-                    icon="pi pi-check"
-                />
-            </div>
-        </form>
-    </Panel>
-</template>
-
-<script>
-import Panel from "primevue/panel";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
 import Button from "primevue/button";
+import ToggleSwitch from "primevue/toggleswitch";
+import Message from "primevue/message";
 
-export default {
-    components: { Panel, InputText, Password, Button },
-    props: {
-        // Riceve l'utente cliccato dalla tabella
-        selectedUser: {
-            type: Object,
-            default: null,
-        },
+const props = defineProps({
+    selectedUser: {
+        type: Object,
+        default: null,
     },
-    data() {
-        return {
-            form: {
-                id: null, // Aggiunto per l'Edit
-                username: null,
-                password: null,
-                password_confirmation: null,
-                email: null,
-                name: null,
-                surname: null,
-            },
-            validator: {
-                username: [],
-                email: [],
-                password: [],
-                password_confirmation: [],
-                name: [],
-                surname: [],
-            },
-            loading: false,
-        };
-    },
+});
 
-    computed: {
-        // Capisce se siamo in modalità modifica guardando la prop
-        isEditMode() {
-            return !!this.selectedUser;
-        },
-    },
+const emit = defineEmits(["user-created", "user-updated"]);
+const toast = useToast();
 
-    watch: {
-        // Reagisce ogni volta che la modale si apre con un utente diverso
-        selectedUser: {
-            immediate: true,
-            handler(newVal) {
-                if (newVal && newVal.id) {
-                    this.fetchUser(newVal.id);
-                } else {
-                    this.resetForm();
-                    this.loadUser(); // il tuo vecchio metodo per il localStorage
-                }
-            },
-        },
-    },
+const loading = ref(false);
+const form = ref({
+    id: null,
+    username: "",
+    email: "",
+    name: "",
+    surname: "",
+    password: "",
+    password_confirmation: "",
+    enabled: true,
+});
 
-    mounted() {
-        // this.loadUser(); // Spostato nel watcher per gestirlo in base allo stato
-    },
+const errors = ref({
+    username: "",
+    email: "",
+    name: "",
+    surname: "",
+    password: "",
+    password_confirmation: "",
+    form: "",
+});
 
-    methods: {
-        loadUser() {
-            let user = JSON.parse(localStorage.getItem("user"));
-            if (user && !this.isEditMode) {
-                this.form.username = user.username;
-                this.form.email = user.email;
-                this.form.name = user.name;
-                this.form.surname = user.surname;
-            }
-        },
+const isEditMode = computed(() => !!props.selectedUser);
 
-        // Nuova chiamata GET per recuperare i dettagli
-        fetchUser(id) {
-            this.loading = true;
-            axios
-                .get(`${window.location.origin}/admin/v1/users/${id}`)
-                .then((res) => {
-                    const data = res.data;
-                    this.form.id = data.id;
-                    this.form.username = data.username;
-                    this.form.email = data.email;
-                    this.form.name = data.name;
-                    this.form.surname = data.surname;
-                    // Le password non vengono mai restituite dal backend, le lasciamo vuote
-                })
-                .catch((err) => {
-                    console.error(err);
-                    vm.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: "Errore caricamento utente",
-                        life: 3000,
-                    });
-                })
-                .finally(() => (this.loading = false));
-        },
-
-        submit() {
-            if (!this.validate()) return;
-
-            this.loading = true;
-            let vm = this;
-
-            // Logica dinamica: URL e Metodo HTTP variano
-            const baseUrl = window.location.origin + "/admin/v1/users";
-            const url = this.isEditMode ? `${baseUrl}/${this.form.id}` : baseUrl;
-            const method = this.isEditMode ? "put" : "post";
-
-            // Costruiamo il payload
-            let payload = {
-                username: vm.form.username,
-                email: vm.form.email,
-                name: vm.form.name,
-                surname: vm.form.surname,
-            };
-
-            // Invieremo la password solo se l'utente l'ha digitata (per aggiornarla)
-            // o se stiamo creando un utente nuovo
-            if (vm.form.password) {
-                payload.password = vm.form.password;
-                payload.password_confirmation = vm.form.password_confirmation;
-            }
-
-            axios[method](url, payload)
-                .then(function () {
-                    vm.resetForm();
-                    // toast
-                    vm.$toast.add({
-                        severity: "success",
-                        summary: "Operazione completata",
-                        detail: vm.isEditMode ? "Utente aggiornato correttamente" : "Utente aggiunto correttamente",
-                        life: 3000,
-                    });
-
-                    // Notifica il componente padre (UserPage) per chiudere la modale e ricaricare la tabella
-                    vm.$emit(vm.isEditMode ? "user-updated" : "user-created");
-                })
-                .catch(function (error) {
-                    console.log(error);
-                    vm.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: vm.isEditMode ? "Errore aggiornamento utente" : "Errore aggiunta utente",
-                        life: 3000,
-                    });
-                    if (error.response && error.response.data.errors) {
-                        vm.validator = { ...vm.validator, ...error.response.data.errors };
-                    }
-                })
-                .finally(() => (vm.loading = false));
-        },
-
-        validate() {
-            // Svuota prima i vecchi errori
-            Object.keys(this.validator).forEach((key) => (this.validator[key] = []));
-
-            this.validator.username = !!this.form.username ? [] : ["Username obbligatorio"];
-            this.validator.email = this.validateEmail(this.form.email) ? [] : ["Email non valida"];
-            this.validator.name = !!this.form.name ? [] : ["Nome obbligatorio"];
-            this.validator.surname = !!this.form.surname ? [] : ["Cognome obbligatorio"];
-
-            // La password è obbligatoria solo in creazione. In modifica è opzionale.
-            if (!this.isEditMode && !this.form.password) {
-                this.validator.password = ["Password obbligatoria"];
-            }
-
-            // ... Salva nel localStorage se ti serve ancora
-
-            return (
-                this.validator.username.length === 0 &&
-                this.validator.password.length === 0 &&
-                this.validator.email.length === 0 &&
-                this.validator.name.length === 0 &&
-                this.validator.surname.length === 0
-            );
-        },
-
-        validateEmail(email) {
-            let re =
-                /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-            return re.test(String(email).toLowerCase());
-        },
-
-        resetForm() {
-            this.form.id = null;
-            this.form.username = null;
-            this.form.password = null;
-            this.form.password_confirmation = null;
-            this.form.email = null;
-            this.form.name = null;
-            this.form.surname = null;
-
-            // Pulisce anche gli errori del validatore
-            Object.keys(this.validator).forEach((key) => (this.validator[key] = []));
-        },
-    },
+const resetForm = () => {
+    form.value = {
+        id: null,
+        username: "",
+        email: "",
+        name: "",
+        surname: "",
+        password: "",
+        password_confirmation: "",
+        enabled: true,
+        form: "",
+    };
+    resetErrors();
 };
+
+const resetErrors = () => {
+    Object.keys(errors.value).forEach((key) => (errors.value[key] = ""));
+};
+
+const clearPasswords = () => {
+    form.value.password = "";
+    form.value.password_confirmation = "";
+    errors.value.password = "";
+    errors.value.password_confirmation = "";
+};
+
+const validateEmail = (email) => {
+    return String(email)
+        .toLowerCase()
+        .match(
+            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        );
+};
+
+const validate = () => {
+    resetErrors();
+    let isValid = true;
+
+    if (!form.value.username) {
+        errors.value.username = trans("admin.users.form.validate.username.mandatory");
+        isValid = false;
+    }
+    if (!form.value.email || !validateEmail(form.value.email)) {
+        errors.value.email = trans("admin.users.form.validate.email.mandatory");
+        isValid = false;
+    }
+    if (!form.value.name) {
+        errors.value.name = trans("admin.users.form.validate.name.mandatory");
+        isValid = false;
+    }
+    if (!form.value.surname) {
+        errors.value.surname = trans("admin.users.form.validate.surname.mandatory");
+        isValid = false;
+    }
+
+    if (!isEditMode.value && !form.value.password) {
+        errors.value.password = trans("admin.users.form.validate.password.mandatory");
+        isValid = false;
+    }
+
+    if (form.value.password && form.value.password !== form.value.password_confirmation) {
+        errors.value.password_confirmation = trans("admin.users.form.validate.password_confirmation.mandatory");
+        isValid = false;
+    }
+
+    return isValid;
+};
+
+const fetchUser = async (id) => {
+    loading.value = true;
+    try {
+        const res = await window.axios.get(`/admin/v1/users/${id}`);
+        const data = res.data;
+
+        form.value = {
+            id: data.id,
+            username: data.username,
+            email: data.email,
+            name: data.name,
+            surname: data.surname,
+            enabled: data.enabled == 1,
+            password: "",
+            password_confirmation: "",
+        };
+    } catch (err) {
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.users.toast.load_user_error"),
+            life: 3000,
+        });
+    } finally {
+        loading.value = false;
+    }
+};
+
+const submit = async () => {
+    if (!validate()) return;
+
+    loading.value = true;
+
+    const url = isEditMode.value ? `/admin/v1/users/${form.value.id}` : "/admin/v1/users";
+    const method = isEditMode.value ? "put" : "post";
+
+    const payload = {
+        username: form.value.username,
+        email: form.value.email,
+        name: form.value.name,
+        surname: form.value.surname,
+        enabled: form.value.enabled,
+    };
+
+    if (form.value.password) {
+        payload.password = form.value.password;
+        payload.password_confirmation = form.value.password_confirmation;
+    }
+
+    try {
+        await window.axios[method](url, payload);
+        toast.add({
+            severity: "success",
+            summary: trans("common.success"),
+            detail: isEditMode.value
+                ? trans("admin.users.toast.detail_updated")
+                : trans("admin.users.toast.detail_created"),
+            life: 3000,
+        });
+        emit(isEditMode.value ? "user-updated" : "user-created");
+        resetForm();
+    } catch (error) {
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.users.toast.submit_error"),
+            life: 3000,
+        });
+
+        if (error.response?.data?.errors) {
+            const backendErrors = error.response.data.errors;
+            Object.keys(backendErrors).forEach((key) => {
+                if (errors.value[key] !== undefined) {
+                    errors.value[key] = backendErrors[key][0];
+                }
+            });
+        }
+
+        if (error.response?.data?.message) {
+            errors.value.form = error.response.data.message;
+        }
+    } finally {
+        loading.value = false;
+    }
+};
+
+watch(
+    () => props.selectedUser,
+    (newVal) => {
+        if (newVal && newVal.id) {
+            fetchUser(newVal.id);
+        } else {
+            resetForm();
+        }
+    },
+    { immediate: true }
+);
 </script>
+
+<template>
+    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1">
+                <label for="username" class="font-medium text-surface-900">{{ $t("admin.users.form.username") }}</label>
+                <InputText id="username" v-model="form.username" :invalid="!!errors.username" fluid />
+                <Message v-if="errors.username" severity="error" size="small" variant="simple">
+                    {{ errors.username }}
+                </Message>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="email" class="font-medium text-surface-900">{{ $t("admin.users.form.email") }}</label>
+                <InputText id="email" type="email" v-model="form.email" :invalid="!!errors.email" fluid />
+                <Message v-if="errors.email" severity="error" size="small" variant="simple">
+                    {{ errors.email }}
+                </Message>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="name" class="font-medium text-surface-900">{{ $t("admin.users.form.name") }}</label>
+                <InputText id="name" v-model="form.name" :invalid="!!errors.name" fluid />
+                <Message v-if="errors.name" severity="error" size="small" variant="simple">
+                    {{ errors.name }}
+                </Message>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="surname" class="font-medium text-surface-900">{{ $t("admin.users.form.surname") }}</label>
+                <InputText id="surname" v-model="form.surname" :invalid="!!errors.surname" fluid />
+                <Message v-if="errors.surname" severity="error" size="small" variant="simple">
+                    {{ errors.surname }}
+                </Message>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <label for="password" class="font-medium text-surface-900">{{
+                            $t("admin.users.form.password")
+                        }}</label>
+                        <i
+                            class="pi pi-question-circle"
+                            style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
+                            v-tooltip.top="{ value: $t('admin.users.form.password_tip'), escape: true }"
+                        ></i>
+                    </div>
+
+                    <Button
+                        v-if="isEditMode && form.password.length > 0"
+                        icon="pi pi-eraser"
+                        :label="$t('admin.users.form.btn_clear')"
+                        severity="secondary"
+                        size="small"
+                        text
+                        @click="clearPasswords"
+                        class="p-0 h-auto text-surface-500 hover:text-surface-900"
+                    />
+                </div>
+
+                <Password
+                    id="password"
+                    v-model="form.password"
+                    autocomplete="new-password"
+                    :invalid="!!errors.password"
+                    :feedback="false"
+                    toggleMask
+                    fluid
+                />
+                <Message v-if="errors.password" severity="error" size="small" variant="simple">
+                    {{ errors.password }}
+                </Message>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="password_confirmation" class="font-medium text-surface-900">
+                    {{ $t("admin.users.form.password_confirmation") }}
+                </label>
+                <Password
+                    id="password_confirmation"
+                    v-model="form.password_confirmation"
+                    autocomplete="new-password"
+                    :invalid="!!errors.password_confirmation"
+                    :feedback="false"
+                    toggleMask
+                    fluid
+                />
+                <Message v-if="errors.password_confirmation" severity="error" size="small" variant="simple">
+                    {{ errors.password_confirmation }}
+                </Message>
+            </div>
+
+            <div class="flex items-center gap-3 mt-2 md:col-span-2">
+                <label for="enabled" class="font-medium text-surface-900">{{ $t("admin.users.form.enabled") }}</label>
+                <ToggleSwitch id="enabled" v-model="form.enabled" />
+            </div>
+        </div>
+
+        <Message v-if="errors.form" severity="error" size="small" variant="simple">
+            {{ errors.form }}
+        </Message>
+
+        <div class="flex justify-end gap-3 mt-4 border-t border-surface-200 pt-4">
+            <Button
+                type="button"
+                :label="$t('common.reset')"
+                severity="secondary"
+                text
+                icon="pi pi-refresh"
+                @click="resetForm"
+                :disabled="loading"
+            />
+            <Button
+                type="submit"
+                :label="isEditMode ? $t('common.save_changes') : $t('admin.users.form.btn_create')"
+                icon="pi pi-check"
+                :loading="loading"
+            />
+        </div>
+    </form>
+</template>

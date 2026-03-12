@@ -16,6 +16,7 @@ class SessionService
         $user_id,
         $provider_id,
         $ip_address,
+        $user_agent,
         $token,
         $refresh_token = null,
         Carbon $expires_at = null,
@@ -29,6 +30,7 @@ class SessionService
             // Aggiorniamo se esiste (mantenendo lo stesso UUID)
             $session->update([
                 "ip_address" => $ip_address,
+                "user_agent" => $user_agent,
                 "token" => $token,
                 "refresh_token" => $refresh_token,
                 "expires_at" => $expires_at,
@@ -41,6 +43,7 @@ class SessionService
                 "user_id" => $user_id,
                 "provider_id" => $provider_id,
                 "ip_address" => $ip_address,
+                "user_agent" => $user_agent,
                 "token" => $token,
                 "refresh_token" => $refresh_token,
                 "expires_at" => $expires_at,
@@ -54,29 +57,48 @@ class SessionService
     /**
      * Recupera o rigenera il token al login.
      */
-    public function getValidProviderToken($user, $provider_id, $ip_address, TokenProviderService $tokenService)
-    {
+    public function getValidProviderToken(
+        $user,
+        $provider_id,
+        $ip_address,
+        $user_agent,
+        TokenProviderService $tokenService,
+    ) {
+        // 1. & 2. Controllo centralizzato: Abilitazione + Ruoli per il provider specifico
+        if (!$user->hasAccessToProvider($provider_id)) {
+            Log::warning(
+                "Accesso negato: Utente ID {$user->id} disabilitato o senza ruoli per Provider {$provider_id}.",
+            );
+            return null;
+        }
+
+        // 3. Gestione Sessione Esistente
         $existingSession = Session::where("user_id", $user->id)->where("provider_id", $provider_id)->first();
 
         if ($existingSession) {
             $isNotExpired = !$existingSession->expires_at || $existingSession->expires_at->isFuture();
 
-            if ($existingSession->ip_address === $ip_address && $isNotExpired) {
+            // Se l'IP e l'User-Agent è uguale e non è scaduto, restituiamo il token vecchio
+            if (
+                $existingSession->ip_address === $ip_address &&
+                $existingSession->user_agent === $user_agent &&
+                $isNotExpired
+            ) {
                 return $existingSession->token;
             }
         }
 
+        // 4. Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
         $token = $tokenService->tokenCretion($user, $provider_id);
 
-        Log::debug("SessionService.getValidProviderToken token: " . $token);
         if (!$token) {
             return null;
         }
+
         $ttlInSeconds = $tokenService->getTtlInSeconds();
         $expiresAt = now()->addSeconds($ttlInSeconds);
-        Log::debug("SessionService.getValidProviderToken expiresAt: " . $expiresAt);
 
-        $this->upsertSession($user->id, $provider_id, $ip_address, $token, null, $expiresAt);
+        $this->upsertSession($user->id, $provider_id, $ip_address, $user_agent, $token, null, $expiresAt);
 
         return $token;
     }
@@ -85,13 +107,33 @@ class SessionService
      * NUOVO: Verifica la sessione per la chiamata middleware dell'extension.
      * Ritorna un array con status HTTP e l'eventuale nuovo token.
      */
-    public function validateAndRefreshSession($clientIp, $providerId, $clientId, TokenProviderService $tokenService)
-    {
-        $session = Session::where("user_id", $clientId)->where("provider_id", $providerId)->first();
-        Log::debug("SessionService.validateAndRefreshSession session: " . $session ? "Yes" : "No");
+    public function validateAndRefreshSession(
+        $clientIp,
+        $providerId,
+        $clientId,
+        $user_agent,
+        TokenProviderService $tokenService,
+    ) {
+        $session = Session::where("user_id", $clientId)
+            ->where("provider_id", $providerId)
+            ->where("user_agent", $user_agent)
+            ->first();
+        Log::debug("SessionService.validateAndRefreshSession session: " . ($session ? "Yes" : "No"));
         Log::debug("SessionService.validateAndRefreshSession clientIp: " . $clientIp);
+        Log::debug("CERCO SESSIONE PER:", [
+            "user_id" => $clientId,
+            "provider_id" => $providerId,
+            "ua" => $user_agent,
+        ]);
         // 1. Sessione non trovata
         if (!$session) {
+            // Se non la trova, cerchiamo di capire se esiste ALMENO per l'utente
+            $anySession = Session::where("user_id", $clientId)->where("provider_id", $providerId)->first();
+            if ($anySession) {
+                Log::warning("Sessione trovata ma lo USER AGENT non coincide!");
+                Log::warning("DB UA: " . $anySession->user_agent);
+                Log::warning("REQ UA: " . $user_agent);
+            }
             return ["status" => 404];
         }
 
@@ -101,14 +143,21 @@ class SessionService
             return ["status" => 404];
         }
 
-        // 3. Valida e IP coincidente: tutto ok
-        if ($session->ip_address === $clientIp) {
-            // Aggiorniamo solo il last_activity
-            $session->update(["last_activity" => now()]);
+        // 3. Valida: se lo User Agent è lo stesso, consideriamo la sessione valida
+        if ($session->user_agent === $user_agent) {
+            // Se l'IP è cambiato, lo aggiorniamo silenziosamente senza cambiare token
+            if ($session->ip_address !== $clientIp) {
+                Log::info("SessionService: IP cambiato da {$session->ip_address} a {$clientIp}. Aggiorno sessione.");
+                $session->ip_address = $clientIp;
+            }
+
+            $session->last_activity = now();
+            $session->save();
+
             return ["status" => 200, "token" => null];
         }
 
-        // 4. Valida ma IP CAMBIATO: rigeneriamo il token
+        // 4. Se cambia lo USER AGENT, allora è un cambio dispositivo/browser: qui sì che serve rigenerare o sloggare
         $user = $session->user; // Assicurati di avere la relation belongsTo 'user' nel Model Session
 
         $newToken = $tokenService->tokenCretion($user, $providerId);
@@ -121,6 +170,7 @@ class SessionService
 
         $session->update([
             "ip_address" => $clientIp,
+            "user_agent" => $user_agent,
             "token" => $newToken,
             "expires_at" => now()->addSeconds($ttlInSeconds),
             "last_activity" => now(),

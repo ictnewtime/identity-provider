@@ -1,264 +1,293 @@
+<script setup>
+import { ref, watch, computed, onMounted } from "vue";
+import { useToast } from "primevue/usetoast";
+import { trans } from "laravel-vue-i18n"; // Import per le traduzioni nello script
+
+import Select from "primevue/select";
+import Button from "primevue/button";
+import Message from "primevue/message";
+
+const props = defineProps({
+    selectedItem: {
+        type: Object,
+        default: null,
+    },
+});
+
+const emit = defineEmits(["item-saved"]);
+const toast = useToast();
+
+const loadingSubmit = ref(false);
+const loadingData = ref(false);
+const loadingRoles = ref(false);
+
+const users = ref([]);
+const providers = ref([]);
+const roles = ref([]);
+
+const form = ref({
+    id: null,
+    user_id: null,
+    provider_id: null,
+    role_id: null,
+});
+
+const errors = ref({
+    user_id: "",
+    provider_id: "",
+    role_id: "",
+});
+
+const isEditMode = computed(() => !!props.selectedItem);
+
+// Caricamento inziale Utenti e Provider
+const loadInitialData = async () => {
+    loadingData.value = true;
+    try {
+        const [usersRes, providersRes] = await Promise.all([
+            window.axios.get("/admin/v1/users", { params: { per_page: 1000 } }),
+            window.axios.get("/admin/v1/providers", { params: { per_page: 1000 } }),
+        ]);
+        users.value = usersRes.data.data || usersRes.data;
+        providers.value = providersRes.data.data || providersRes.data;
+    } catch (err) {
+        console.error(err);
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.provider_user_roles.toast.load_error"),
+            life: 3000,
+        });
+    } finally {
+        loadingData.value = false;
+    }
+};
+
+// Funzione per scaricare i ruoli filtrati per provider
+const fetchRoles = async (providerId) => {
+    loadingRoles.value = true;
+    try {
+        const res = await window.axios.get("/admin/v1/roles", {
+            params: { per_page: 1000, provider_id: providerId },
+        });
+        roles.value = res.data.data || res.data;
+    } catch (err) {
+        console.error(err);
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.provider_user_roles.toast.roles_error"),
+            life: 3000,
+        });
+    } finally {
+        loadingRoles.value = false;
+    }
+};
+
+const onProviderChange = () => {
+    form.value.role_id = null;
+    roles.value = [];
+
+    if (form.value.provider_id) {
+        fetchRoles(form.value.provider_id);
+    }
+};
+
+const resetForm = () => {
+    form.value = {
+        user_id: null,
+        provider_id: null,
+        role_id: null,
+    };
+    roles.value = [];
+    resetErrors();
+};
+
+const resetErrors = () => {
+    errors.value = {
+        user_id: "",
+        provider_id: "",
+        role_id: "",
+    };
+};
+
+const validate = () => {
+    resetErrors();
+    let isValid = true;
+
+    if (!form.value.user_id) {
+        errors.value.user_id = trans("admin.provider_user_roles.form.validate.user.mandatory");
+        isValid = false;
+    }
+    if (!form.value.provider_id) {
+        errors.value.provider_id = trans("admin.provider_user_roles.form.validate.provider.mandatory");
+        isValid = false;
+    }
+    if (!form.value.role_id) {
+        errors.value.role_id = trans("admin.provider_user_roles.form.validate.role.mandatory");
+        isValid = false;
+    }
+
+    return isValid;
+};
+
+const submit = async () => {
+    if (!validate()) return;
+
+    loadingSubmit.value = true;
+
+    const baseUrl = "/admin/v1/provider-user-roles";
+    const url = isEditMode.value ? `${baseUrl}/${form.value.id}` : baseUrl;
+    const method = isEditMode.value ? "put" : "post";
+
+    const payload = {
+        user_id: form.value.user_id,
+        provider_id: form.value.provider_id,
+        role_id: form.value.role_id,
+    };
+
+    try {
+        await window.axios[method](url, payload);
+        toast.add({
+            severity: "success",
+            summary: trans("common.success"),
+            detail: isEditMode.value
+                ? trans("admin.provider_user_roles.toast.detail_updated")
+                : trans("admin.provider_user_roles.toast.detail_created"),
+            life: 3000,
+        });
+        emit("item-saved");
+        resetForm();
+    } catch (error) {
+        toast.add({
+            severity: "error",
+            summary: trans("common.error"),
+            detail: trans("admin.provider_user_roles.toast.submit_error"),
+            life: 3000,
+        });
+
+        if (error.response?.data?.errors) {
+            const backendErrors = error.response.data.errors;
+            if (backendErrors.user_id) errors.value.user_id = backendErrors.user_id[0];
+            if (backendErrors.provider_id) errors.value.provider_id = backendErrors.provider_id[0];
+            if (backendErrors.role_id) errors.value.role_id = backendErrors.role_id[0];
+        }
+    } finally {
+        loadingSubmit.value = false;
+    }
+};
+
+watch(
+    () => props.selectedItem,
+    async (newVal) => {
+        if (newVal && newVal.id) {
+            form.value.id = newVal.id;
+            form.value.user_id = newVal.user_id;
+            form.value.provider_id = newVal.provider_id;
+
+            roles.value = [];
+            resetErrors();
+
+            if (newVal.provider_id) {
+                await fetchRoles(newVal.provider_id);
+                form.value.role_id = newVal.role_id;
+            }
+        } else {
+            resetForm();
+        }
+    },
+    { immediate: true }
+);
+
+onMounted(() => {
+    loadInitialData();
+});
+</script>
+
 <template>
-    <form @submit.prevent="submit" class="row justify-content-start">
-        <div class="col-lg-12 field d-flex flex-column mb-3">
-            <label for="input-user">Utente</label>
-            <Dropdown
-                id="input-user"
-                v-model="form.user_id"
-                :options="users"
-                optionLabel="email"
-                optionValue="id"
-                placeholder="Seleziona un Utente"
-                :invalid="validator.user_id.length > 0"
-                :loading="loadingData"
-                filter
-                class="w-full"
-            />
-            <small class="p-error" v-if="validator.user_id.length">{{ validator.user_id[0] }}</small>
+    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex flex-col gap-1 md:col-span-2">
+                <label for="user_id" class="font-medium text-surface-900">
+                    {{ $t("admin.provider_user_roles.form.user_label") }}
+                </label>
+                <Select
+                    id="user_id"
+                    v-model="form.user_id"
+                    :options="users"
+                    optionLabel="username"
+                    optionValue="id"
+                    :placeholder="$t('admin.provider_user_roles.form.user_placeholder')"
+                    :invalid="!!errors.user_id"
+                    :loading="loadingData"
+                    filter
+                    fluid
+                />
+                <Message v-if="errors.user_id" severity="error" size="small" variant="simple">
+                    {{ errors.user_id }}
+                </Message>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="provider_id" class="font-medium text-surface-900">
+                    {{ $t("admin.provider_user_roles.form.provider_label") }}
+                </label>
+                <Select
+                    id="provider_id"
+                    v-model="form.provider_id"
+                    :options="providers"
+                    optionLabel="name"
+                    optionValue="id"
+                    :placeholder="$t('admin.provider_user_roles.form.provider_placeholder')"
+                    :invalid="!!errors.provider_id"
+                    :loading="loadingData"
+                    @change="onProviderChange"
+                    filter
+                    fluid
+                />
+                <Message v-if="errors.provider_id" severity="error" size="small" variant="simple">
+                    {{ errors.provider_id }}
+                </Message>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label for="role_id" class="font-medium text-surface-900">
+                    {{ $t("admin.provider_user_roles.form.role_label") }}
+                </label>
+                <Select
+                    id="role_id"
+                    v-model="form.role_id"
+                    :options="roles"
+                    optionLabel="name"
+                    optionValue="id"
+                    :placeholder="$t('admin.provider_user_roles.form.role_placeholder')"
+                    :invalid="!!errors.role_id"
+                    :loading="loadingRoles"
+                    :disabled="!form.provider_id || loadingRoles"
+                    fluid
+                />
+                <Message v-if="errors.role_id" severity="error" size="small" variant="simple">
+                    {{ errors.role_id }}
+                </Message>
+            </div>
         </div>
 
-        <div class="col-lg-6 field d-flex flex-column mb-3">
-            <label for="input-provider">Provider</label>
-            <Dropdown
-                id="input-provider"
-                v-model="form.provider_id"
-                :options="providers"
-                optionLabel="domain"
-                optionValue="id"
-                placeholder="Seleziona Provider"
-                :invalid="validator.provider_id.length > 0"
-                :loading="loadingData"
-                @change="onProviderChange"
-                class="w-full"
+        <div class="flex justify-end gap-3 mt-4 border-t border-surface-200 pt-4">
+            <Button
+                type="button"
+                :label="$t('common.reset')"
+                severity="secondary"
+                text
+                icon="pi pi-refresh"
+                @click="resetForm"
+                :disabled="loadingSubmit"
             />
-            <small class="p-error" v-if="validator.provider_id.length">{{ validator.provider_id[0] }}</small>
-        </div>
-
-        <div class="col-lg-6 field d-flex flex-column mb-3">
-            <label for="input-role">Ruolo</label>
-            <Dropdown
-                id="input-role"
-                v-model="form.role_id"
-                :options="roles"
-                optionLabel="name"
-                optionValue="id"
-                placeholder="Seleziona Ruolo"
-                :invalid="validator.role_id.length > 0"
-                :loading="loadingRoles"
-                :disabled="!form.provider_id || loadingRoles"
-                class="w-full"
-            />
-            <small class="p-error" v-if="validator.role_id.length">{{ validator.role_id[0] }}</small>
-        </div>
-
-        <div class="col-12 mt-3 d-flex justify-content-end">
             <Button
                 type="submit"
-                :label="isEditMode ? 'Salva Modifiche' : 'Crea Associazione'"
-                :loading="loadingSubmit"
+                :label="isEditMode ? $t('common.save_changes') : $t('admin.provider_user_roles.form.btn_create')"
                 icon="pi pi-check"
+                :loading="loadingSubmit"
             />
         </div>
     </form>
 </template>
-
-<script>
-import Dropdown from "primevue/dropdown";
-import Button from "primevue/button";
-import axios from "axios"; // Assicurati che axios sia importato se non è globale
-
-export default {
-    name: "ProviderUserRoleForm",
-    components: { Dropdown, Button },
-    props: {
-        selectedItem: {
-            type: Object,
-            default: null,
-        },
-    },
-    data() {
-        return {
-            form: {
-                id: null,
-                user_id: null,
-                provider_id: null,
-                role_id: null,
-            },
-            users: [],
-            providers: [],
-            roles: [], // Sarà vuoto all'inizio
-
-            loadingData: false,
-            loadingRoles: false, // Nuovo stato di caricamento specifico per i ruoli
-            loadingSubmit: false,
-
-            validator: {
-                user_id: [],
-                provider_id: [],
-                role_id: [],
-            },
-        };
-    },
-    computed: {
-        isEditMode() {
-            return !!this.selectedItem;
-        },
-    },
-    watch: {
-        selectedItem: {
-            immediate: true,
-            handler(newVal) {
-                if (newVal && newVal.id) {
-                    this.form.id = newVal.id;
-                    this.form.user_id = newVal.user_id;
-                    this.form.provider_id = newVal.provider_id;
-
-                    this.roles = []; // Pulisce i vecchi ruoli
-                    this.clearErrors();
-
-                    // Se siamo in modifica e c'è un provider, scarichiamo i suoi ruoli
-                    // e SOLO DOPO assegniamo il ruolo selezionato.
-                    if (newVal.provider_id) {
-                        this.fetchRoles(newVal.provider_id).then(() => {
-                            this.form.role_id = newVal.role_id;
-                        });
-                    }
-                } else {
-                    this.resetForm();
-                }
-            },
-        },
-    },
-    mounted() {
-        this.loadInitialData();
-    },
-    methods: {
-        // Al caricamento iniziale scarichiamo SOLO Utenti e Provider
-        loadInitialData() {
-            this.loadingData = true;
-            Promise.all([
-                axios.get("/admin/v1/users", { params: { per_page: 1000 } }),
-                axios.get("/admin/v1/providers", { params: { per_page: 1000 } }),
-            ])
-                .then(([usersRes, providersRes]) => {
-                    this.users = usersRes.data.data || usersRes.data;
-                    this.providers = providersRes.data.data || providersRes.data;
-                })
-                .catch((err) => {
-                    console.error(err);
-                    this.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: "Errore nel caricamento dei dati di base",
-                        life: 3000,
-                    });
-                })
-                .finally(() => (this.loadingData = false));
-        },
-
-        // Nuova funzione per scaricare i ruoli filtrati
-        fetchRoles(providerId) {
-            this.loadingRoles = true;
-            return axios
-                .get("/admin/v1/roles", {
-                    params: {
-                        per_page: 1000,
-                        provider_id: providerId, // Il parametro che il tuo Controller ora legge!
-                    },
-                })
-                .then((res) => {
-                    this.roles = res.data.data || res.data;
-                })
-                .catch((err) => {
-                    console.error(err);
-                    this.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: "Impossibile caricare i ruoli",
-                        life: 3000,
-                    });
-                })
-                .finally(() => (this.loadingRoles = false));
-        },
-
-        // Evento scatenato dall'utente quando seleziona un provider dalla tendina
-        onProviderChange() {
-            this.form.role_id = null; // Azzera il ruolo precedentemente selezionato
-            this.roles = []; // Svuota la tendina
-
-            // Se l'utente ha selezionato un valore valido, facciamo la chiamata
-            if (this.form.provider_id) {
-                this.fetchRoles(this.form.provider_id);
-            }
-        },
-
-        submit() {
-            if (!this.validate()) return;
-
-            this.loadingSubmit = true;
-
-            const baseUrl = "/admin/v1/provider-user-roles";
-            const url = this.isEditMode ? `${baseUrl}/${this.form.id}` : baseUrl;
-            const method = this.isEditMode ? "put" : "post";
-
-            let payload = {
-                user_id: this.form.user_id,
-                provider_id: this.form.provider_id,
-                role_id: this.form.role_id,
-            };
-
-            axios[method](url, payload)
-                .then(() => {
-                    this.resetForm();
-                    this.$toast.add({
-                        severity: "success",
-                        summary: "Successo",
-                        detail: this.isEditMode ? "Associazione aggiornata" : "Associazione creata",
-                        life: 3000,
-                    });
-                    this.$emit("item-saved");
-                })
-                .catch((error) => {
-                    this.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: "Impossibile salvare i dati",
-                        life: 3000,
-                    });
-                    if (error.response?.data?.errors) {
-                        this.validator = { ...this.validator, ...error.response.data.errors };
-                    }
-                })
-                .finally(() => (this.loadingSubmit = false));
-        },
-
-        validate() {
-            this.clearErrors();
-            this.validator.user_id = this.form.user_id ? [] : ["Utente obbligatorio"];
-            this.validator.provider_id = this.form.provider_id ? [] : ["Provider obbligatorio"];
-            this.validator.role_id = this.form.role_id ? [] : ["Ruolo obbligatorio"];
-
-            return (
-                this.validator.user_id.length === 0 &&
-                this.validator.provider_id.length === 0 &&
-                this.validator.role_id.length === 0
-            );
-        },
-
-        clearErrors() {
-            this.validator.user_id = [];
-            this.validator.provider_id = [];
-            this.validator.role_id = [];
-        },
-
-        resetForm() {
-            this.form.id = null;
-            this.form.user_id = null;
-            this.form.provider_id = null;
-            this.form.role_id = null;
-            this.roles = []; // Resettiamo anche i ruoli scaricati
-            this.clearErrors();
-        },
-    },
-};
-</script>

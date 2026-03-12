@@ -26,7 +26,7 @@ class ProviderRequest extends FormRequest
         $providerId = $this->route("id");
 
         return [
-            "domain" => ["required", "string", "max:255", Rule::unique("providers", "domain")->ignore($providerId)],
+            "domain" => ["required", "string", "max:255"],
 
             "secret_key" => [$this->isMethod("post") ? "required" : "sometimes", "string", "max:255"],
 

@@ -125,7 +125,6 @@ class RoleController extends Controller
     public function create(RoleRequest $request)
     {
         $data = $request->only("name", "provider_id");
-        // se il record con ruolo e il provider_id già esiste, ritorna errore
         $existingRole = Role::where("name", $data["name"])->where("provider_id", $data["provider_id"])->first();
         if ($existingRole) {
             return response()->json(["message" => "Role with this name already exists for this provider"], 422);
@@ -180,7 +179,7 @@ class RoleController extends Controller
     ]
     public function find($id)
     {
-        $role = $this->roleRepository->find($id);
+        $role = Role::find($id);
         if (empty($role)) {
             return response()->json(["message" => "Role not found"], 404);
         }

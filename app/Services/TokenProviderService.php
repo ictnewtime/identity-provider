@@ -149,4 +149,47 @@ class TokenProviderService
         $separator = parse_url($redirect_url, PHP_URL_QUERY) ? "&" : "?";
         return $redirect_url . $separator . "token=" . urlencode($token);
     }
+
+    // Esempio di funzione unificata da mettere in un Service o in un Trait
+    public static function respondWithSsoRedirect($user, $providerId, $request, $redirectToParam = null)
+    {
+        $tokenService = new TokenProviderService();
+        $sessionService = new SessionService();
+
+        // L'UNICA fonte di verità per l'abilitazione
+        $token = $sessionService->getValidProviderToken(
+            $user,
+            $providerId,
+            $request->ip(),
+            $request->header("User-Agent"),
+            $tokenService,
+        );
+
+        if (!$token) {
+            return null; // Segnale che l'utente non è autorizzato
+        }
+
+        $provider = Provider::find($providerId);
+        if (!$provider) {
+            return null;
+        }
+
+        $redirectUrl = $provider->protocol . $provider->domain;
+
+        // Gestione sicura del redirect_to
+        if ($redirectToParam) {
+            $parsedHost = parse_url($redirectToParam, PHP_URL_HOST);
+            if ($parsedHost === $provider->domain || in_array($parsedHost, ["localhost", "127.0.0.1"])) {
+                $redirectUrl = $redirectToParam;
+            }
+        }
+
+        $finalUrl = $tokenService->appendTokenToUrl($redirectUrl, $token);
+        $cookie = $tokenService->cookieCretion($token, $providerId);
+
+        return [
+            "url" => $finalUrl,
+            "cookie" => $cookie,
+        ];
+    }
 }

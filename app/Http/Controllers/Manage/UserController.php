@@ -3,32 +3,32 @@
 namespace App\Http\Controllers\Manage;
 
 use Illuminate\Http\Request;
-use App\Http\Services\Mailer;
+// use App\Http\Services\Mailer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use App\Repositories\RepositoryInterface;
-use App\Repositories\UserRepositoryInterface;
+// use App\Repositories\RepositoryInterface;
+// use App\Repositories\UserRepositoryInterface;
 use OpenApi\Attributes as OA;
 
 class UserController extends Controller
 {
-    protected $userRepository;
+    // protected $userRepository;
     protected $verificationTokenRepository;
-    protected $mailerService;
+    // protected $mailerService;
 
-    public function __construct(
-        UserRepositoryInterface $userRepository,
-        RepositoryInterface $verificationToken,
-        Mailer $mailerService,
-    ) {
-        $this->userRepository = $userRepository;
-        $this->verificationTokenRepository = $verificationToken;
-        $this->mailerService = $mailerService;
+    public function __construct()
+    {
+        // Mailer $mailerService,
+        // $this->userRepository = $userRepository;
+        // $this->verificationTokenRepository = $verificationToken;
+        // $this->mailerService = $mailerService;
     }
+    // UserRepositoryInterface $userRepository,
+    // RepositoryInterface $verificationToken,
 
     #[
         OA\Get(
@@ -148,14 +148,22 @@ class UserController extends Controller
     ]
     public function create(UserRequest $request)
     {
-        $credentials = $request->only("username", "password", "password_confirmation", "email", "name", "surname");
+        $credentials = $request->only(
+            "username",
+            "password",
+            "password_confirmation",
+            "email",
+            "name",
+            "surname",
+            "enabled",
+        );
 
         DB::beginTransaction();
 
         try {
             // unset password_confirmation
             unset($credentials["password_confirmation"]);
-            $user = $this->userRepository->create($credentials);
+            $user = User::create($credentials);
             // TODO: in un secondo momento va gestita la verifica degli utenti
             // $verificationToken = $this->verificationTokenRepository->create([
             //     "token" => Str::random(60),
@@ -214,7 +222,7 @@ class UserController extends Controller
     public function find($id)
     {
         try {
-            $user = $this->userRepository->find($id);
+            $user = User::find($id);
         } catch (\Exception $e) {
             return response()->json([
                 "message" => "Error during finding user",
@@ -227,7 +235,8 @@ class UserController extends Controller
         if (empty($user)) {
             return response()->json(["message" => "User not found"], 404);
         }
-
+        Log::info("=== API /users/{id} CHIAMATA ===");
+        Log::info($user);
         return response()->json($user);
     }
 
@@ -317,24 +326,35 @@ class UserController extends Controller
     ]
     public function update(UserRequest $request, $id)
     {
-        $credentials = $request->only("email", "username", "password", "name", "surname");
+        // Prendo solo i dati base (SENZA password per ora)
+        $credentials = $request->only("email", "username", "name", "surname", "enabled");
 
-        $user = $this->userRepository->find($id);
+        // Se l'utente ha compilato la password nel form, la aggiungiamo e la criptiamo
+        if ($request->filled("password")) {
+            $credentials["password"] = bcrypt($request->password);
+            // Usa Hash::make($request->password) se preferisci usare la facade Hash
+        }
+        $user = User::find($id);
+
         if (empty($user)) {
             return response()->json([], 404);
         }
+
         try {
             $user->update($credentials);
         } catch (\Exception $e) {
-            // errore 500
-            return response()->json([
-                "message" => "Error during updating user",
-                "error" => [
-                    "code" => 500,
-                    "message" => $e->getMessage(),
+            return response()->json(
+                [
+                    "message" => "Error during updating user",
+                    "error" => [
+                        "code" => 500,
+                        "message" => $e->getMessage(),
+                    ],
                 ],
-            ]);
+                500,
+            ); // <-- Ho aggiunto il codice di stato HTTP 500 qui
         }
+
         return response()->json(
             [
                 "user" => UserResource::make($user),
@@ -382,7 +402,7 @@ class UserController extends Controller
     ]
     public function delete($id)
     {
-        $user = $this->userRepository->find($id);
+        $user = User::find($id);
         if (empty($user)) {
             return response()->json([], 404);
         }

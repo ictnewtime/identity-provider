@@ -1,188 +1,253 @@
-<template>
-    <div class="web-role-container p-4">
-        <div class="mb-4 d-flex justify-content-between align-items-center">
-            <div>
-                <h1 class="text-3xl font-bold m-0">Gestione Ruoli</h1>
-                <p class="text-gray-600 mt-1 mb-0">Crea e assegna ruoli ai provider</p>
-            </div>
-            <Button label="Nuovo Ruolo" icon="pi pi-plus" @click="openCreateModal" />
-        </div>
+<script setup>
+import { ref, onMounted } from "vue";
+import { useToast } from "primevue/usetoast";
+import { trans } from "laravel-vue-i18n";
 
-        <div class="card mt-4">
-            <DataTable
-                :value="pagination.data"
-                :loading="loading"
-                responsiveLayout="scroll"
-                stripedRows
-                class="p-datatable-sm"
-            >
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Paginator from "primevue/paginator";
+import IconField from "primevue/iconfield";
+import InputIcon from "primevue/inputicon";
+import InputText from "primevue/inputtext";
+import Dialog from "primevue/dialog";
+import Button from "primevue/button";
+
+import RoleForm from "./RoleForm.vue";
+
+const toast = useToast();
+
+const filter = ref("");
+const loading = ref(false);
+const pagination = ref({ data: [], total: 0, per_page: 10 });
+const displayModal = ref(false);
+const selectedRole = ref(null);
+const displayDeleteModal = ref(false);
+const roleToDelete = ref(null);
+let searchTimeout = null;
+
+const loadRoles = (page = 1) => {
+    loading.value = true;
+
+    window.axios
+        .get("/admin/v1/roles", {
+            params: { page: page, per_page: pagination.value.per_page, q: filter.value },
+        })
+        .then((res) => {
+            pagination.value = res.data;
+        })
+        .catch((err) => {
+            console.error(err);
+            toast.add({
+                severity: "error",
+                summary: trans("common.error"),
+                detail: trans("admin.roles.toast.load_error"),
+                life: 3000,
+            });
+        })
+        .finally(() => {
+            loading.value = false;
+        });
+};
+
+const onPage = (event) => {
+    loadRoles(event.page + 1);
+};
+
+const onFilterChange = () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        loadRoles(1);
+    }, 500);
+};
+
+// Funzione esposta al padre
+const openCreateModal = () => {
+    selectedRole.value = null;
+    displayModal.value = true;
+};
+
+defineExpose({
+    openCreateModal,
+});
+
+const onRoleSaved = () => {
+    displayModal.value = false;
+    loadRoles();
+};
+
+const editRole = (role) => {
+    selectedRole.value = role;
+    displayModal.value = true;
+};
+
+const confirmDelete = (role) => {
+    roleToDelete.value = role;
+    displayDeleteModal.value = true;
+};
+
+const deleteRole = () => {
+    if (!roleToDelete.value) return;
+
+    window.axios
+        .delete(`/admin/v1/roles/${roleToDelete.value.id}`)
+        .then(() => {
+            displayDeleteModal.value = false;
+            roleToDelete.value = null;
+            loadRoles();
+            toast.add({
+                severity: "success",
+                summary: trans("common.success"),
+                detail: trans("admin.roles.toast.delete_success"),
+                life: 3000,
+            });
+        })
+        .catch((error) => {
+            console.error(error);
+            toast.add({
+                severity: "error",
+                summary: trans("common.error"),
+                detail: trans("admin.roles.toast.delete_error"),
+                life: 3000,
+            });
+        });
+};
+
+onMounted(() => {
+    loadRoles();
+});
+</script>
+
+<template>
+    <div>
+        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
+            <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
                 <template #header>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="m-0">Lista Ruoli</h3>
+                    <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
+                        <h3 class="text-lg font-semibold m-0 text-surface-800">
+                            {{ $t("admin.roles.table.title") }}
+                        </h3>
                         <IconField iconPosition="left">
+                            <InputIcon class="pi pi-search text-surface-400" />
                             <InputText
                                 v-model="filter"
-                                placeholder="Cerca ruolo o dominio..."
-                                size="small"
+                                :placeholder="$t('admin.roles.table.search_placeholder')"
                                 @input="onFilterChange"
+                                class="!rounded-lg"
                             />
                         </IconField>
                     </div>
                 </template>
 
-                <Column field="id" header="ID" style="width: 5%"></Column>
-                <Column field="name" header="Nome Ruolo"></Column>
-                <Column header="Provider (Dominio)">
+                <Column field="id" :header="$t('common.id')" style="width: 5%">
                     <template #body="slotProps">
-                        {{ slotProps.data.provider ? slotProps.data.provider.domain : "Nessun Provider" }}
+                        <span class="text-surface-500 text-sm">{{ slotProps.data.id }}</span>
                     </template>
                 </Column>
 
-                <Column header="Azioni" :exportable="false" style="min-width: 8rem">
+                <Column field="name" :header="$t('admin.roles.table.name')">
                     <template #body="slotProps">
-                        <Button icon="pi pi-pencil" outlined class="me-2" @click="editRole(slotProps.data)" />
-                        <Button icon="pi pi-trash" outlined severity="danger" @click="confirmDelete(slotProps.data)" />
+                        <span class="font-bold text-surface-900">{{ slotProps.data.name }}</span>
                     </template>
                 </Column>
 
-                <template #empty> Nessun ruolo trovato. </template>
+                <Column :header="$t('admin.roles.table.provider')">
+                    <template #body="slotProps">
+                        <span v-if="slotProps.data.provider" class="text-surface-700 font-medium">
+                            {{ slotProps.data.provider.name }}
+                        </span>
+                        <span v-else class="text-surface-400 italic">
+                            {{ $t("admin.roles.table.missing_provider") }}
+                        </span>
+                    </template>
+                </Column>
+
+                <Column :header="$t('admin.roles.table.domain')">
+                    <template #body="slotProps">
+                        <span v-if="slotProps.data.provider" class="text-surface-600">
+                            {{ slotProps.data.provider.domain }}
+                        </span>
+                        <span v-else class="text-surface-400 italic">
+                            {{ $t("admin.roles.table.missing_domain") }}
+                        </span>
+                    </template>
+                </Column>
+
+                <Column :header="$t('common.actions')" :exportable="false" style="min-width: 8rem">
+                    <template #body="slotProps">
+                        <Button
+                            icon="pi pi-pencil"
+                            text
+                            rounded
+                            severity="warn"
+                            class="mr-1 hover:!bg-orange-50"
+                            @click="editRole(slotProps.data)"
+                        />
+                        <Button
+                            icon="pi pi-trash"
+                            text
+                            rounded
+                            severity="danger"
+                            class="hover:!bg-red-50"
+                            @click="confirmDelete(slotProps.data)"
+                        />
+                    </template>
+                </Column>
+
+                <template #empty>
+                    <div class="text-center p-8 text-surface-500">
+                        <i class="pi pi-id-card text-4xl mb-4 text-surface-300"></i>
+                        <p class="m-0">
+                            {{ $t("admin.roles.table.empty") }}
+                        </p>
+                    </div>
+                </template>
             </DataTable>
 
-            <Paginator :rows="pagination.per_page" :totalRecords="pagination.total" @page="onPage" class="mt-2" />
+            <Paginator
+                v-if="pagination.total > 0"
+                :rows="pagination.per_page"
+                :totalRecords="pagination.total"
+                @page="onPage"
+                class="mt-4 border-t border-surface-100 pt-4"
+            />
         </div>
 
         <Dialog
             v-model:visible="displayModal"
-            :header="selectedRole ? 'Modifica Ruolo' : 'Nuovo Ruolo'"
-            :style="{ width: '50vw' }"
-            :modal="true"
+            :header="selectedRole ? $t('admin.roles.form.title_edit') : $t('admin.roles.form.title_create')"
+            :style="{ width: '60vw', maxWidth: '800px' }"
+            modal
+            :draggable="false"
         >
             <RoleForm :selectedRole="selectedRole" @role-saved="onRoleSaved" />
         </Dialog>
 
         <Dialog
             v-model:visible="displayDeleteModal"
-            header="Conferma Eliminazione"
+            :header="$t('common.confirm_delete_title')"
             :style="{ width: '450px' }"
-            :modal="true"
+            modal
+            :draggable="false"
         >
-            <div class="d-flex align-items-center">
-                <i class="pi pi-exclamation-triangle me-3 text-warning" style="font-size: 2rem" />
-                <span v-if="roleToDelete">
-                    Sei sicuro di voler eliminare il ruolo <b>{{ roleToDelete.name }}</b
+            <div class="flex items-center gap-4 pt-2">
+                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
+                <span v-if="roleToDelete" class="text-surface-700">
+                    {{ $t("admin.roles.delete.prompt") }}
+                    <b class="text-surface-900">{{ roleToDelete.name }}</b
                     >?
                 </span>
             </div>
+
             <template #footer>
-                <Button label="Annulla" icon="pi pi-times" text @click="displayDeleteModal = false" />
-                <Button label="Elimina" icon="pi pi-check" severity="danger" @click="deleteRole" />
+                <Button :label="$t('common.cancel')" icon="pi pi-times" @click="displayDeleteModal = false" text />
+                <Button
+                    :label="$t('common.delete')"
+                    icon="pi pi-check"
+                    severity="danger"
+                    @click="deleteRole"
+                    autofocus
+                />
             </template>
         </Dialog>
     </div>
 </template>
-
-<script>
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
-import Paginator from "primevue/paginator";
-import IconField from "primevue/iconfield";
-import InputText from "primevue/inputtext";
-import Dialog from "primevue/dialog";
-import Button from "primevue/button";
-import RoleForm from "./RoleForm.vue";
-
-export default {
-    name: "RolePage",
-    components: { DataTable, Column, Paginator, IconField, InputText, Dialog, Button, RoleForm },
-    data() {
-        return {
-            filter: "",
-            loading: false,
-            pagination: { data: [], total: 0, per_page: 10 },
-
-            // Gestione Modale Form
-            displayModal: false,
-            selectedRole: null,
-
-            // Gestione Modale Eliminazione
-            displayDeleteModal: false,
-            roleToDelete: null,
-
-            searchTimeout: null,
-        };
-    },
-    methods: {
-        loadRoles(page = 1) {
-            this.loading = true;
-            axios
-                .get("/admin/v1/roles", {
-                    params: { page: page, per_page: this.pagination.per_page, q: this.filter },
-                })
-                .then((res) => (this.pagination = res.data))
-                .finally(() => (this.loading = false));
-        },
-        onPage(event) {
-            this.loadRoles(event.page + 1);
-        },
-        onFilterChange() {
-            clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => this.loadRoles(1), 500);
-        },
-
-        // Apre la modale per un NUOVO ruolo
-        openCreateModal() {
-            this.selectedRole = null;
-            this.displayModal = true;
-        },
-
-        // Apre la modale per MODIFICARE un ruolo
-        editRole(role) {
-            this.selectedRole = role;
-            this.displayModal = true;
-        },
-
-        // Chiude la modale form e ricarica i dati
-        onRoleSaved() {
-            this.displayModal = false;
-            this.loadRoles();
-        },
-
-        // Apre la modale di CONFERMA eliminazione
-        confirmDelete(role) {
-            this.roleToDelete = role;
-            this.displayDeleteModal = true;
-        },
-
-        // Esegue l'eliminazione effettiva via API
-        deleteRole() {
-            if (!this.roleToDelete) return;
-
-            axios
-                .delete(`/admin/v1/roles/${this.roleToDelete.id}`)
-                .then(() => {
-                    this.$toast.add({
-                        severity: "success",
-                        summary: "Operazione completata",
-                        detail: "Ruolo eliminato correttamente",
-                        life: 3000,
-                    });
-                    this.displayDeleteModal = false;
-                    this.roleToDelete = null;
-                    this.loadRoles();
-                })
-                .catch((error) => {
-                    console.error(error);
-                    this.$toast.add({
-                        severity: "error",
-                        summary: "Errore",
-                        detail: "Errore eliminazione ruolo",
-                        life: 3000,
-                    });
-                });
-        },
-    },
-    mounted() {
-        this.loadRoles();
-    },
-};
-</script>

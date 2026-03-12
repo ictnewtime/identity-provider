@@ -4,17 +4,28 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use OwenIt\Auditing\Contracts\Auditable;
 
-class Session extends Model
+class Session extends Model implements Auditable
 {
     use HasFactory;
+    use \OwenIt\Auditing\Auditable;
 
     protected $table = "sessions";
+
+    public $incrementing = false;
+    protected $keyType = "string";
+
+    // protected $auditableEvents = ["created", "deleted"];
+    // Se lo configuri così, traccia gli update, ma ignora questi due campi specifici:
+    protected $auditExclude = ["last_activity", "expires_at"];
+
     protected $fillable = [
         "id",
         "user_id",
         "provider_id",
         "ip_address",
+        "user_agent",
         "token",
         "refresh_token",
         "expires_at",
