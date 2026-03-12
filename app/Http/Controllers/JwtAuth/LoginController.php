@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use OpenApi\Attributes as OA;
 use Illuminate\Support\Facades\Cookie;
 use Inertia\Inertia;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class LoginController extends Controller
 {
@@ -91,21 +92,19 @@ class LoginController extends Controller
     {
         $credentials = $request->only("username", "password");
 
+        // 1. Check Credenziali
         if (!Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]])) {
-            return back()->withErrors([
-                "login" => __("auth.err-login"),
-            ]);
+            return back()->withErrors(["login" => __("auth.err-login")]);
         }
 
         $user = Auth::user();
-        $ip_address = $request->ip();
+        event(new LoginEvent($user, $request->ip()));
 
-        // L'evento di login va scatenato SEMPRE, a prescindere dal provider
-        event(new LoginEvent($user, $ip_address));
         $provider_id = $request->input("provider_id");
 
+        // 2A. BIVIO SSO: L'utente va verso un'app esterna (es. Telefoni)
         if ($provider_id) {
-            $ssoData = TokenProviderService::respondWithSsoRedirect(
+            $ssoData = \App\Services\TokenProviderService::respondWithSsoRedirect(
                 $user,
                 $provider_id,
                 $request,
@@ -114,69 +113,41 @@ class LoginController extends Controller
 
             if (!$ssoData) {
                 Auth::logout();
-                return back()->withErrors([
-                    "login" => __("auth.err-login"),
-                ]);
+                return back()->withErrors(["login" => __("auth.err-login")]);
             }
 
-            // Accodiamo il cookie in modo che venga inviato con la risposta HTTP
             Cookie::queue($ssoData["cookie"]);
-
-            // Inertia::location è FONDAMENTALE qui: dice ad Inertia di forzare
-            // il browser a fare un redirect "reale" verso un dominio/app esterna.
             return Inertia::location($ssoData["url"]);
-        } else {
-            // L'utente sta tentando di accedere direttamente al pannello IdP (nessun provider_id esterno)
-
-            if ($user->isAdmin()) {
-                // È un admin: rigeneriamo la sessione web base
-                $request->session()->regenerate();
-
-                $idpProviderId = config("idp.provider_id");
-
-                // Istanziamo i tuoi service
-                $tokenService = new \App\Services\TokenProviderService();
-                $sessionService = new \App\Services\SessionService();
-
-                // Facciamo fare tutto al SessionService!
-                // Genererà il token custom firmato e salverà la riga nella tabella `sessions`
-                $token = $sessionService->getValidProviderToken(
-                    $user,
-                    $idpProviderId,
-                    $request->ip(),
-                    $request->userAgent(),
-                    $tokenService,
-                );
-
-                if (!$token) {
-                    Auth::logout();
-                    return back()->withErrors([
-                        "login" => __("auth.err-login"),
-                    ]);
-                }
-
-                // Usiamo il tuo metodo cookieCretion per creare il cookie formattato bene
-                $cookie = $tokenService->cookieCretion($token, $idpProviderId);
-
-                // Accodiamo il cookie alla risposta
-                Cookie::queue($cookie);
-
-                // Usiamo Inertia::location per l'hard redirect della SPA
-                return Inertia::location(route("admin-home"));
-            }
-
-            // Non è un admin (o è disabilitato): niente accesso al pannello IdP
-            Auth::logout();
-            return back()->withErrors([
-                "login" => __("auth.err-login"),
-            ]);
         }
 
-        // 3. FLUSSO DIRETTO (Login locale all'IdP, es. per il pannello Admin)
-        // Invece di restituire l'utente in JSON, facciamo un redirect HTTP standard
-        // verso la dashboard interna di Laravel. Inertia capirà e caricherà la nuova pagina Vue.
-        $request->session()->regenerate();
-        return Inertia::location(route("admin-home"));
+        // 2B. BIVIO LOCALE: L'utente accede all'IdP (Pannello Admin)
+        if ($user->isAdmin()) {
+            $request->session()->regenerate();
+
+            $idpProviderId = config("idp.provider_id");
+            $tokenService = new \App\Services\TokenProviderService();
+            $sessionService = new \App\Services\SessionService();
+
+            $token = $sessionService->getValidProviderToken(
+                $user,
+                $idpProviderId,
+                $request->ip(),
+                $request->userAgent(),
+                $tokenService,
+            );
+
+            if (!$token) {
+                Auth::logout();
+                return back()->withErrors(["login" => __("auth.err-login")]);
+            }
+
+            Cookie::queue($tokenService->cookieCretion($token, $idpProviderId));
+            return Inertia::location(route("admin-home"));
+        }
+
+        // 3. Se arriva qui, non ha provider_id e NON è admin: Accesso negato
+        Auth::logout();
+        return back()->withErrors(["login" => __("auth.err-login")]);
     }
 
     #[
@@ -220,57 +191,53 @@ class LoginController extends Controller
     ]
     public function logout(Request $request)
     {
-        $user = Auth::user();
-
-        // --- 1. NUOVA LOGICA: RECUPERO E DISTRUZIONE TOKEN (DB + JWT) ---
+        // 1. RECUPERO E DISTRUZIONE TOKEN (DB + JWT)
         $idpProviderId = config("idp.provider_id");
         $dynamicCookieName = "idp_token_" . $idpProviderId;
 
-        // Cerchiamo il token nel cookie dinamico, nel Bearer o nel vecchio cookie "token"
+        // Cerchiamo il token
         $token = $request->cookie($dynamicCookieName) ?? ($request->bearerToken() ?? $request->cookie("token"));
 
         if ($token) {
-            // Eliminiamo FISICAMENTE la sessione dal database.
-            // Questo fa scattare il blocco immediato nel middleware Authenticated.
-            \App\Models\Session::where("token", $token)->delete();
+            // Eliminiamo FISICAMENTE la sessione dal database
+            Session::where("token", $token)->delete();
 
-            // Opzionale: Invalidiamo il token nella blacklist di Tymon
+            // Invalidiamo il token nella blacklist di Tymon (ignorando gli errori di firma custom)
             try {
-                \Tymon\JWTAuth\Facades\JWTAuth::setToken($token)->invalidate();
+                JWTAuth::setToken($token)->invalidate();
             } catch (\Exception $e) {
-                Log::error("Impossibile inserire in blacklist Tymon: " . $e->getMessage());
+                Log::debug("Tymon Invalidate ignorato: " . $e->getMessage());
             }
         }
+
         // 2. Esegui il logout fisico di Laravel (Sessione web nativa)
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // 3. Prepariamo la distruzione dei cookie
-        // Dimentichiamo sia il vecchio cookie generico sia quello dinamico creato dal Service
-        $cookieDomain = env("PROVIDER_DOMAIN") ?? env("TOKEN_COOKIE_DOMAIN");
-        $legacyCookie = Cookie::forget("token", "/", $cookieDomain);
-        $dynamicCookie = Cookie::forget($dynamicCookieName, "/", $cookieDomain);
+        // 3. DISTRUZIONE COOKIE: L'ATTACCO A TENAGLIA
+        $cookieDomain = env("PROVIDER_DOMAIN");
 
-        // Li accodiamo per sicurezza, in modo che Laravel li distrugga a prescindere dal tipo di response
-        Cookie::queue($legacyCookie);
-        Cookie::queue($dynamicCookie);
+        // A. Dimentichiamo i cookie CON il dominio specifico (es. .newtimegroup.it)
+        Cookie::queue(Cookie::forget("token", "/", $cookieDomain));
+        Cookie::queue(Cookie::forget($dynamicCookieName, "/", $cookieDomain));
 
-        // 4. Risposta per chiamate AJAX/JSON (escludiamo Inertia che necessita del redirect)
+        // B. Dimentichiamo i cookie SENZA il dominio (per localhost o salvataggi diretti su sottodomini esatti)
+        Cookie::queue(Cookie::forget("token"));
+        Cookie::queue(Cookie::forget($dynamicCookieName));
+
+        // 4. Risposta per chiamate AJAX/JSON
         if (($request->ajax() || $request->wantsJson()) && !$request->header("X-Inertia")) {
-            // Usa il cookie dinamico per la response AJAX
-            return $this->createResponse(200, null, $dynamicCookie);
+            return response()->json(["message" => "Logged out successfully"], 200);
         }
 
+        // 5. Gestione parametri per il redirect
         $allParams = $request->query();
-
         if ($request->has("redirect")) {
             $allParams["redirect"] = $request->input("redirect");
         }
 
-        // Reindirizziamo alla rotta 'loginForm' passando l'intero array di parametri
-        // e allegando i comandi di distruzione dei cookie
-        return redirect()->route("loginForm", $allParams)->withCookie($legacyCookie)->withCookie($dynamicCookie);
+        return redirect()->route("loginForm", $allParams);
     }
 
     public function logout_sso(Request $request)
@@ -284,10 +251,10 @@ class LoginController extends Controller
             $user = Auth::user();
 
             if ($provider_id) {
-                $deletedCount = Session::where("provider_id", $provider_id)->where("user_id", $user->id)->delete();
+                Session::where("provider_id", $provider_id)->where("user_id", $user->id)->delete();
             } else {
                 // Se per qualche motivo non c'è il provider, per sicurezza pialliamo tutte le sue sessioni (Global Logout)
-                $deletedCount = Session::where("user_id", $user->id)->delete();
+                Session::where("user_id", $user->id)->delete();
             }
         } else {
             Log::warning(
