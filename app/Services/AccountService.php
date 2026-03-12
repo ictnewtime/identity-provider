@@ -8,7 +8,6 @@
 
 namespace App\Services;
 
-
 use Exception;
 use Illuminate\Support\Str;
 use App\Models\Account\User;
@@ -20,12 +19,12 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Account\VerificationCode;
 use App\Services\Interfaces\IAccountService;
 
-class AccountService implements IAccountService {
-
+class AccountService implements IAccountService
+{
     /**
      * AccountService constructor.
      */
-    public function __construct(){}
+    public function __construct() {}
 
     /**
      * Registers new user into the idp. After registration the user will be
@@ -38,23 +37,23 @@ class AccountService implements IAccountService {
      *
      * @throws SqlException
      */
-    public function registerUser(string $email, string $password, string $name, string $surname){
-
+    public function registerUser(string $email, string $password, string $name, string $surname)
+    {
         DB::beginTransaction();
 
         try {
             $user = User::create([
-                'email' => $email,
-                'password' => Hash::make($password),
-                'name' => $name,
-                'surname' => $surname
+                "email" => $email,
+                "password" => Hash::make($password),
+                "name" => $name,
+                "surname" => $surname,
             ]);
 
             $verificationCode = VerificationCode::create([
-                'user_id' => $user->id,
-                'verification_code' => Str::random(30)
+                "user_id" => $user->id,
+                "verification_code" => Str::random(30),
             ]);
-        } catch (Exception $e){
+        } catch (Exception $e) {
             Log::error($e->getMessage());
             DB::rollBack();
 
@@ -70,33 +69,43 @@ class AccountService implements IAccountService {
      * @param string $verificationCode
      * @throws SqlException
      */
-    public function verifyUser(string $verificationCode){
-        // TODO decidere i messaggi degli errori
-
+    public function verifyUser(string $verificationCode)
+    {
         try {
+            DB::beginTransaction();
 
-            $userVerification = VerificationCode::where('verification_code', $verificationCode)->first();
+            $userVerification = VerificationCode::where("verification_code", $verificationCode)->first();
 
-            if(empty($userVerification)){
-                throw new Exception('Non trovato il codice');
+            if (empty($userVerification)) {
+                // Usiamo le chiavi di traduzione invece delle stringhe fisse
+                throw new \Exception(__("auth.verification.errors.invalid_code"));
             }
 
-            $user = User::where('id', $userVerification->user_id)->first();
+            $user = User::find($userVerification->user_id);
+
+            if (empty($user)) {
+                throw new \Exception(__("auth.verification.errors.user_not_found"));
+            }
+
             $user->is_verified = 1;
 
-            if(!$user->save()){
-                throw new Exception('Non è salvato');
+            if (!$user->save()) {
+                throw new \Exception(__("auth.verification.errors.save_failed"));
             }
 
-            if(!$userVerification->delete()){
-                throw new Exception('Non è cancellato');
+            if (!$userVerification->delete()) {
+                throw new \Exception(__("auth.verification.errors.delete_failed"));
             }
 
-        } catch (Exception $e){
-            Log::error($e->getMessage());
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            Log::error("Errore verifica utente: " . $e->getMessage());
+
+            // Passiamo il messaggio tradotto all'eccezione custom
+            // Il controller che chiama questo metodo potrà prendere il messaggio e mandarlo a Inertia
             throw new SqlException($e->getMessage());
         }
-
     }
-
 }
