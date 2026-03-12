@@ -222,6 +222,8 @@
     "admin.sessions.delete.on_domain": " sul dominio ",
     "admin.sessions.delete.btn_terminate": "Termina",
 
+    "admin.audits.title": "Gestione Log di Sistema",
+
     "admin.audits.table.title": "Registro di Sistema (Audit Logs)",
     "admin.audits.table.search_placeholder": "Cerca IP, Utente...",
     "admin.audits.table.date": "Data",
@@ -244,5 +246,8 @@
     "admin.audits.modal.user_agent": "User Agent",
     "admin.audits.modal.entity_id": "ID Entità",
 
-    "admin.audits.toast.load_error": "Impossibile caricare i log di sistema"
+    "admin.audits.toast.load_error": "Impossibile caricare i log di sistema",
+
+    "client.unauthorized.title": "Accesso Negato",
+    "client.unauthorized.message": "Non disponi delle autorizzazioni necessarie per accedere alla risorsa richiesta. Se ritieni si tratti di un errore, contatta l'amministratore di sistema."
 }

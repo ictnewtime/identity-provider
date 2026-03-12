@@ -222,6 +222,8 @@
     "admin.sessions.delete.on_domain": " on the domain ",
     "admin.sessions.delete.btn_terminate": "Terminate",
 
+    "admin.audits.title": "Audit Log Management",
+
     "admin.audits.table.title": "System Log (Audit Logs)",
     "admin.audits.table.search_placeholder": "Search IP, User...",
     "admin.audits.table.date": "Date",
@@ -244,5 +246,7 @@
     "admin.audits.modal.user_agent": "User Agent",
     "admin.audits.modal.entity_id": "Entity ID",
 
-    "admin.audits.toast.load_error": "Unable to load system logs"
+    "admin.audits.toast.load_error": "Unable to load system logs",
+    "client.unauthorized.title": "Unauthorized",
+    "client.unauthorized.message": "You are not authorized to access this resource. If you think this is a mistake, please contact the system administrator."
 }

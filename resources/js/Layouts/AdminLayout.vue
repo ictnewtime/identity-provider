@@ -125,7 +125,7 @@ const logout = () => {
 
         <div class="flex-1 flex flex-col overflow-hidden relative z-10">
             <header class="h-[72px] bg-white shadow-sm flex items-center justify-end px-6 gap-6 shrink-0 relative z-10">
-                <Select
+                <!-- <Select
                     v-model="selectedLocale"
                     :options="locales"
                     optionLabel="name"
@@ -147,7 +147,7 @@ const logout = () => {
                             <span>{{ slotProps.option.code.toUpperCase() }}</span>
                         </div>
                     </template>
-                </Select>
+                </Select> -->
 
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-3">

@@ -38,7 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // 1. Esclusioni CSRF
-        $middleware->validateCsrfTokens(except: ["/v2/login", "api/*"]);
+        $middleware->validateCsrfTokens(except: ["/v2/login", "api/*", "admin/v1/*"]);
 
         // 2. Sostituzione Middleware di Base (Il modo corretto in Laravel 11)
         $middleware->replace(CoreEncryptCookies::class, CustomEncryptCookies::class);

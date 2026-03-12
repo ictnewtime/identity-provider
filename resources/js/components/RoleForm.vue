@@ -216,6 +216,7 @@ onMounted(() => {
                     :invalid="!!errors.provider_id"
                     :loading="loadingProviders"
                     fluid
+                    filter
                 />
                 <Message v-if="errors.provider_id" severity="error" size="small" variant="simple">
                     {{ errors.provider_id }}

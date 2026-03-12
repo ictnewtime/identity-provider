@@ -24,7 +24,7 @@ Route::get("locale/{locale}", function ($locale) {
     return redirect()->back();
 });
 
-// 3. Autenticazione (Gestita da Inertia)
+// 3. Autenticazione
 Route::middleware("guest")->group(function () {
     Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
     Route::get("login", function () {
@@ -48,15 +48,14 @@ Route::get("complete-registration", function () {
 /********* ADMIN ROUTES ************/
 
 Route::prefix("admin")
-    ->middleware(["role:admin"]) // Assicurati che il middleware 'role' funzioni ancora!
+    ->middleware(["authenticated", "role:admin"])
     ->group(function () {
-        // 4. LE NUOVE ROTTE DELLE PAGINE (Inertia sostituisce view())
         Route::get("/", function () {
             return redirect()->route("web-users");
         })->name("admin-home");
 
         Route::get("users", function () {
-            return Inertia::render("Admin/Users"); // Renderizza resources/js/Pages/Admin/Users.vue
+            return Inertia::render("Admin/Users");
         })->name("web-users");
 
         Route::get("providers", function () {
@@ -83,9 +82,6 @@ Route::prefix("admin")
         //     return Inertia::render("Admin/OauthClients");
         // })->name("oauth-clients");
 
-        // 5. LE ROTTE API (Lasciale intatte per non rompere i tuoi vecchi componenti Vue)
-        // In futuro, potrai eliminare questo blocco e passare i dati direttamente
-        // nei metodi Inertia::render() qui sopra.
         Route::prefix("v1")->group(function () {
             // providers
             Route::get("providers", [ProviderController::class, "all"]);
@@ -134,7 +130,7 @@ Route::prefix("admin")
 /********** CLIENT ROUTES ************/
 
 Route::prefix("client")
-    ->middleware(["web", "auth"])
+    ->middleware(["web", "authenticated"])
     ->group(function () {
         Route::prefix("v1")->group(function () {
             Route::get("unauthorized", function () {

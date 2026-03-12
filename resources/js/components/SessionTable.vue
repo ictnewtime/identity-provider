@@ -69,14 +69,22 @@ const deleteSession = () => {
         .delete(`/admin/v1/sessions/${sessionToDelete.value.id}`)
         .then(() => {
             displayDeleteModal.value = false;
-            sessionToDelete.value = null;
-            loadSessions();
             toast.add({
                 severity: "success",
                 summary: trans("common.success"),
                 detail: trans("admin.sessions.toast.delete_success"),
                 life: 3000,
             });
+            // Aspettiamo 1,5 secondi per far leggere il toast, poi aggiorniamo la tabella
+            // (e ci facciamo buttare fuori se era la nostra sessione)
+            setTimeout(() => {
+                loadSessions();
+                sessionToDelete.value = null;
+            }, 800);
+            // faccio passare 3 secondi prima di ricaricare la pagina
+            setTimeout(() => {
+                window.location.reload();
+            }, 4000);
         })
         .catch((error) => {
             console.error(error);
