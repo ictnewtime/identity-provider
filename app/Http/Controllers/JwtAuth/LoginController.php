@@ -36,17 +36,17 @@ class LoginController extends Controller
      *
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
-    public function authenticated()
-    {
-        $user = Auth::user();
-        // TODO: verificare che il ruolo dia all' interno della applicazione,
-        // tramite controllo del provider
-        $is_role_admin = $user->hasRole(config("role.admin"));
-        if ($is_role_admin) {
-            return redirect()->route("web-users");
-        }
-        return redirect()->route("sso.unauthorized");
-    }
+    // public function authenticated()
+    // {
+    //     $user = Auth::user();
+    //     // TODO: verificare che il ruolo dia all' interno della applicazione,
+    //     // tramite controllo del provider
+    //     $is_role_admin = $user->hasRole(config("role.admin"));
+    //     if ($is_role_admin) {
+    //         return redirect()->route("web-users");
+    //     }
+    //     return redirect()->route("sso.unauthorized");
+    // }
 
     #[
         OA\Post(
@@ -113,7 +113,6 @@ class LoginController extends Controller
             );
 
             if (!$ssoData) {
-                // return redirect()->route("sso.unauthorized");
                 Auth::logout();
                 return back()->withErrors([
                     "login" => __("auth.err-login"),
