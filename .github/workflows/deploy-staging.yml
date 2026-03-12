@@ -17,6 +17,12 @@ jobs:
                 password: ${{ secrets.REGISTRY_PASS }}
 
         steps:
+            - name: 🚀 Notifica Inizio
+              uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+              with:
+                webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+                event_type: "start"        
+
             - name: 📡 Checkout repository
               uses: actions/checkout@v3
 
@@ -52,3 +58,10 @@ jobs:
                     --extra-vars "infisical_env=stage" \
                     --extra-vars "registry_user=${{ secrets.REGISTRY_USER }}" \
                     --extra-vars "registry_pass=${{ secrets.REGISTRY_PASS }}"
+
+            - name: 🏁 Notifica Esito Finale
+              if: always()
+              uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+              with:
+                webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+                event_type: ${{ job.status == 'success' && 'success' || 'failure' }}
