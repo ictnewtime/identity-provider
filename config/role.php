@@ -1,4 +1,5 @@
 <?php
+
 return [
-    "admin" => 1,
+    "admin_id" => 1,
 ];

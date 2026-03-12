@@ -44,10 +44,27 @@ class RoleController extends Controller
             ],
         ),
     ]
-    public function all()
+    public function all(Request $request)
     {
-        return Role::all();
-        // return $this->roleRepository->all();
+        $query = Role::with("provider");
+        $provider_id = $request->input("provider_id");
+
+        if ($provider_id) {
+            $query->whereHas("provider", function ($q) use ($provider_id) {
+                $q->where("id", $provider_id);
+            });
+        }
+
+        if ($request->filled("q")) {
+            $searchTerm = "%" . $request->q . "%";
+
+            $query->where("name", "like", $searchTerm)->orWhereHas("provider", function ($q) use ($searchTerm) {
+                $q->where("domain", "like", $searchTerm);
+            });
+        }
+
+        $perPage = $request->input("per_page", 10);
+        return $query->paginate($perPage);
     }
 
     #[
@@ -108,9 +125,12 @@ class RoleController extends Controller
     public function create(RoleRequest $request)
     {
         $data = $request->only("name", "provider_id");
+        $existingRole = Role::where("name", $data["name"])->where("provider_id", $data["provider_id"])->first();
+        if ($existingRole) {
+            return response()->json(["message" => "Role with this name already exists for this provider"], 422);
+        }
 
         try {
-            // $role = $this->roleRepository->create($data);
             $role = Role::create($data);
 
             return response()->json($role, 201);
@@ -119,7 +139,6 @@ class RoleController extends Controller
         }
     }
 
-    // find
     #[
         OA\Get(
             path: "/api/v1/roles/{id}",
@@ -158,14 +177,13 @@ class RoleController extends Controller
     ]
     public function find($id)
     {
-        $role = $this->roleRepository->find($id);
+        $role = Role::find($id);
         if (empty($role)) {
             return response()->json(["message" => "Role not found"], 404);
         }
         return response()->json($role);
     }
 
-    // update
     #[
         OA\Put(
             path: "/api/v1/roles/{id}",
@@ -233,15 +251,14 @@ class RoleController extends Controller
     public function update(RoleRequest $request, $id)
     {
         $data = $request->only("name", "provider_id");
-        // find role
-        $role = $this->roleRepository->find($id);
+        $role = Role::find($id);
 
         if (empty($role)) {
             return response()->json(["message" => "Role not found"], 404);
         }
 
         try {
-            $role = $this->roleRepository->update($id, $data);
+            $role->update($data);
 
             return response()->json($role, 200);
         } catch (QueryException $e) {
@@ -287,10 +304,7 @@ class RoleController extends Controller
     ]
     public function delete(int $id)
     {
-        Log::info("Updating role" . $id);
-        // $role = $this->roleRepository->find($id);
         $role = Role::find($id);
-        Log::info("Updating role" . $role);
 
         if (empty($role)) {
             return response()->json(

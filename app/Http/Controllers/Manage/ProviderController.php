@@ -8,7 +8,6 @@ use App\Models\Provider;
 // use App\Repositories\RepositoryInterface;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 
 class ProviderController extends Controller
@@ -37,9 +36,14 @@ class ProviderController extends Controller
             ],
         ),
     ]
-    public function all()
+    public function all(Request $request)
     {
-        return Provider::all();
+        $query = Provider::query();
+        if ($request->filled("q")) {
+            $query->where("domain", "like", "%" . $request->q . "%");
+        }
+        $perPage = $request->input("per_page", 10);
+        return $query->paginate($perPage);
     }
 
     #[
@@ -73,7 +77,7 @@ class ProviderController extends Controller
                                 property: "secret_key",
                                 description: "secret key for JWT token",
                                 type: "string",
-                                example: "4sc8s28v4d8s",
+                                example: "",
                             ),
                         ],
                         required: ["domain", "logoutUrl", "secret_key"],
@@ -101,13 +105,8 @@ class ProviderController extends Controller
     ]
     public function create(ProviderRequest $request)
     {
-        $data = $request->only("domain", "secret_key", "logoutUrl");
-
+        $data = $request->only("domain", "secret_key", "logoutUrl", "protocol", "url", "name");
         $provider = Provider::create($data);
-
-        if (empty($provider)) {
-            return response()->json(["message" => "Error during saving provider"], 500);
-        }
 
         return response()->json(["provider" => $provider], 201);
     }
@@ -237,7 +236,7 @@ class ProviderController extends Controller
     ]
     public function update(Request $request, $id)
     {
-        $data = $request->only("domain", "secret_key", "logoutUrl");
+        $data = $request->only("domain", "secret_key", "logoutUrl", "protocol", "url", "name");
 
         try {
             $provider = Provider::find($id);
@@ -249,6 +248,10 @@ class ProviderController extends Controller
             return response()->json(["message" => "Provider not found"], 404);
         }
 
+        // se secret_key non viene passato, non lo aggiorna
+        if (empty($data["secret_key"])) {
+            unset($data["secret_key"]);
+        }
         $provider->update($data);
 
         return response()->json(["provider" => $provider], 200);

@@ -29,9 +29,26 @@ class ProviderUserRoleController extends Controller
             ],
         ),
     ]
-    public function all()
+    public function all(Request $request)
     {
-        return ProviderUserRole::all();
+        $query = ProviderUserRole::with(["user", "provider", "role"]);
+
+        if ($request->filled("q")) {
+            $searchTerm = "%" . $request->q . "%";
+
+            $query
+                ->whereHas("user", function ($q) use ($searchTerm) {
+                    $q->where("email", "like", $searchTerm)->orWhere("name", "like", $searchTerm);
+                })
+                ->orWhereHas("provider", function ($q) use ($searchTerm) {
+                    $q->where("domain", "like", $searchTerm);
+                })
+                ->orWhereHas("role", function ($q) use ($searchTerm) {
+                    $q->where("name", "like", $searchTerm);
+                });
+        }
+
+        return $query->paginate($request->input("per_page", 10));
     }
 
     #[
@@ -122,7 +139,6 @@ class ProviderUserRoleController extends Controller
         return response()->json(["providerUserRole" => $providerUserRole], 200);
     }
 
-    // update
     #[
         OA\Put(
             path: "/api/v1/provider-user-roles/{id}",
@@ -253,7 +269,6 @@ class ProviderUserRoleController extends Controller
             $providerUserRole = ProviderUserRole::where("provider_id", $provider_id)
                 ->where("user_id", $user_id)
                 ->where("role_id", $role_id)
-                // get array
                 ->get();
 
             return response()->json(["data" => $providerUserRole], 200);

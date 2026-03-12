@@ -6,6 +6,7 @@ use App\Http\Controllers\Manage\UserController;
 use App\Http\Controllers\Manage\RoleController;
 use App\Http\Controllers\Manage\ProviderUserRoleController;
 use App\Http\Controllers\Manage\ProviderController;
+use App\Http\Controllers\Manage\SessionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,7 +24,7 @@ Route::prefix("v1")->group(function () {
     // middleware client per le rotte protetto dalla classe CheckClientCredentials
     // di Passport
 
-    Route::middleware(["client"])->group(function () {
+    Route::middleware(["role:admin"])->group(function () {
         // providers
         Route::get("providers", [ProviderController::class, "all"]);
         Route::post("providers", [ProviderController::class, "create"]);
@@ -40,6 +41,7 @@ Route::prefix("v1")->group(function () {
 
         // users
         Route::get("users", [UserController::class, "all"]);
+        Route::post("users", [UserController::class, "create"]);
         Route::get("users/{id}", [UserController::class, "find"])->where(["id" => "[0-9]+"]);
         Route::put("users/{id}", [UserController::class, "update"])->where(["id" => "[0-9]+"]);
         Route::delete("users/{id}", [UserController::class, "delete"])->where(["id" => "[0-9]+"]);
@@ -59,5 +61,11 @@ Route::prefix("v1")->group(function () {
         // provider-user-roles/has-relation?provider_id=1&user_id=1
         // provider-user-roles/has-relation?role_id=1
         Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
+    });
+
+    // sessions
+    Route::middleware(["client"])->group(function () {
+        Route::get("sessions/check", [SessionController::class, "check"]);
+        Route::post("sessions/logout", [SessionController::class, "logout"]);
     });
 });

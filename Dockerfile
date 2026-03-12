@@ -12,10 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl-dev \
     libzip-dev \
     libonig-dev \
-    locales \
     zip \
-    jpegoptim optipng pngquant gifsicle \
-    vim \
     unzip \
     git \
     curl \
@@ -49,7 +46,12 @@ COPY . .
 RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
 # Install npm dependencies and compile assets
-# RUN npm install && npm run prod
+RUN npm install
+
+# create passport keys if they don't exist
+RUN if [ ! -f /var/www/storage/oauth-private.key ] || [ ! -f /var/www/storage/oauth-public.key ]; then \
+        php artisan passport:keys --force; \
+    fi
 
 # Change ownership and permissions
 RUN chown -R www-data:www-data /var/www/storage && \
@@ -81,11 +83,15 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN mkdir -p /var/log/supervisor /var/run/supervisor /var/run/php-fpm && \
     chmod 755 /var/run/supervisor
 
+
+RUN npm run build
+
 # Create entrypoint script
 RUN echo '#!/bin/bash\n\
 # Start supervisor without running artisan commands\n\
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\
 ' > /entrypoint.sh && chmod +x /entrypoint.sh
+
 
 EXPOSE 80
 ENTRYPOINT ["/entrypoint.sh"]

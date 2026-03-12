@@ -1,0 +1,23 @@
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=123
+      - MYSQL_DATABASE=idp_staging
+    volumes:
+      - mariadb:/var/lib/mysql
+    networks:
+      - database-network
+    command: --default-authentication-plugin=mysql_native_password
+
+volumes:
+  mariadb:
+    driver: local
+
+networks:
+  database-network:
+    name: database-network

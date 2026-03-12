@@ -2,35 +2,34 @@
 
 namespace App\Http\Controllers\Manage;
 
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use App\Http\Services\Mailer;
+// use App\Http\Services\Mailer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use App\Repositories\RepositoryInterface;
-use Illuminate\Support\Facades\Validator;
-use App\Repositories\UserRepositoryInterface;
+use Illuminate\Support\Facades\Hash;
+// use App\Repositories\RepositoryInterface;
+// use App\Repositories\UserRepositoryInterface;
 use OpenApi\Attributes as OA;
 
 class UserController extends Controller
 {
-    protected $userRepository;
+    // protected $userRepository;
     protected $verificationTokenRepository;
-    protected $mailerService;
+    // protected $mailerService;
 
-    public function __construct(
-        UserRepositoryInterface $userRepository,
-        RepositoryInterface $verificationToken,
-        Mailer $mailerService,
-    ) {
-        $this->userRepository = $userRepository;
-        $this->verificationTokenRepository = $verificationToken;
-        $this->mailerService = $mailerService;
+    public function __construct()
+    {
+        // Mailer $mailerService,
+        // $this->userRepository = $userRepository;
+        // $this->verificationTokenRepository = $verificationToken;
+        // $this->mailerService = $mailerService;
     }
+    // UserRepositoryInterface $userRepository,
+    // RepositoryInterface $verificationToken,
 
     #[
         OA\Get(
@@ -53,22 +52,18 @@ class UserController extends Controller
     {
         $query = User::query();
 
-        // 1. Ricerca (Filter)
         if ($request->filled("q")) {
             $query->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
         }
 
-        // 2. Ordinamento (OrderBy)
-        // PrimeVue invia sortField (stringa) e sortOrder (1 per ASC, -1 per DESC)
         if ($request->filled("sortField")) {
             $field = $request->sortField;
             $direction = $request->sortOrder == 1 ? "asc" : "desc";
             $query->orderBy($field, $direction);
         } else {
-            $query->orderBy("created_at", "desc");
+            $query->orderBy("created_at", "asc");
         }
 
-        // 3. Paginazione
         $perPage = $request->get("per_page", 10);
         $users = $query->paginate($perPage);
 
@@ -151,31 +146,25 @@ class UserController extends Controller
     ]
     public function create(UserRequest $request)
     {
-        $credentials = $request->only("username", "password", "password_confirmation", "email", "name", "surname");
+        $data = $request->only(["username", "password", "email", "name", "surname", "enabled"]);
 
         DB::beginTransaction();
 
         try {
-            // unset password_confirmation
-            unset($credentials["password_confirmation"]);
-            $user = $this->userRepository->create($credentials);
-            // TODO: in un secondo momento gestisco la verifica degli utenti
-            // $verificationToken = $this->verificationTokenRepository->create([
-            //     "token" => Str::random(60),
-            //     "user_id" => $user->id,
-            // ]);
+            $data["password"] = Hash::make($data["password"]);
+
+            $data["enabled"] = $request->input("enabled", true);
+            $data["is_verified"] = true;
+
+            $user = User::create($data);
+
+            DB::commit();
+            return response()->json(["user" => $user], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::info($e);
+            Log::error("Errore creazione utente: " . $e->getMessage());
             return response()->json(["message" => "Error during saving user"], 500);
         }
-
-        DB::commit();
-
-        // $body = view("mail.complete-registration", ["token" => $verificationToken->token, "user" => $user])->render();
-        // $this->mailerService->dispatchEmail($body, [$user->email], "Completa la registrazione");
-
-        return response()->json(["user" => $user], 200);
     }
 
     #[
@@ -217,7 +206,7 @@ class UserController extends Controller
     public function find($id)
     {
         try {
-            $user = $this->userRepository->find($id);
+            $user = User::find($id);
         } catch (\Exception $e) {
             return response()->json([
                 "message" => "Error during finding user",
@@ -230,11 +219,9 @@ class UserController extends Controller
         if (empty($user)) {
             return response()->json(["message" => "User not found"], 404);
         }
-
         return response()->json($user);
     }
 
-    // user update
     #[
         OA\Put(
             path: "/api/v1/users/{id}",
@@ -320,24 +307,32 @@ class UserController extends Controller
     ]
     public function update(UserRequest $request, $id)
     {
-        $credentials = $request->only("email", "username", "password", "name", "surname");
+        $credentials = $request->only("email", "username", "name", "surname", "enabled");
 
-        $user = $this->userRepository->find($id);
+        if ($request->filled("password")) {
+            $credentials["password"] = Hash::make($request->password);
+        }
+        $user = User::find($id);
+
         if (empty($user)) {
             return response()->json([], 404);
         }
+
         try {
             $user->update($credentials);
         } catch (\Exception $e) {
-            // errore 500
-            return response()->json([
-                "message" => "Error during updating user",
-                "error" => [
-                    "code" => 500,
-                    "message" => $e->getMessage(),
+            return response()->json(
+                [
+                    "message" => "Error during updating user",
+                    "error" => [
+                        "code" => 500,
+                        "message" => $e->getMessage(),
+                    ],
                 ],
-            ]);
+                500,
+            );
         }
+
         return response()->json(
             [
                 "user" => UserResource::make($user),
@@ -346,7 +341,6 @@ class UserController extends Controller
         );
     }
 
-    // user delete
     #[
         OA\Delete(
             path: "/api/v1/users/{id}",
@@ -385,7 +379,7 @@ class UserController extends Controller
     ]
     public function delete($id)
     {
-        $user = $this->userRepository->find($id);
+        $user = User::find($id);
         if (empty($user)) {
             return response()->json([], 404);
         }
@@ -393,7 +387,6 @@ class UserController extends Controller
         try {
             $user->delete();
         } catch (\Exception $e) {
-            // errore 500
             return response()->json([
                 "message" => "Error during deleting user",
                 "error" => [
