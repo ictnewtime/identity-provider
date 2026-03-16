@@ -35,7 +35,6 @@ class Authenticated
                 return $this->forceLogoutAndRedirect($request, "Configurazione di sicurezza mancante.");
             }
 
-            // VALIDAZIONE MANUALE CON LCOBUCCI (Esattamente come in tokenCretion)
             $algo = config("jwt.algo", "HS256");
             $keys = config("jwt.keys", []);
 
@@ -44,13 +43,13 @@ class Authenticated
 
             // Proviamo a decodificare. Se la firma o la sintassi sono errate, lancerà un'eccezione
             $payload = $customProvider->decode($tokenString);
+            Log::debug("Token decodificato: " . json_encode($payload));
 
             // VERIFICA SCADENZA (exp)
             if (isset($payload["exp"]) && $payload["exp"] < time()) {
                 throw new TokenExpiredException("Token has expired");
             }
 
-            // ESTRAZIONE UTENTE (sub)
             $userId = $payload["sub"] ?? null;
             if (!$userId) {
                 Log::warning("Fallimento: Token decodificato ma claim 'sub' (User ID) mancante.");
@@ -67,7 +66,6 @@ class Authenticated
             // così Auth::user() funzionerà nel resto del codice!
             Auth::login($user);
 
-            // CONTROLLO FISICO SUL DATABASE (La famosa riga di sessione)
             $sessionExists = Session::where("token", $tokenString)->exists();
 
             if (!$sessionExists) {
@@ -82,6 +80,7 @@ class Authenticated
         } catch (TokenExpiredException $e) {
             return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));
         } catch (\Exception $e) {
+            Log::error("Errore decodifica JWT: " . $e->getMessage());
             return $this->forceLogoutAndRedirect($request, __("auth.token-invalid"));
         }
 
@@ -92,22 +91,26 @@ class Authenticated
     {
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
+        $domain = env("PROVIDER_DOMAIN");
 
-        // Distruggiamo la sessione web nativa di Laravel
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        // Eliminiamo i cookie accodandoli per la risposta
-        $domain = env("PROVIDER_DOMAIN"); // o null
+        // 1. Accodiamo la distruzione dei cookie (funziona sia su Web che su API)
         Cookie::queue(Cookie::forget($cookieName, "/", $domain));
         Cookie::queue(Cookie::forget("token", "/", $domain));
 
-        // Se è una richiesta API pura o AJAX (non Inertia)
+        // 2. Se è una richiesta API pura o AJAX (non Inertia), rispondiamo subito con 401
+        // SENZA toccare la sessione web (evitando il crash)
         if ($request->expectsJson() && !$request->header("X-Inertia")) {
             return response()->json(["message" => $message], 401);
         }
 
+        // 3. Se siamo su una rotta WEB, la sessione esiste: procediamo a distruggerla
+        if ($request->hasSession()) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        // 4. Reindirizziamo l'utente al login
         return redirect()
             ->route("loginForm")
             ->withErrors([

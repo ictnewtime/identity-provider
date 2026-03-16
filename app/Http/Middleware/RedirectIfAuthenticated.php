@@ -80,28 +80,25 @@ class RedirectIfAuthenticated
             $request,
             $request->input("redirect_to"),
         );
+        Log::info("Seamless SSO Response: " . json_encode($ssoData));
 
         if (!$ssoData) {
-            Log::warning("Seamless SSO Fallito: L'utente non ha i permessi. Lascio caricare il form di login.");
+            Log::warning("Seamless SSO Fallito: L'utente non ha i permessi per l'App {$provider_id}.");
 
-            // Iniettiamo un messaggio di errore nella sessione per la richiesta corrente.
-            // Inertia lo leggerà in automatico mettendolo in $page.props.errors.login
-            $request
-                ->session()
-                ->now(
-                    "errors",
-                    (new MessageBag())->add(
-                        "login",
-                        'Non hai i permessi per accedere a questa applicazione. Accedi con un altro account o attendi l\'abilitazione.',
-                    ),
-                );
+            // Prima lo lasciavamo al login. Ora lo slogghiamo e lo mandiamo alla pagina "Unauthorized".
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
-            // Invece di fare un redirect, "apriamo le porte" e lasciamo che
-            // la richiesta arrivi al LoginController che mostrerà la pagina!
-            return $next($request);
+            // Dimentichiamo anche il cookie master per sicurezza
+            $cookieName = "idp_token_" . config("idp.provider_id");
+            $cookieIdp = Cookie::forget($cookieName, "/", env("PROVIDER_DOMAIN"));
+
+            return redirect()->route("sso.unauthorized")->withCookie($cookieIdp);
         }
 
         Cookie::queue($ssoData["cookie"]);
+
         return redirect()->away($ssoData["url"])->withCookie($ssoData["cookie"]);
     }
 
@@ -125,7 +122,7 @@ class RedirectIfAuthenticated
 
         // 3. Ricarichiamo la pagina di login passandogli I PARAMETRI, i messaggi e uccidendo i cookie
         return redirect()
-            ->route("loginForm", $queryParams) // <-- Passiamo l'array qui!
+            ->route("loginForm", $queryParams)
             ->withErrors(["login" => $errorMessage])
             ->withCookie($cookie1)
             ->withCookie($cookie2);

@@ -4,16 +4,13 @@ namespace App\Http\Controllers\Manage;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\SessionRequest;
-use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Validator;
-use App\Models\Session;
-use App\Models\User;
 use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Log;
-use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Models\Session;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 
 class SessionController extends Controller
 {
@@ -26,28 +23,6 @@ class SessionController extends Controller
         $this->tokenService = $tokenService;
     }
 
-    #[
-        OA\Get(
-            path: "/api/v1/sessions",
-            summary: "list of sessions",
-            description: "Returns the entire list of sessions",
-            operationId: "Session.all",
-            tags: ["Session"],
-            security: [["passport" => []]],
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 500,
-                    description: "Internal server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
     public function all(Request $request)
     {
         $query = Session::select(
@@ -77,55 +52,33 @@ class SessionController extends Controller
     }
 
     /**
-     * Controlla lo stato di una sessione (Chiamata dall'IdP Extension)
+     * Controlla lo stato di una sessione (Chiamata dall'IdP Extension M2M)
      */
-    #[
-        OA\Get(
-            path: "/api/v1/sessions/{id}",
-            summary: "Returns session by id",
-            description: "Returns session details by id",
-            operationId: "Session.check",
-            tags: ["Session"],
-            security: [["passport" => []]],
-            parameters: [
-                new OA\Parameter(
-                    in: "path",
-                    required: true,
-                    description: "Session id",
-                    name: "id",
-                    schema: new OA\Schema(type: "string"),
-                ),
-            ],
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 500,
-                    description: "Internal server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
     public function check(Request $request): JsonResponse
     {
-        $ip_address = $request->query("ip_address", $request->ip());
-        $provider_id = $request->query("provider_id");
-        $user_id = $request->query("user_id");
-        $user_agent = $request->query("user_agent");
+        // 1. Recuperiamo i dati ultra-sicuri che il middleware ha estratto dal JWT
+        $providerId = $request->attributes->get("jwt_provider_id");
+        $userId = $request->attributes->get("jwt_user_id");
 
+        // Se mancano, c'è un problema grave col middleware
+        if (!$providerId || !$userId) {
+            return response()->json(["valid" => false, "message" => "JWT Claims missing"], 401);
+        }
+
+        // 2. Validiamo solo i dati ambientali che arrivano dalla GET di App2
+        $validated = $request->validate([
+            "ip_address" => "nullable|ip",
+            "user_agent" => "nullable|string",
+        ]);
+
+        $ip_address = $validated["ip_address"] ?? $request->ip();
+        $user_agent = $validated["user_agent"] ?? $request->userAgent();
+
+        // 3. Logica di Business
         $result = $this->sessionService->validateAndRefreshSession(
             $ip_address,
-            $provider_id,
-            $user_id,
+            $providerId,
+            $userId,
             $user_agent,
             $this->tokenService,
         );
@@ -143,13 +96,16 @@ class SessionController extends Controller
         return response()->json(
             [
                 "valid" => true,
-                "token" => $result["token"], // Null se l'IP non cambia, JWT nuovo se cambia
+                "token" => $result["token"] ?? null,
             ],
             200,
         );
     }
 
-    public function logout(Request $request): JsonResponse
+    /**
+     * Chiamata API M2M da App esterne per innescare il Single Logout (SLO).
+     */
+    public function logout_session(Request $request): JsonResponse
     {
         $request->validate([
             "user_id" => "required|integer",
@@ -157,72 +113,32 @@ class SessionController extends Controller
         ]);
 
         $userId = $request->input("user_id");
-        $providerId = $request->input("provider_id");
 
-        $deleted = $this->sessionService->destroySession($userId, $providerId);
+        // 1. Recuperiamo tutte le sessioni prima di cancellarle
+        $sessions = Session::where("user_id", $userId)->get();
+        $deletedCount = $sessions->count();
+        Log::info("Single Logout eseguito. Sessioni distrutte: " . $deletedCount);
 
-        if (!$deleted) {
-            return response()->json(
-                [
-                    "success" => false,
-                    "message" => "Session not found or already deleted.",
-                ],
-                404,
-            );
+        // 2. Le eliminiamo ciclando sui modelli
+        // In questo modo, il Trait CustomAuditable intercetterà l'evento 'deleted' per ciascuna.
+        foreach ($sessions as $session) {
+            $session->delete();
         }
-
         return response()->json(
             [
                 "success" => true,
-                "message" => "Session successfully destroyed.",
+                "message" => "Single Logout eseguito.",
             ],
             200,
         );
     }
 
     /**
-     * Delete session by id
+     * Chiamata API CRUD dal Pannello Admin IdP.
      */
-    #[
-        OA\Delete(
-            path: "/api/v1/sessions/{id}",
-            summary: "Delete session by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "Session.delete",
-            tags: ["Session"],
-            security: [["passport" => []]],
-            parameters: [
-                new OA\Parameter(
-                    in: "path",
-                    required: true,
-                    description: "Session id",
-                    name: "id",
-                    schema: new OA\Schema(type: "string"),
-                ),
-            ],
-            responses: [
-                new OA\Response(
-                    response: 204,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 500,
-                    description: "Internal server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
-    function delete($id)
+    public function delete($id)
     {
-        $session = Session::findOrFail($id);
-        $session->delete();
+        Session::findOrFail($id)->delete();
         return response()->json(null, 204);
     }
 }

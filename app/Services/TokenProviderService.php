@@ -63,10 +63,10 @@ class TokenProviderService
                 [
                     "iss" => url("/"),
                     "iat" => time(),
-                    "exp" => time() + $this->ttlInSeconds,
+                    "exp" => time() + ($this->ttlInSeconds ?? 3600),
                     "nbf" => time(),
                     "jti" => bin2hex(random_bytes(10)),
-                    "sub" => $user->id,
+                    "sub" => (string) $user->id,
                     "prv" => $provider->id,
                 ],
                 ["payload" => $payload],
