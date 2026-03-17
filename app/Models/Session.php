@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use OwenIt\Auditing\Contracts\Auditable;
+use App\Traits\CustomAuditable;
 
-class Session extends Model implements Auditable
+class Session extends Model
 {
+    use CustomAuditable;
     use HasFactory;
-    use \OwenIt\Auditing\Auditable;
 
     protected $table = "sessions";
 

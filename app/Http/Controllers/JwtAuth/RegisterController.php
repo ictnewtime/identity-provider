@@ -18,19 +18,21 @@ use OpenApi\Attributes as OA;
  * Date: 13/04/2018
  * Time: 11:54
  */
-class RegisterController extends Controller {
-
+class RegisterController extends Controller
+{
     private $accountService;
 
-    public function __construct(IAccountService $accountService){
+    public function __construct(IAccountService $accountService)
+    {
         $this->accountService = $accountService;
     }
 
     /**
      * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
      */
-    public function showRegisterForm(){
-        return view('auth.register');
+    public function showRegisterForm()
+    {
+        return view("auth.register");
     }
 
     /**
@@ -39,104 +41,57 @@ class RegisterController extends Controller {
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    #[OA\Post(
-        path: '/v1/register',
-        summary: 'register new user',
-        description: 'Use to create new user',
-        operationId: 'register',
-        tags: ['JWT Auth'],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: 'application/x-www-form-urlencoded',
-                schema: new OA\Schema(
-                    type: 'object',
-                    properties: [
-                        new OA\Property(
-                            property: 'email',
-                            description: 'User e-mail',
-                            type: 'string'
-                        ),
-                        new OA\Property(
-                            property: 'password',
-                            description: 'User password',
-                            type: 'string'
-                        ),
-                        new OA\Property(
-                            property: 'password_confirmation',
-                            description: 'Confirm password',
-                            type: 'string'
-                        ),
-                        new OA\Property(
-                            property: 'name',
-                            description: 'User name',
-                            type: 'string'
-                        ),
-                        new OA\Property(
-                            property: 'surname',
-                            description: 'User surname',
-                            type: 'string'
-                        )
-                    ]
-                ),
-            ),
-        ),
-        responses: [
-            new OA\Response(
-                response: 200,
-                description: 'Operation successful',
-                content: new OA\MediaType(
-                    mediaType: 'application/json'
-                )
-            )
-        ]
-    )]
-    public function register(Request $request){
-
-        $credentials = $request->only('email', 'password', 'password_confirmation', 'name', 'surname');
+    public function register(Request $request)
+    {
+        $credentials = $request->only("email", "password", "password_confirmation", "name", "surname");
 
         $validator = $this->validator($credentials);
 
-        if($validator->fails()){
-
-            if($request->ajax() || $request->wantsJson()){
-                return response()->json([
-                    'success' => false,
-                    'message' => $validator->errors()
-                ], 400);
+        if ($validator->fails()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(
+                    [
+                        "success" => false,
+                        "message" => $validator->errors(),
+                    ],
+                    400,
+                );
             } else {
-                return redirect('registerForm')
-                    ->withErrors($validator);
+                return redirect("registerForm")->withErrors($validator);
             }
         }
 
         try {
-
-            $this->accountService->registerUser($credentials['email'],
-                $credentials['password'], $credentials['name'], $credentials['surname']);
+            $this->accountService->registerUser(
+                $credentials["email"],
+                $credentials["password"],
+                $credentials["name"],
+                $credentials["surname"],
+            );
         } catch (SqlException $e) {
-
-            if($request->ajax() || $request->wantsJson()){
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Fatal error'
-                ], 500);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(
+                    [
+                        "success" => false,
+                        "message" => "Fatal error",
+                    ],
+                    500,
+                );
             } else {
-                return redirect('registerForm')
-                    ->withErrors([
-                        'message' => 'Fatal error'
-                    ]);
+                return redirect("registerForm")->withErrors([
+                    "message" => "Fatal error",
+                ]);
             }
         }
 
-        if($request->ajax() || $request->wantsJson()){
+        if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
-                'success' => true,
-                'message' => 'User registered'
+                "success" => true,
+                "message" => "User registered",
             ]);
         } else {
-            return redirect('loginForm')->with([
-                'success' => __('auth.label-registration-success')
+            return redirect("loginForm")->with([
+                "success" => __("auth.label-registration-success"),
             ]);
         }
     }
@@ -146,35 +101,34 @@ class RegisterController extends Controller {
      * @param $code
      * @return \Illuminate\Http\JsonResponse
      */
-    public function verify(Request $request, $code){
+    public function verify(Request $request, $code)
+    {
         // TODO ci può accedere solo se guest
         try {
             $this->accountService->verifyUser($code);
-        } catch (Exception $e){
+        } catch (Exception $e) {
             // TODO controllare se è ajax oppure non ajax
-            return redirect('loginForm')->withErrors([
-                'message' => [
-                    __('auth.err-verification-code')
-                ]
+            return redirect("loginForm")->withErrors([
+                "message" => [__("auth.err-verification-code")],
             ]);
         }
 
         // TODO controllare se è ajax oppure non ajax
-        return redirect('loginForm')->with([
-            'success' => __('auth.label-account-actived')
+        return redirect("loginForm")->with([
+            "success" => __("auth.label-account-actived"),
         ]);
     }
 
     /*
      * Returns the validator for user data
      */
-    private function validator(array $data){
+    private function validator(array $data)
+    {
         return Validator::make($data, [
-            'name' => 'required|string|max:50',
-            'surname' => 'required|string|max:50',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
+            "name" => "required|string|max:50",
+            "surname" => "required|string|max:50",
+            "email" => "required|string|email|max:255|unique:users",
+            "password" => "required|string|min:6|confirmed",
         ]);
     }
-
 }

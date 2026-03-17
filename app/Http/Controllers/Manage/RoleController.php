@@ -47,6 +47,7 @@ class RoleController extends Controller
     public function all(Request $request)
     {
         $query = Role::with("provider");
+
         $provider_id = $request->input("provider_id");
 
         if ($provider_id) {
@@ -57,9 +58,10 @@ class RoleController extends Controller
 
         if ($request->filled("q")) {
             $searchTerm = "%" . $request->q . "%";
-
-            $query->where("name", "like", $searchTerm)->orWhereHas("provider", function ($q) use ($searchTerm) {
-                $q->where("domain", "like", $searchTerm);
+            $query->where(function ($qBuilder) use ($searchTerm) {
+                $qBuilder->where("name", "like", $searchTerm)->orWhereHas("provider", function ($q) use ($searchTerm) {
+                    $q->where("domain", "like", $searchTerm);
+                });
             });
         }
 
