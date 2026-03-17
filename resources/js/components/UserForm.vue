@@ -16,7 +16,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["user-created", "user-updated"]);
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 const loading = ref(false);
@@ -134,6 +134,7 @@ const fetchUser = async (id) => {
             detail: trans("admin.users.toast.load_user_error"),
             life: 3000,
         });
+        emit("item-error", err);
     } finally {
         loading.value = false;
     }
@@ -170,7 +171,7 @@ const submit = async () => {
                 : trans("admin.users.toast.detail_created"),
             life: 3000,
         });
-        emit(isEditMode.value ? "user-updated" : "user-created");
+        emit("item-saved");
         resetForm();
     } catch (error) {
         toast.add({
@@ -179,6 +180,7 @@ const submit = async () => {
             detail: trans("admin.users.toast.submit_error"),
             life: 3000,
         });
+        emit("item-error", error);
 
         if (error.response?.data?.errors) {
             const backendErrors = error.response.data.errors;

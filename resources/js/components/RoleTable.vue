@@ -14,6 +14,7 @@ import Button from "primevue/button";
 
 import RoleForm from "./RoleForm.vue";
 
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 const filter = ref("");
@@ -43,6 +44,7 @@ const loadRoles = (page = 1) => {
                 detail: trans("admin.roles.toast.load_error"),
                 life: 3000,
             });
+            emit("item-error", err);
         })
         .finally(() => {
             loading.value = false;
@@ -100,6 +102,7 @@ const deleteRole = () => {
                 detail: trans("admin.roles.toast.delete_success"),
                 life: 3000,
             });
+            emit("item-saved");
         })
         .catch((error) => {
             console.error(error);
@@ -109,6 +112,7 @@ const deleteRole = () => {
                 detail: trans("admin.roles.toast.delete_error"),
                 life: 3000,
             });
+            emit("item-error", error);
         });
 };
 
@@ -219,7 +223,7 @@ onMounted(() => {
             modal
             :draggable="false"
         >
-            <RoleForm :selectedRole="selectedRole" @role-saved="onRoleSaved" />
+            <RoleForm :selectedRole="selectedRole" @item-saved="onRoleSaved" />
         </Dialog>
 
         <Dialog

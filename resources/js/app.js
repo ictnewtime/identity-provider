@@ -10,6 +10,7 @@ import { i18nVue } from "laravel-vue-i18n";
 import ToastService from "primevue/toastservice";
 import Tooltip from "primevue/tooltip";
 import "../css/app.css";
+import Notification from "./components/Notification.vue";
 
 const BrandPreset = definePreset(Aura, {
     semantic: {
@@ -82,8 +83,7 @@ createInertiaApp({
 
         // (Opzionale) Se hai un componente Notification che vuoi avere
         // DAVVERO ovunque senza importarlo ogni volta, puoi registrarlo qui:
-        // import Notification from './components/Notification.vue';
-        // app.component('notification', Notification);
+        app.component("notification", Notification);
 
         // 4. Monta l'app sull'elemento radice fornito da Inertia
         app.mount(el);

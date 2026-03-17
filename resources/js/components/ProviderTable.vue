@@ -14,6 +14,7 @@ import Button from "primevue/button";
 
 import ProviderForm from "./ProviderForm.vue";
 
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 const filter = ref("");
@@ -43,6 +44,7 @@ const loadProviders = (page = 1) => {
                 detail: trans("admin.providers.toast.load_error"),
                 life: 3000,
             });
+            emit("item-error", err);
         })
         .finally(() => {
             loading.value = false;
@@ -99,6 +101,7 @@ const deleteProvider = () => {
                 detail: trans("admin.providers.toast.delete_success"),
                 life: 3000,
             });
+            emit("item-saved");
         })
         .catch((error) => {
             console.error(error);
@@ -108,6 +111,7 @@ const deleteProvider = () => {
                 detail: trans("admin.providers.toast.delete_error"),
                 life: 3000,
             });
+            emit("item-error", error);
         });
 };
 
@@ -213,7 +217,7 @@ onMounted(() => {
             modal
             :draggable="false"
         >
-            <ProviderForm :selectedProvider="selectedProvider" @provider-saved="onProviderSaved" />
+            <ProviderForm :selectedProvider="selectedProvider" @item-saved="onProviderSaved" />
         </Dialog>
 
         <Dialog

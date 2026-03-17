@@ -15,6 +15,7 @@ import Tag from "primevue/tag";
 
 import UserForm from "./UserForm.vue";
 
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 const filter = ref("");
@@ -42,6 +43,7 @@ const loadUsers = (page = 1) => {
                 detail: trans("admin.users.toast.load_error"),
                 life: 3000,
             });
+            emit("item-error", err);
         })
         .finally(() => {
             loading.value = false;
@@ -97,6 +99,7 @@ const deleteUser = () => {
                 detail: trans("admin.users.toast.delete_success"),
                 life: 3000,
             });
+            emit("item-saved");
         })
         .catch((error) => {
             toast.add({
@@ -105,6 +108,7 @@ const deleteUser = () => {
                 detail: trans("admin.users.toast.delete_error"),
                 life: 3000,
             });
+            emit("item-error", error);
         });
 };
 
@@ -208,7 +212,7 @@ onMounted(() => {
             modal
             :draggable="false"
         >
-            <UserForm :selectedUser="selectedUser" @user-created="onUserSaved" @user-updated="onUserSaved" />
+            <UserForm :selectedUser="selectedUser" @item-saved="onUserSaved" />
         </Dialog>
 
         <Dialog

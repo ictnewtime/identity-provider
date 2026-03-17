@@ -14,7 +14,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["item-saved"]);
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 const loadingSubmit = ref(false);
@@ -46,7 +46,7 @@ const loadInitialData = async () => {
     try {
         const [usersRes, providersRes] = await Promise.all([
             window.axios.get("/admin/v1/users", { params: { per_page: 1000 } }),
-            window.axios.get("/admin/v1/providers", { params: { per_page: 1000 } }),
+            window.axios.get("/admin/v1/providers", { params: { per_page: 100 } }),
         ]);
         users.value = usersRes.data.data || usersRes.data;
         providers.value = providersRes.data.data || providersRes.data;
@@ -58,6 +58,7 @@ const loadInitialData = async () => {
             detail: trans("admin.provider_user_roles.toast.load_error"),
             life: 3000,
         });
+        emit("item-error", err);
     } finally {
         loadingData.value = false;
     }
@@ -79,6 +80,7 @@ const fetchRoles = async (providerId) => {
             detail: trans("admin.provider_user_roles.toast.roles_error"),
             life: 3000,
         });
+        emit("item-error", err);
     } finally {
         loadingRoles.value = false;
     }
@@ -165,6 +167,7 @@ const submit = async () => {
             detail: trans("admin.provider_user_roles.toast.submit_error"),
             life: 3000,
         });
+        emit("item-error", err);
 
         if (error.response?.data?.errors) {
             const backendErrors = error.response.data.errors;

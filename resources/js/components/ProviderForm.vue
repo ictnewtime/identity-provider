@@ -16,7 +16,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["provider-saved"]);
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 const loading = ref(false);
@@ -117,7 +117,7 @@ const submit = async () => {
                 : trans("admin.providers.toast.detail_created"),
             life: 3000,
         });
-        emit("provider-saved");
+        emit("item-saved");
         resetForm();
     } catch (error) {
         toast.add({
@@ -126,6 +126,7 @@ const submit = async () => {
             detail: trans("admin.providers.toast.submit_error"),
             life: 3000,
         });
+        emit("item-error", error);
 
         if (error.response?.data?.errors) {
             const backendErrors = error.response.data.errors;
@@ -163,6 +164,7 @@ const fetchProvider = async (id) => {
             detail: trans("admin.providers.toast.load_error"),
             life: 3000,
         });
+        emit("item-error", err);
     } finally {
         loading.value = false;
     }
@@ -202,6 +204,7 @@ const parseUrlAndFill = () => {
             detail: trans("admin.providers.toast.invalid_url"),
             life: 3000,
         });
+        emit("item-error", error);
     }
 };
 
