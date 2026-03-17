@@ -33,8 +33,8 @@ Route::middleware("guest")->group(function () {
 });
 
 Route::post("v2/login", [LoginController::class, "login"])->name("login");
-Route::post("logout", [LoginController::class, "logout"])->name("logout");
-Route::get("/sso/logout", [LoginController::class, "logout_sso"]);
+Route::post("logout", [LoginController::class, "logout_web"])->name("logout_web");
+Route::get("/sso/logout", [LoginController::class, "logout_sso"])->name("logout_sso");
 
 // Route::middleware("web.authenticated")
 //     ->get("authenticated", [LoginController::class, "authenticated"])
@@ -129,9 +129,8 @@ Route::prefix("admin")
 
 /********** CLIENT ROUTES ************/
 
-// TODO da rimuovere
 Route::prefix("client")
-    ->middleware(["web", "authenticated"])
+    ->middleware(["web"])
     ->group(function () {
         Route::prefix("v1")->group(function () {
             Route::get("unauthorized", function () {

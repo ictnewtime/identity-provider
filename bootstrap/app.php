@@ -13,10 +13,14 @@ use App\Http\Middleware\RedirectIfUnauthenticated;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\EncryptCookies as CustomEncryptCookies;
-use App\Http\Middleware\CheckClientCredentials;
+// use App\Http\Middleware\CheckClientCredentials;
+use Laravel\Passport\Http\Middleware\CheckClientCredentials;
+use App\Http\Middleware\ProviderClientCredentials;
+use App\Http\Middleware\VerifyExternalToken;
 
 // Middleware Core / Passport
 use Illuminate\Cookie\Middleware\EncryptCookies as CoreEncryptCookies;
+use Illuminate\Http\Request;
 use Laravel\Passport\Http\Middleware\CheckScopes;
 use Laravel\Passport\Http\Middleware\CheckForAnyScope;
 
@@ -57,21 +61,28 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             // Autenticazione & Ruoli
             "guest" => RedirectIfAuthenticated::class,
-            "web.authenticated" => RedirectIfUnauthenticated::class,
+            // "web.authenticated" => RedirectIfUnauthenticated::class,
             "authenticated" => Authenticated::class,
             "role" => CheckRole::class,
-            "client" => CheckClientCredentials::class,
+            "verify_external_token" => VerifyExternalToken::class,
 
             // Utility
             "localization" => Localization::class,
 
             // Passport
+            // "client" => CheckClientCredentials::class,
+            "client" => ProviderClientCredentials::class,
             "scopes" => CheckScopes::class,
             "scope" => CheckForAnyScope::class,
         ]);
         $middleware->web(append: [HandleInertiaRequests::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->shouldRenderJsonWhen(function (Request $request, \Throwable $e) {
+            if ($request->is("api/*")) {
+                return true;
+            }
+            return $request->expectsJson();
+        });
     })
     ->create();

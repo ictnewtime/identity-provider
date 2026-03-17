@@ -1,8 +1,6 @@
 <?php
 
-
 namespace App\Http\Controllers\JwtAuth;
-
 
 use App\Http\Controllers\Controller;
 use App\Repositories\RepositoryInterface;
@@ -18,85 +16,40 @@ class VerificationController extends Controller
     private $verificationTokenRepository;
     private $userRepository;
 
-
-    public function __construct(RepositoryInterface $verificationTokenRepository, UserRepositoryInterface $userRepository)
-    {
+    public function __construct(
+        RepositoryInterface $verificationTokenRepository,
+        UserRepositoryInterface $userRepository,
+    ) {
         $this->verificationTokenRepository = $verificationTokenRepository;
         $this->userRepository = $userRepository;
     }
 
-    #[OA\Post(
-        path: '/v1/complete-registration',
-        summary: 'Active user',
-        description: 'Activate user using token received in the email',
-        operationId: 'VerificationController.verify',
-        tags: ['JWT Auth'],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: 'application/x-www-form-urlencoded',
-                schema: new OA\Schema(
-                    type: 'object',
-                    properties: [
-                        new OA\Property(
-                            property: 'token',
-                            description: 'Token',
-                            type: 'string'
-                        ),
-                        new OA\Property(
-                            property: 'password',
-                            description: 'User password',
-                            type: 'string',
-                            format: 'password'
-                        )
-                    ]
-                )
-            )
-        ),
-        responses: [
-            new OA\Response(
-                response: 204,
-                description: 'Operation successful',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
-                )
-            ),
-            new OA\Response(
-                response: 422,
-                description: 'Invalid data',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
-                )
-            ),
-            new OA\Response(
-                response: 500,
-                description: 'General error',
-                content: new OA\MediaType(
-                    mediaType: 'application/json',
-                )
-            )
-        ]
-    )]
     public function verify(Request $request)
     {
-        $validator = $this->validator($request->only('token', 'password'));
+        $validator = $this->validator($request->only("token", "password"));
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Invalid parameters.'
-            ], 422);
+            return response()->json(
+                [
+                    "message" => "Invalid parameters.",
+                ],
+                422,
+            );
         }
 
-        $token = $request->input('token');
-        $password = $request->input('password');
+        $token = $request->input("token");
+        $password = $request->input("password");
 
         $hashedPassword = Hash::make($password);
 
         $verificationToken = $this->verificationTokenRepository->retrieveByToken($token);
 
         if (empty($verificationToken) || !$verificationToken->is_valid) {
-            return response()->json([
-                'message' => 'Invalid token'
-            ], 422);
+            return response()->json(
+                [
+                    "message" => "Invalid token",
+                ],
+                422,
+            );
         }
 
         $user = $this->userRepository->find($verificationToken->user_id);
@@ -110,9 +63,12 @@ class VerificationController extends Controller
 
         if (!$user->save() || !$verificationToken->save()) {
             DB::rollBack();
-            return response()->json([
-                'message' => 'Error during user activation'
-            ], 500);
+            return response()->json(
+                [
+                    "message" => "Error during user activation",
+                ],
+                500,
+            );
         }
 
         DB::commit();
@@ -123,8 +79,8 @@ class VerificationController extends Controller
     private function validator($parameters)
     {
         return Validator::make($parameters, [
-            'token' => 'required|string',
-            'password' => 'required|min:5'
+            "token" => "required|string",
+            "password" => "required|min:5",
         ]);
     }
 }

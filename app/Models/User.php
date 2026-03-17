@@ -10,14 +10,14 @@ use App\Models\Session;
 use App\Models\ProviderUserRole;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Log;
-use OwenIt\Auditing\Contracts\Auditable;
+use App\Traits\CustomAuditable;
 
 //, OAuthenticatable
 // implements JWTSubject
-class User extends Authenticatable implements Auditable
+class User extends Authenticatable
 {
     use SoftDeletes;
-    use \OwenIt\Auditing\Auditable;
+    use CustomAuditable;
     //HasApiTokens,
     use HasApiTokens, HasFactory, Notifiable;
 

@@ -34,15 +34,50 @@ class UserController extends Controller
     #[
         OA\Get(
             path: "/api/v1/users",
-            summary: "get all users",
-            description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
+            summary: "Get all users",
+            description: "Get all users with pagination. __*Security: Richiede token M2M Passport*__",
             operationId: "User.all",
-            tags: ["User management"],
+            tags: ["Users"],
             security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    name: "q",
+                    in: "query",
+                    required: false,
+                    description: "Termine di ricerca (nome o email)",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "sortField",
+                    in: "query",
+                    required: false,
+                    description: "Campo per ordinamento",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "sortOrder",
+                    in: "query",
+                    required: false,
+                    description: "Direzione (1 asc, -1 desc)",
+                    schema: new OA\Schema(type: "integer"),
+                ),
+                new OA\Parameter(
+                    name: "per_page",
+                    in: "query",
+                    required: false,
+                    description: "Elementi per pagina",
+                    schema: new OA\Schema(type: "integer", default: 10),
+                ),
+            ],
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Returns all users",
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 401,
+                    description: "Unauthorized",
                     content: new OA\MediaType(mediaType: "application/json"),
                 ),
             ],
@@ -76,7 +111,7 @@ class UserController extends Controller
             summary: "create a new user",
             description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
             operationId: "User.create",
-            tags: ["User management"],
+            tags: ["Users"],
             security: [["passport" => []]],
             requestBody: new OA\RequestBody(
                 required: true,
@@ -120,6 +155,12 @@ class UserController extends Controller
                                 description: "User surname",
                                 type: "string",
                                 example: "rossi",
+                            ),
+                            new OA\Property(
+                                property: "enabled",
+                                description: "User enabled",
+                                type: "boolean",
+                                example: true,
                             ),
                         ],
                     ),
@@ -172,8 +213,8 @@ class UserController extends Controller
             path: "/api/v1/users/{id}",
             summary: "Returns user by id",
             description: "Returns user details by id",
-            operationId: "find",
-            tags: ["User management"],
+            operationId: "User.find",
+            tags: ["Users"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
@@ -228,7 +269,7 @@ class UserController extends Controller
             summary: "Update user by id",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
             operationId: "User.update",
-            tags: ["User management"],
+            tags: ["Users"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
@@ -281,6 +322,12 @@ class UserController extends Controller
                                 description: "User surname",
                                 type: "string",
                                 example: "Rossi",
+                            ),
+                            new OA\Property(
+                                property: "enabled",
+                                description: "User enabled",
+                                type: "boolean",
+                                example: true,
                             ),
                         ],
                     ),
@@ -347,7 +394,7 @@ class UserController extends Controller
             summary: "Delete user by id",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
             operationId: "User.delete",
-            tags: ["User management"],
+            tags: ["Users"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
