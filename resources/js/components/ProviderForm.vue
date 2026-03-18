@@ -252,7 +252,7 @@ const generateSecret = () => {
                         }"
                     ></i>
                 </label>
-                <InputGroup class="flex gap-2">
+                <InputGroup class="flex">
                     <InputText
                         id="url"
                         v-model="form.url"
@@ -300,9 +300,17 @@ const generateSecret = () => {
             </div>
 
             <div class="flex flex-col gap-1 md:col-span-2">
-                <label for="logoutUrl" class="font-medium text-surface-900">{{
-                    $t("admin.providers.form.logout_url_label")
-                }}</label>
+                <label for="logoutUrl" class="font-medium text-surface-900"
+                    >{{ $t("admin.providers.form.logout_url_label") }}
+                    <i
+                        class="pi pi-question-circle"
+                        style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
+                        v-tooltip.top="{
+                            value: $t('admin.providers.form.logout_url_hint'),
+                            escape: true,
+                        }"
+                    ></i>
+                </label>
                 <InputText
                     id="logoutUrl"
                     v-model="form.logoutUrl"
@@ -313,7 +321,6 @@ const generateSecret = () => {
                 <Message v-if="errors.logoutUrl" severity="error" size="small" variant="simple">
                     {{ errors.logoutUrl }}
                 </Message>
-                <small v-else class="text-surface-500">{{ $t("admin.providers.form.logout_url_hint") }}</small>
             </div>
 
             <div class="flex flex-col gap-1 md:col-span-2">
@@ -336,7 +343,7 @@ const generateSecret = () => {
                     {{ $t("admin.providers.form.secret_key_tooltip") }}
                 </Message>
 
-                <InputGroup class="flex gap-2">
+                <InputGroup class="flex">
                     <Password
                         id="secret_key"
                         v-model="form.secret_key"

@@ -5,6 +5,24 @@
     "auth.verification.errors.save_failed": "An error occurred while activating the account.",
     "auth.verification.errors.delete_failed": "Account activated, but unable to remove security code.",
 
+    "auth.forgot_password": "Forgot Password?",
+    "auth.recover_password_title": "Recover Password",
+    "auth.recover_password_body": "Enter your username. We will send you a recovery link to the email address associated with your profile.",
+    "auth.send_recovery_link": "Send Recovery Link",
+    "auth.back_to_login": "Back to Login",
+
+    "auth.new_password_body": "You are resetting the password for the user",
+    "auth.password_label": "New Password",
+    "auth.password_confirmation_label": "Confirm Password",
+    "auth.password_placeholder": "New Password (min. 12)",
+    "auth.password_confirmation_placeholder": "Confirm Password",
+    "auth.reset_password_btn": "Save and Login",
+
+    "auth.username_not_found": "This username is not present in our systems.",
+    "auth.no_email_configured": "This account does not have an email configured for password recovery. Please contact the administrator.",
+    "auth.recovery_link_sent": "We have sent you a recovery link to the email address associated with your profile.",
+    "auth.password_reset_success": "Password updated successfully! You can now log in.",
+
     "common.id": "ID",
     "common.actions": "Actions",
     "common.edit": "Edit",
@@ -49,13 +67,13 @@
 
     "admin.users.delete.prompt": "Are you sure you want to delete the user ",
 
-    "admin.users.form.username": "Username",
-    "admin.users.form.email": "Email",
-    "admin.users.form.name": "First Name",
-    "admin.users.form.surname": "Last Name",
-    "admin.users.form.password": "Password",
-    "admin.users.form.password_confirmation": "Confirm Password",
-    "admin.users.form.enabled": "User Enabled",
+    "admin.users.form.username_label": "Username",
+    "admin.users.form.email_label": "Email",
+    "admin.users.form.name_label": "First Name",
+    "admin.users.form.surname_label": "Last Name",
+    "admin.users.form.password_label": "Password",
+    "admin.users.form.password_confirmation_label": "Confirm Password",
+    "admin.users.form.enabled_label": "User Enabled",
 
     "admin.users.form.btn_create": "Create User",
     "admin.users.form.btn_clear": "Clear",

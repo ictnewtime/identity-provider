@@ -23,7 +23,7 @@ services:
       - database-network
     depends_on:
       - mariadb
-      # - redis
+      - mailpit
 
   mariadb:
     image: mariadb:latest
@@ -43,14 +43,15 @@ services:
     networks:
       - database-network
 
-  # redis:
-  #   image: redis:7-alpine
-  #   container_name: laravel_jwt_idp_redis
-  #   restart: unless-stopped
-  #   ports:
-  #     - "6379:6379"
-  #   networks:
-  #     - laravel
+  mailpit:
+    image: axllent/mailpit
+    container_name: idp_mailpit_2
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # web
+      - "1025:1025"
+    networks:
+      - database-network
 
 volumes:
   mariadb_data:

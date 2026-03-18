@@ -164,7 +164,6 @@ const logout = () => {
                         severity="secondary"
                         class="hover:!text-red-600 hover:!bg-red-50 transition-colors"
                         @click="logout"
-                        v-tooltip.bottom="$t('common.logout')"
                     />
                 </div>
             </header>

@@ -11,6 +11,7 @@ use App\Http\Controllers\Manage\ProviderUserRoleController;
 use App\Http\Controllers\Manage\RoleController;
 use App\Http\Controllers\Manage\SessionController;
 use App\Http\Controllers\Manage\AuditController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use Illuminate\Support\Facades\Log;
 
 // 1. Redirect Home -> Login
@@ -30,6 +31,10 @@ Route::middleware("guest")->group(function () {
     Route::get("login", function () {
         return redirect()->route("loginForm");
     });
+    Route::get("/forgot-password", [PasswordResetController::class, "create"])->name("password.request");
+    Route::post("/forgot-password", [PasswordResetController::class, "store"])->name("password.email");
+    Route::get("/reset-password/{token}", [PasswordResetController::class, "edit"])->name("password.reset");
+    Route::post("/reset-password", [PasswordResetController::class, "update"])->name("password.update");
 });
 
 Route::post("v2/login", [LoginController::class, "login"])->name("login");

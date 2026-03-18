@@ -60,7 +60,6 @@ class LoginController extends Controller
         }
 
         $user = Auth::user();
-        Log::info("Login effettuato per utente " . $user->id);
         event(new LoginEvent($user, $request->ip()));
 
         $provider_id = $request->input("provider_id");
@@ -88,7 +87,6 @@ class LoginController extends Controller
         }
 
         // 2B. BIVIO LOCALE: L'utente accede all'IdP (Pannello Admin)
-        Log::info("2B. BIVIO LOCALE");
         if ($user->isAdmin()) {
             $request->session()->regenerate();
 
@@ -112,7 +110,6 @@ class LoginController extends Controller
                 return redirect()->route("sso.unauthorized");
             }
 
-            Log::info("2B. BIVIO LOCALE: Token creato");
             Cookie::queue($tokenService->cookieCretion($token, $idpProviderId));
             return redirect()->route("admin-home");
         }
@@ -212,25 +209,6 @@ class LoginController extends Controller
             $response->withCookie($cookie);
         }
 
-        return $response;
-    }
-
-    private function createResponse(int $status = 200, string $message = null, $cookie = null)
-    {
-        if (empty($message)) {
-            $response = response()->json([], $status);
-        }
-
-        $response = response()->json(
-            [
-                "message" => $message,
-            ],
-            $status,
-        );
-
-        if ($cookie) {
-            return $response->withCookie($cookie);
-        }
         return $response;
     }
 }
