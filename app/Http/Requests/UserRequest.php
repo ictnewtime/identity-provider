@@ -31,6 +31,7 @@ class UserRequest extends FormRequest
             "surname" => "required|string|max:255",
             "password" => $this->isMethod("post") ? "required|min:12|confirmed" : "sometimes|nullable|min:12|confirmed",
             "password_confirmation" => $this->isMethod("post") ? "required|min:12" : "sometimes|nullable|min:12",
+            "password_expires_at" => "nullable|date",
         ];
     }
 }

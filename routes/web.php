@@ -30,14 +30,14 @@ Route::middleware("guest")->group(function () {
     Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
     Route::get("login", function () {
         return redirect()->route("loginForm");
-    });
+    })->name("login");
     Route::get("/forgot-password", [PasswordResetController::class, "create"])->name("password.request");
     Route::post("/forgot-password", [PasswordResetController::class, "store"])->name("password.email");
     Route::get("/reset-password/{token}", [PasswordResetController::class, "edit"])->name("password.reset");
     Route::post("/reset-password", [PasswordResetController::class, "update"])->name("password.update");
 });
 
-Route::post("v2/login", [LoginController::class, "login"])->name("login");
+Route::post("v2/login", [LoginController::class, "login"]);
 Route::post("logout", [LoginController::class, "logout_web"])->name("logout_web");
 Route::get("/sso/logout", [LoginController::class, "logout_sso"])->name("logout_sso");
 
@@ -46,14 +46,25 @@ Route::get("/sso/logout", [LoginController::class, "logout_sso"])->name("logout_
 //     ->name("authenticated");
 
 // Inertia: Pagina completamento registrazione
-Route::get("complete-registration", function () {
-    return Inertia::render("Auth/CompleteRegistration");
-})->name("complete-registration");
+// Route::get("complete-registration", function () {
+//     return Inertia::render("Auth/CompleteRegistration");
+// })->name("complete-registration");
+
+Route::middleware(["auth"])->group(function () {
+    // La rotta per mostrare la form (deve avere il nome che usiamo nel Middleware)
+    Route::get("/password/expired", [PasswordResetController::class, "expired"])->name("password.expired");
+
+    // La rotta per salvare
+    Route::post("/password/force-update", [PasswordResetController::class, "forceUpdate"])->name(
+        "password.force-update",
+    );
+
+    // ... tutte le tue altre rotte protette (dashboard, ecc) a cui applicherai anche il middleware CheckPasswordExpiration ...
+});
 
 /********* ADMIN ROUTES ************/
-
 Route::prefix("admin")
-    ->middleware(["authenticated", "role:admin"])
+    ->middleware(["password.expiration", "authenticated", "role:admin"])
     ->group(function () {
         Route::get("/", function () {
             return redirect()->route("web-users");

@@ -44,13 +44,11 @@ const BrandPreset = definePreset(Aura, {
 });
 
 createInertiaApp({
-    // Questa funzione dice a Inertia dove andare a pescare le pagine richieste dal backend
     resolve: (name) => {
         const pages = import.meta.glob("./Pages/**/*.vue", { eager: true });
         return pages[`./Pages/${name}.vue`];
     },
 
-    // Il setup costruisce l'istanza Vue
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) });
 

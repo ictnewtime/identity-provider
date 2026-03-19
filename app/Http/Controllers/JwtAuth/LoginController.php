@@ -8,11 +8,11 @@ use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\Provider;
 use App\Models\Session;
 use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Auth;
-use OpenApi\Attributes as OA;
 use Illuminate\Support\Facades\Cookie;
 use Inertia\Inertia;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -33,23 +33,6 @@ class LoginController extends Controller
         ]);
     }
 
-    /**
-     * Shows page for authenticated user.
-     *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     */
-    // public function authenticated()
-    // {
-    //     $user = Auth::user();
-    //     // TODO: verificare che il ruolo dia all' interno della applicazione,
-    //     // tramite controllo del provider
-    //     $is_role_admin = $user->hasRole(config("role.admin"));
-    //     if ($is_role_admin) {
-    //         return redirect()->route("web-users");
-    //     }
-    //     return redirect()->route("sso.unauthorized");
-    // }
-
     public function login(LoginRequest $request)
     {
         $credentials = $request->only("username", "password");
@@ -63,6 +46,19 @@ class LoginController extends Controller
         event(new LoginEvent($user, $request->ip()));
 
         $provider_id = $request->input("provider_id");
+
+        // 1. BLOCCO SCADENZA PASSWORD (PRIMA DI OGNI TOKEN) ---
+        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
+            Log::info("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
+
+            // Salviamo in sessione dove voleva andare, così non perde la destinazione
+            if ($provider_id) {
+                $request->session()->put("pending_sso_provider_id", $provider_id);
+                $request->session()->put("pending_sso_redirect_to", $request->input("redirect_to"));
+            }
+
+            return redirect()->route("password.expired");
+        }
 
         // 2A. BIVIO SSO: L'utente va verso un'app esterna (es. App2)
         if ($provider_id) {
@@ -153,7 +149,8 @@ class LoginController extends Controller
     {
         $idpProviderId = config("idp.provider_id");
         $dynamicCookieName = "idp_token_" . $idpProviderId;
-        $cookieDomain = env("PROVIDER_DOMAIN"); // es. .miosito.it (o null per localhost)
+        $provider = Provider::find(config("idp.provider_id"));
+        $cookieDomain = $provider->domain; // es. .miosito.it (o null per localhost)
 
         // 1. RECUPERO USER ID (Da sessione o decodificando il cookie)
         $userId = Auth::id();

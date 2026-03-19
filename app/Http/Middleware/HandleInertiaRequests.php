@@ -42,6 +42,25 @@ class HandleInertiaRequests extends Middleware
             ],
             "locale" => app()->getLocale(),
             "csrf_token" => csrf_token(),
+            "flash" => [
+                "success" => function () use ($request) {
+                    // Usiamo PULL: legge il dato e lo cancella per non farlo riapparire in futuro
+                    $msg = $request->session()->pull("success");
+
+                    // if ($msg) {
+                    //     \Illuminate\Support\Facades\Log::info("Inertia Flash [SUCCESS] estratto: " . $msg);
+                    // }
+                    return $msg;
+                },
+                "error" => function () use ($request) {
+                    $msg = $request->session()->pull("error");
+
+                    // if ($msg) {
+                    //     \Illuminate\Support\Facades\Log::info("Inertia Flash [ERROR] estratto: " . $msg);
+                    // }
+                    return $msg;
+                },
+            ],
         ]);
     }
 }

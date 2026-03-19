@@ -36,6 +36,8 @@
     "auth.req_special": "Un carattere speciale",
     "auth.req_match": "Le password coincidono",
 
+    "auth.password_same_as_old": "La nuova password non può essere uguale a quella attuale.",
+
     "common.id": "ID",
     "common.actions": "Azioni",
     "common.edit": "Modifica",
@@ -86,6 +88,7 @@
     "admin.users.form.surname_label": "Cognome",
     "admin.users.form.password_label": "Password",
     "admin.users.form.password_confirmation_label": "Conferma Password",
+    "admin.users.form.password_expires_at_label": "Scadenza Password",
     "admin.users.form.enabled_label": "Utente Abilitato",
     "admin.users.form.password_placeholder": "Nuova Password (min. 12)",
 
@@ -291,5 +294,14 @@
     "admin.audits.toast.load_error": "Impossibile caricare i log di sistema",
 
     "client.unauthorized.title": "Accesso Negato",
-    "client.unauthorized.message": "Non disponi delle autorizzazioni necessarie per accedere alla risorsa richiesta. Se ritieni si tratti di un errore, contatta l'amministratore di sistema."
+    "client.unauthorized.message": "Non disponi delle autorizzazioni necessarie per accedere alla risorsa richiesta. Se ritieni si tratti di un errore, contatta l'amministratore di sistema.",
+
+    "auth.mandatory_change_title": "Cambio Password Obbligatorio",
+    "auth.mandatory_change_body": "La tua password è scaduta o è al primo accesso. Per motivi di sicurezza, devi impostare una nuova password per l'utente:",
+    "auth.logout": "Esci",
+    "auth.current_password": "Password attuale",
+    "auth.new_password": "Nuova password",
+    "auth.hide_password": "Nascondi password",
+    "auth.show_password": "Mostra password",
+    "auth.update_password_btn": "Salva nuova password"
 }

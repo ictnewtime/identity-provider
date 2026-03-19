@@ -23,6 +23,8 @@
     "auth.recovery_link_sent": "We have sent you a recovery link to the email address associated with your profile.",
     "auth.password_reset_success": "Password updated successfully! You can now log in.",
 
+    "auth.password_same_as_old": "The new password cannot be the same as the current one.",
+
     "common.id": "ID",
     "common.actions": "Actions",
     "common.edit": "Edit",
@@ -73,6 +75,7 @@
     "admin.users.form.surname_label": "Last Name",
     "admin.users.form.password_label": "Password",
     "admin.users.form.password_confirmation_label": "Confirm Password",
+    "admin.users.form.password_expires_at_label": "Password Expiration Date",
     "admin.users.form.enabled_label": "User Enabled",
 
     "admin.users.form.btn_create": "Create User",
@@ -276,5 +279,14 @@
 
     "admin.audits.toast.load_error": "Unable to load system logs",
     "client.unauthorized.title": "Unauthorized",
-    "client.unauthorized.message": "You are not authorized to access this resource. If you think this is a mistake, please contact the system administrator."
+    "client.unauthorized.message": "You are not authorized to access this resource. If you think this is a mistake, please contact the system administrator.",
+
+    "auth.mandatory_change_title": "Password Change Required",
+    "auth.mandatory_change_body": "Your password is expired or is the first access. For security reasons, you must set a new password for the user:",
+    "auth.logout": "Logout",
+    "auth.current_password": "Current Password",
+    "auth.new_password": "New Password",
+    "auth.hide_password": "Hide password",
+    "auth.show_password": "Show password",
+    "auth.update_password_btn": "Save New Password"
 }

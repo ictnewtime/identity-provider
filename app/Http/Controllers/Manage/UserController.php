@@ -85,7 +85,7 @@ class UserController extends Controller
     ]
     public function all(Request $request)
     {
-        $query = User::query();
+        $query = User::select("id", "username", "name", "surname", "email", "enabled");
 
         if ($request->filled("q")) {
             $query->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
@@ -99,7 +99,7 @@ class UserController extends Controller
             $query->orderBy("created_at", "asc");
         }
 
-        $perPage = $request->get("per_page", 10);
+        $perPage = $request->input("per_page", 10);
         $users = $query->paginate($perPage);
 
         return response()->json($users);
@@ -187,7 +187,7 @@ class UserController extends Controller
     ]
     public function create(UserRequest $request)
     {
-        $data = $request->only(["username", "password", "email", "name", "surname", "enabled"]);
+        $data = $request->only(["username", "password", "email", "name", "surname", "enabled", "password_expires_at"]);
 
         DB::beginTransaction();
 
@@ -354,7 +354,7 @@ class UserController extends Controller
     ]
     public function update(UserRequest $request, $id)
     {
-        $credentials = $request->only("email", "username", "name", "surname", "enabled");
+        $credentials = $request->only("email", "username", "name", "surname", "enabled", "password_expires_at");
 
         if ($request->filled("password")) {
             $credentials["password"] = Hash::make($request->password);

@@ -9,6 +9,7 @@ import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
+import DatePicker from "primevue/datepicker";
 
 import ToggleSwitch from "primevue/toggleswitch";
 import Button from "primevue/button";
@@ -34,6 +35,7 @@ const form = ref({
     surname: "",
     password: "",
     password_confirmation: "",
+    password_expires_at: null,
     enabled: true,
 });
 
@@ -50,6 +52,7 @@ const errors = ref({
     surname: "",
     password: "",
     password_confirmation: "",
+    password_expires_at: "",
     form: "",
 });
 
@@ -80,6 +83,7 @@ const resetForm = () => {
         surname: "",
         password: "",
         password_confirmation: "",
+        password_expires_at: null,
         enabled: true,
     };
     resetErrors();
@@ -140,7 +144,7 @@ const fetchUser = async (id) => {
     try {
         const res = await window.axios.get(`/admin/v1/users/${id}`);
         const data = res.data;
-
+        const parsedExpiresAt = data.password_expires_at ? new Date(data.password_expires_at.replace(" ", "T")) : null;
         form.value = {
             id: data.id,
             username: data.username,
@@ -150,6 +154,7 @@ const fetchUser = async (id) => {
             enabled: data.enabled == 1,
             password: "",
             password_confirmation: "",
+            password_expires_at: parsedExpiresAt,
         };
     } catch (err) {
         toast.add({
@@ -177,6 +182,7 @@ const submit = async () => {
         email: form.value.email,
         name: form.value.name,
         surname: form.value.surname,
+        password_expires_at: form.value.password_expires_at,
         enabled: form.value.enabled,
     };
 
@@ -453,7 +459,23 @@ watch(
                 </Message>
             </div>
 
-            <div class="flex items-center gap-3 mt-2 md:col-span-2">
+            <div class="flex flex-col gap-1">
+                <label for="password_expires_at" class="font-medium text-surface-900">
+                    {{ $t("admin.users.form.password_expires_at_label") }}
+                </label>
+                <DatePicker
+                    id="password_expires_at"
+                    v-model="form.password_expires_at"
+                    :invalid="!!errors.password_expires_at"
+                    :showTime="true"
+                    :showIcon="true"
+                />
+                <Message v-if="errors.password_expires_at" severity="error" size="small" variant="simple">
+                    {{ errors.password_expires_at }}
+                </Message>
+            </div>
+
+            <div class="flex items-center gap-3 mt-2">
                 <label for="enabled" class="font-medium text-surface-900">{{
                     $t("admin.users.form.enabled_label")
                 }}</label>

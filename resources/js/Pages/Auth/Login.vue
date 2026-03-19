@@ -1,6 +1,8 @@
 <script setup>
 import { computed, onMounted } from "vue";
-import { useForm, Link } from "@inertiajs/vue3";
+import { useForm, Link, usePage } from "@inertiajs/vue3";
+import { useToast } from "primevue/usetoast";
+import { trans } from "laravel-vue-i18n";
 
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
@@ -8,6 +10,7 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 import Image from "primevue/image";
 import FloatLabel from "primevue/floatlabel";
+import { Toast } from "primevue";
 
 const form = useForm({
     username: "",
@@ -16,10 +19,28 @@ const form = useForm({
     redirect_to: null,
 });
 
+const toast = useToast();
+const page = usePage();
+
 onMounted(() => {
+    // 1. Lettura parametri URL
     const urlParams = new URLSearchParams(window.location.search);
     form.provider_id = urlParams.get("provider_id");
     form.redirect_to = urlParams.get("redirect_to");
+
+    // 2. Lettura del messaggio flash di successo (inviato dal backend)
+    // Nota: dipende da come hai configurato HandleInertiaRequests.php.
+    // Di solito Inertia lo mappa sotto `page.props.flash.success` o `page.props.success`
+    const successMessage = page.props.flash?.success || page.props.success;
+    console.log("page.props.flash", page.props.flash);
+    if (successMessage) {
+        toast.add({
+            severity: "success",
+            summary: trans("common.success"),
+            detail: successMessage,
+            life: 5000,
+        });
+    }
 });
 
 const isFormValid = computed(() => {
@@ -33,6 +54,7 @@ const submit = () => {
 </script>
 
 <template>
+    <Toast />
     <div class="min-h-screen flex items-center justify-center bg-gray-200 py-10">
         <div class="w-full sm:w-[26rem] p-8 bg-gray-50 border border-gray-500 rounded-xl shadow-lg">
             <div class="flex flex-col items-center mb-8 gap-4">

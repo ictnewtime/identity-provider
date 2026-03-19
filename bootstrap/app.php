@@ -17,6 +17,7 @@ use App\Http\Middleware\EncryptCookies as CustomEncryptCookies;
 use Laravel\Passport\Http\Middleware\CheckClientCredentials;
 use App\Http\Middleware\ProviderClientCredentials;
 use App\Http\Middleware\VerifyExternalToken;
+use App\Http\Middleware\CheckPasswordExpiration;
 
 // Middleware Core / Passport
 use Illuminate\Cookie\Middleware\EncryptCookies as CoreEncryptCookies;
@@ -42,7 +43,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // 1. Esclusioni CSRF
-        $middleware->validateCsrfTokens(except: ["/v2/login", "api/*", "admin/v1/*", "logout"]);
+        $middleware->validateCsrfTokens(
+            except: ["/v2/login", "api/*", "admin/v1/*", "logout", "password/force-update"],
+        );
 
         // 2. Sostituzione Middleware di Base (Il modo corretto in Laravel 11)
         $middleware->replace(CoreEncryptCookies::class, CustomEncryptCookies::class);
@@ -65,6 +68,7 @@ return Application::configure(basePath: dirname(__DIR__))
             "authenticated" => Authenticated::class,
             "role" => CheckRole::class,
             "verify_external_token" => VerifyExternalToken::class,
+            "password.expiration" => CheckPasswordExpiration::class,
 
             // Utility
             "localization" => Localization::class,
@@ -76,6 +80,17 @@ return Application::configure(basePath: dirname(__DIR__))
             "scope" => CheckForAnyScope::class,
         ]);
         $middleware->web(append: [HandleInertiaRequests::class]);
+        // CATTURIAMO I PARAMETRI SSO PRIMA DEL REDIRECT DI DEFAULT!
+        $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request) {
+            // Se l'utente è già loggato e arriva con una richiesta per un'app esterna
+            if ($request->has("provider_id")) {
+                $request->session()->put("pending_sso_provider_id", $request->input("provider_id"));
+                $request->session()->put("pending_sso_redirect_to", $request->input("redirect_to"));
+            }
+
+            // Il redirect di default per gli utenti loggati (cambialo con la tua rotta home)
+            return "/admin-home";
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(function (Request $request, \Throwable $e) {
