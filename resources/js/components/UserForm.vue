@@ -37,6 +37,12 @@ const form = ref({
     enabled: true,
 });
 
+const formItems = ref({
+    password: {
+        visible: false,
+    },
+});
+
 const errors = ref({
     username: "",
     email: "",
@@ -49,7 +55,6 @@ const errors = ref({
 
 const isEditMode = computed(() => !!props.selectedUser);
 
-// --- LA MAGIA È QUI: Invece di toRef, passiamo una funzione Computed che legge sempre il valore aggiornato di form.value ---
 const pwdComputed = computed(() => form.value.password);
 const confirmComputed = computed(() => form.value.password_confirmation);
 
@@ -61,7 +66,10 @@ const handleGeneratePassword = () => {
     form.value.password = newPwd;
     form.value.password_confirmation = newPwd;
 };
-// ----------------------------------------------------------------------
+
+const togglePasswordVisibility = () => {
+    formItems.value.password.visible = !formItems.value.password.visible;
+};
 
 const resetForm = () => {
     form.value = {
@@ -298,12 +306,18 @@ watch(
                         inputId="password"
                         name="password"
                         v-model="form.password"
-                        autocomplete="new-password"
+                        text
                         :placeholder="$t('admin.users.form.password_placeholder')"
                         :invalid="!!errors.password"
                         :feedback="true"
-                        toggleMask
                         fluid
+                        :pt="{
+                            pcInputText: {
+                                root: {
+                                    type: formItems.password.visible ? 'text' : 'password',
+                                },
+                            },
+                        }"
                     >
                         <template #content>
                             <div class="w-full sm:w-[22rem] p-1">
@@ -394,6 +408,14 @@ watch(
                     </Password>
 
                     <InputGroupAddon class="p-0 border-none">
+                        <Button
+                            type="button"
+                            severity="secondary"
+                            :icon="formItems.password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                            text
+                            v-tooltip.top="null"
+                            @click="togglePasswordVisibility"
+                        />
                         <Button
                             type="button"
                             severity="secondary"

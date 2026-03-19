@@ -56,7 +56,6 @@ class PasswordResetController extends Controller
 
     public function update(Request $request)
     {
-        // La validazione finale usa l'email (che passiamo nascosta nella form)
         $request->validate([
             "token" => "required",
             "email" => "required|email",
@@ -64,6 +63,15 @@ class PasswordResetController extends Controller
             "password_confirmation" => "required|min:12",
         ]);
 
+        // Check if the new password is the same as the old one
+        $user = User::where("email", $request->email)->first();
+        if ($user && Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                "password" => [__("auth.password_same_as_old")],
+            ]);
+        }
+
+        // Reset password
         $status = Password::broker()->reset(
             $request->only("email", "password", "password_confirmation", "token"),
             function ($user, $password) {

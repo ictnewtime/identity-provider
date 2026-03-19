@@ -1,5 +1,5 @@
 <script setup>
-import { computed, toRef } from "vue";
+import { computed, toRef, ref } from "vue";
 import { useForm } from "@inertiajs/vue3";
 import Password from "primevue/password";
 import Button from "primevue/button";
@@ -24,6 +24,12 @@ const form = useForm({
     password_confirmation: "",
 });
 
+const formItems = ref({
+    password: {
+        visible: false,
+    },
+});
+
 const passwordRef = toRef(form, "password");
 const confirmPasswordRef = toRef(form, "password_confirmation");
 
@@ -36,6 +42,10 @@ const handleGeneratePassword = () => {
     const newPwd = generatePassword();
     form.password = newPwd;
     form.password_confirmation = newPwd;
+};
+
+const togglePasswordVisibility = () => {
+    formItems.value.password.visible = !formItems.value.password.visible;
 };
 
 const submit = () => {
@@ -57,16 +67,22 @@ const submit = () => {
 
             <form @submit.prevent="submit" class="flex flex-col gap-4 w-full">
                 <div class="flex flex-col gap-1">
-                    <FloatLabel variant="on">
-                        <InputGroup>
+                    <InputGroup>
+                        <FloatLabel variant="on">
                             <Password
                                 inputId="password"
                                 name="password"
                                 v-model="form.password"
-                                toggleMask
                                 :feedback="true"
                                 fluid
                                 :invalid="!!form.errors.password"
+                                :pt="{
+                                    pcInputText: {
+                                        root: {
+                                            type: formItems.password.visible ? 'text' : 'password',
+                                        },
+                                    },
+                                }"
                             >
                                 <template #content>
                                     <div class="w-full sm:w-[22rem] p-1">
@@ -86,26 +102,34 @@ const submit = () => {
                                     </div>
                                 </template>
                             </Password>
+                            <label for="password" class="font-medium text-gray-700 z-10">
+                                {{ $t("auth.password_label") }}
+                            </label>
+                        </FloatLabel>
 
-                            <InputGroupAddon class="p-0 border-none">
-                                <Button
-                                    type="button"
-                                    severity="secondary"
-                                    text
-                                    @click="handleGeneratePassword"
-                                    v-tooltip.top="$t('auth.generate_random_btn')"
-                                >
-                                    <template #icon>
-                                        <Icon icon="mdi:dice-multiple-outline" width="24" height="24" />
-                                    </template>
-                                </Button>
-                            </InputGroupAddon>
-                        </InputGroup>
-
-                        <label for="password" class="font-medium text-gray-700 z-10">
-                            {{ $t("auth.password_label") }}
-                        </label>
-                    </FloatLabel>
+                        <InputGroupAddon class="p-0 border-none">
+                            <Button
+                                type="button"
+                                severity="secondary"
+                                :icon="formItems.password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                                text
+                                v-tooltip.top="null"
+                                @click="togglePasswordVisibility"
+                            />
+                            <Button
+                                type="button"
+                                severity="secondary"
+                                @click="handleGeneratePassword"
+                                text
+                                v-tooltip.top="$t('auth.generate_random_btn')"
+                                style="padding-left: 0.1rem"
+                            >
+                                <template #icon>
+                                    <Icon icon="mdi:dice-multiple-outline" width="24" height="24" />
+                                </template>
+                            </Button>
+                        </InputGroupAddon>
+                    </InputGroup>
 
                     <Message v-if="form.errors.password" severity="error" size="small" variant="simple">
                         {{ form.errors.password }}
