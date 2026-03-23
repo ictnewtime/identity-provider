@@ -105,11 +105,10 @@ const deleteRole = () => {
             emit("item-saved");
         })
         .catch((error) => {
-            console.error(error);
             toast.add({
                 severity: "error",
                 summary: trans("common.error"),
-                detail: trans("admin.roles.toast.delete_error"),
+                detail: error.response.data.message || trans("admin.roles.toast.delete_error"),
                 life: 3000,
             });
             emit("item-error", error);

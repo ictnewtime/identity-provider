@@ -73,7 +73,7 @@ const submit = () => {
                             :invalid="!!form.errors.username"
                             :disabled="form.processing"
                         />
-                        <label for="username" class="font-medium text-gray-700 z-10"> Username </label>
+                        <label for="username" class="font-medium text-gray-700 z-10">Username</label>
                     </FloatLabel>
                     <Message v-if="form.errors.username" severity="error" size="small" variant="simple">
                         {{ form.errors.username }}
@@ -92,13 +92,13 @@ const submit = () => {
                             :invalid="!!form.errors.password"
                             :disabled="form.processing"
                         />
-                        <label for="password" class="font-medium text-gray-700 z-10"> Password </label>
+                        <label for="password" class="font-medium text-gray-700 z-10">Password</label>
                     </FloatLabel>
 
                     <div class="flex justify-end mt-1 mb-2">
                         <Link
                             href="/forgot-password"
-                            class="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                            class="text-sm font-medium text-blue-600 hover:text-blue-800 underline"
                         >
                             {{ $t("auth.forgot_password") }}
                         </Link>

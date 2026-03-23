@@ -188,7 +188,7 @@
 
     "admin.providers.toast.invalid_url": "The URL format entered is invalid",
 
-    "admin.providerUserRoles.title": "Provider-User Associations",
+    "admin.providerUserRoles.title": "User-Roles Associations",
     "admin.providerUserRoles.new_providerUserRole": "New Association",
     "admin.provider_user_roles.form.title_create": "New Association",
     "admin.provider_user_roles.form.title_edit": "Edit Association",
@@ -228,6 +228,8 @@
     "admin.provider_user_roles.delete.prompt": "Are you sure you want to remove the association for the user ",
     "admin.provider_user_roles.errors.unique_role": "This user already has this role for the provider selected.",
     "admin.provider_user_roles.errors.creation": "An error occurred while creating the association",
+
+    "role.error.is_in_use": "This role is in use and cannot be deleted.",
 
     "admin.sessions.title": "Session Management",
 

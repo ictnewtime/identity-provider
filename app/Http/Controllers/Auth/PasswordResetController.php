@@ -64,16 +64,12 @@ class PasswordResetController extends Controller
     {
         $request->validate([
             "token" => "required",
-
             "email" => "required|email",
-
             "password" => "required|min:12|confirmed",
-
             "password_confirmation" => "required|min:12",
         ]);
 
         // Check if the new password is the same as the old one
-
         $user = User::where("email", $request->email)->first();
 
         if ($user && Hash::check($request->password, $user->password)) {
@@ -83,7 +79,6 @@ class PasswordResetController extends Controller
         }
 
         // Reset password
-
         $status = Password::broker()->reset(
             $request->only("email", "password", "password_confirmation", "token"),
 
@@ -166,6 +161,10 @@ class PasswordResetController extends Controller
             }
         }
 
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
         // Caso B: L'utente stava accedendo localmente all'IdP come Admin
         if ($user->isAdmin()) {
             $request->session()->put("success", __("auth.password_reset_success"));
@@ -173,10 +172,6 @@ class PasswordResetController extends Controller
         }
 
         // Caso C: Qualcosa è andato storto (non è admin e non ha provider esterni autorizzati)
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
         return redirect()->route("sso.unauthorized");
     }
 }

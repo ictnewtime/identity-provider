@@ -36,7 +36,7 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
-            ...parent::share($request),
+            // ...parent::share($request),
             "auth" => [
                 "user" => $request->user(),
             ],
@@ -46,18 +46,10 @@ class HandleInertiaRequests extends Middleware
                 "success" => function () use ($request) {
                     // Usiamo PULL: legge il dato e lo cancella per non farlo riapparire in futuro
                     $msg = $request->session()->pull("success");
-
-                    // if ($msg) {
-                    //     \Illuminate\Support\Facades\Log::info("Inertia Flash [SUCCESS] estratto: " . $msg);
-                    // }
                     return $msg;
                 },
                 "error" => function () use ($request) {
                     $msg = $request->session()->pull("error");
-
-                    // if ($msg) {
-                    //     \Illuminate\Support\Facades\Log::info("Inertia Flash [ERROR] estratto: " . $msg);
-                    // }
                     return $msg;
                 },
             ],

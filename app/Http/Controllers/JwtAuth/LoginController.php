@@ -47,7 +47,7 @@ class LoginController extends Controller
 
         $provider_id = $request->input("provider_id");
 
-        // 1. BLOCCO SCADENZA PASSWORD (PRIMA DI OGNI TOKEN) ---
+        // 1. BLOCCO SCADENZA PASSWORD (PRIMA DI OGNI TOKEN)
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
             Log::info("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
 

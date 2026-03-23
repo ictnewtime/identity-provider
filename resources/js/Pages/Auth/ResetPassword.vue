@@ -112,15 +112,16 @@ const submit = () => {
                                 type="button"
                                 severity="secondary"
                                 :icon="formItems.password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
-                                text
                                 v-tooltip.top="null"
                                 @click="togglePasswordVisibility"
                             />
+                        </InputGroupAddon>
+
+                        <InputGroupAddon class="p-0 border-none">
                             <Button
                                 type="button"
                                 severity="secondary"
                                 @click="handleGeneratePassword"
-                                text
                                 v-tooltip.top="$t('auth.generate_random_btn')"
                                 style="padding-left: 0.1rem"
                             >

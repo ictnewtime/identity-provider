@@ -126,15 +126,17 @@ onMounted(() => {
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
                             {{ $t("admin.users.table.title") }}
                         </h3>
-                        <IconField iconPosition="left">
-                            <InputIcon class="pi pi-search text-surface-400" />
-                            <InputText
-                                v-model="filter"
-                                :placeholder="$t('admin.users.table.search_placeholder')"
-                                @input="onFilterChange"
-                                class="!rounded-lg"
-                            />
-                        </IconField>
+                        <div>
+                            <IconField iconPosition="left">
+                                <InputIcon class="pi pi-search text-surface-400" />
+                                <InputText
+                                    v-model="filter"
+                                    :placeholder="$t('admin.users.table.search_placeholder')"
+                                    @input="onFilterChange"
+                                    class="!rounded-lg"
+                                />
+                            </IconField>
+                        </div>
                     </div>
                 </template>
 

@@ -149,6 +149,8 @@
     "admin.roles.form.error.domain.mandatory": "Il dominio del provider non puo' essere vuoto",
     "admin.roles.form.error.logout_url.invalid": "L'URL di logout non è valido",
 
+    "role.error.is_in_use": "Questo ruolo non puo' essere eliminato perche' viene utilizzato da uno o piu' utenti",
+
     "admin.providers.title": "Gestione Providers",
     "admin.providers.new_provider": "Nuovo Provider",
 
@@ -202,7 +204,7 @@
 
     "admin.providers.toast.invalid_url": "Il formato dell'URL inserito non è valido",
 
-    "admin.providerUserRoles.title": "Associazioni Provider-User",
+    "admin.providerUserRoles.title": "Associazioni User-Ruoli",
     "admin.providerUserRoles.new_providerUserRole": "Nuova Associazione",
     "admin.provider_user_roles.form.title_create": "Nuova Associazione",
     "admin.provider_user_roles.form.title_edit": "Modifica Associazione",

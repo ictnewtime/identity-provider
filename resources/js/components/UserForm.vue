@@ -74,6 +74,10 @@ const togglePasswordVisibility = () => {
     formItems.value.password.visible = !formItems.value.password.visible;
 };
 
+const clearPasswordExpiresAt = () => {
+    form.value.password_expires_at = null;
+};
+
 const resetForm = () => {
     form.value = {
         id: null,
@@ -418,14 +422,15 @@ watch(
                             type="button"
                             severity="secondary"
                             :icon="formItems.password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
-                            text
                             v-tooltip.top="null"
                             @click="togglePasswordVisibility"
                         />
+                    </InputGroupAddon>
+
+                    <InputGroupAddon class="p-0 border-none">
                         <Button
                             type="button"
                             severity="secondary"
-                            text
                             @click="handleGeneratePassword"
                             v-tooltip.top="$t('auth.generate_random_btn')"
                         >
@@ -463,13 +468,25 @@ watch(
                 <label for="password_expires_at" class="font-medium text-surface-900">
                     {{ $t("admin.users.form.password_expires_at_label") }}
                 </label>
-                <DatePicker
-                    id="password_expires_at"
-                    v-model="form.password_expires_at"
-                    :invalid="!!errors.password_expires_at"
-                    :showTime="true"
-                    :showIcon="true"
-                />
+                <InputGroup>
+                    <DatePicker
+                        id="password_expires_at"
+                        v-model="form.password_expires_at"
+                        :invalid="!!errors.password_expires_at"
+                        :showTime="true"
+                        :showIcon="true"
+                        dateFormat="dd/mm/yy"
+                    />
+                    <InputGroupAddon class="p-0 border-none">
+                        <Button
+                            type="button"
+                            severity="secondary"
+                            icon="pi pi-eraser"
+                            v-tooltip.top="null"
+                            @click="clearPasswordExpiresAt"
+                        />
+                    </InputGroupAddon>
+                </InputGroup>
                 <Message v-if="errors.password_expires_at" severity="error" size="small" variant="simple">
                     {{ errors.password_expires_at }}
                 </Message>

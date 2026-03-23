@@ -5,22 +5,21 @@ namespace App\Http\Controllers\Manage;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RoleRequest;
+use App\Models\ProviderUserRole;
 use Illuminate\Database\QueryException;
-use App\Repositories\RoleRepository;
-use Illuminate\Support\Facades\Validator;
-// Role
+// use App\Repositories\RoleRepository;
 use App\Models\Role;
 use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 class RoleController extends Controller
 {
-    protected $roleRepository;
+    // protected $roleRepository;
 
-    public function __construct(RoleRepository $roleRepository)
-    {
-        $this->roleRepository = $roleRepository;
-    }
+    // public function __construct(RoleRepository $roleRepository)
+    // {
+    //     $this->roleRepository = $roleRepository;
+    // }
 
     #[
         OA\Get(
@@ -317,13 +316,19 @@ class RoleController extends Controller
             );
         }
 
-        if (!$this->roleRepository->delete($role)) {
+        $providerUserRole = ProviderUserRole::where("role_id", $role->id)->first();
+        if ($providerUserRole) {
             return response()->json(
                 [
-                    "message" => "Error on deleting",
+                    "message" => __("role.error.is_in_use"),
                 ],
-                500,
+                409,
             );
+        }
+        try {
+            $role->delete();
+        } catch (QueryException $e) {
+            return response()->json(["message" => $e], 500);
         }
 
         return response()->json([], 204);
