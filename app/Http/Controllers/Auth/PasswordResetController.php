@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Provider;
+use App\Models\Parameter;
 use App\Models\Session;
 use App\Models\User;
 use App\Services\TokenProviderService;
@@ -125,10 +125,20 @@ class PasswordResetController extends Controller
         }
 
         // AGGIORNAMENTO AVVENUTO
-        $user->update([
-            "password" => Hash::make($request->password),
-            "password_expires_at" => now()->addDays(90),
-        ]);
+        $add_day = 90;
+        try {
+            $add_day = (int) Parameter::where("key", "password-force-reset-day")->first()->value;
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+        }
+        try {
+            $user->update([
+                "password" => Hash::make($request->password),
+                "password_expires_at" => now()->addDays($add_day),
+            ]);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+        }
 
         // 1. KILLER DELLE VECCHIE SESSIONI
         // Eliminiamo dal database tutti i vecchi token JWT associati a questo utente
