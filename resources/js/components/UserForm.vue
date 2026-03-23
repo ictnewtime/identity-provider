@@ -74,10 +74,6 @@ const togglePasswordVisibility = () => {
     formItems.value.password.visible = !formItems.value.password.visible;
 };
 
-const clearPasswordExpiresAt = () => {
-    form.value.password_expires_at = null;
-};
-
 const resetForm = () => {
     form.value = {
         id: null,
@@ -477,15 +473,6 @@ watch(
                         :showIcon="true"
                         dateFormat="dd/mm/yy"
                     />
-                    <InputGroupAddon class="p-0 border-none">
-                        <Button
-                            type="button"
-                            severity="secondary"
-                            icon="pi pi-eraser"
-                            v-tooltip.top="null"
-                            @click="clearPasswordExpiresAt"
-                        />
-                    </InputGroupAddon>
                 </InputGroup>
                 <Message v-if="errors.password_expires_at" severity="error" size="small" variant="simple">
                     {{ errors.password_expires_at }}

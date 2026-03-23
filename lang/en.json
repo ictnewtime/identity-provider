@@ -59,6 +59,8 @@
     "admin.users.table.name": "First Name",
     "admin.users.table.surname": "Last Name",
     "admin.users.table.empty": "No users found in the system.",
+    "admin.users.table.deleted_at": "Deleted At",
+    "admin.users.table.show_deleted_tooltip": "Show Deleted Users",
 
     "admin.users.form.title_create": "New User",
     "admin.users.form.title_edit": "Edit User",
@@ -106,6 +108,8 @@
     "admin.roles.table.missing_provider": "No Provider",
     "admin.roles.table.missing_domain": "No Domain",
     "admin.roles.table.empty": "No roles found in the system.",
+    "admin.roles.table.show_deleted_tooltip": "Show Deleted Roles",
+    "admin.roles.table.deleted_at": "Deleted At",
 
     "admin.roles.form.title_create": "New Role",
     "admin.roles.form.title_edit": "Edit Role",
@@ -145,6 +149,8 @@
     "admin.providers.table.logout_url": "Logout URL",
     "admin.providers.table.default_url": "Default",
     "admin.providers.table.empty": "No providers found in the system.",
+    "admin.providers.table.show_deleted_tooltip": "Show Deleted Providers",
+    "admin.providers.table.deleted_at": "Deleted At",
 
     "admin.providers.form.title_create": "New Provider",
     "admin.providers.form.title_edit": "Edit Provider",
@@ -228,6 +234,8 @@
     "admin.provider_user_roles.delete.prompt": "Are you sure you want to remove the association for the user ",
     "admin.provider_user_roles.errors.unique_role": "This user already has this role for the provider selected.",
     "admin.provider_user_roles.errors.creation": "An error occurred while creating the association",
+    "admin.provider_user_roles.table.show_deleted_tooltip": "Show deleted associations",
+    "admin.provider_user_roles.table.deleted_at": "Deleted At",
 
     "role.error.is_in_use": "This role is in use and cannot be deleted.",
 

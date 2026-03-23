@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n"; // Importato per usare le traduzioni nello script
 
@@ -13,6 +13,8 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
 import ProviderForm from "./ProviderForm.vue";
+import { Icon } from "@iconify/vue";
+import { formatDate } from "../utils/data";
 
 const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
@@ -25,13 +27,23 @@ const selectedProvider = ref(null);
 const displayDeleteModal = ref(false);
 const providerToDelete = ref(null);
 let searchTimeout = null;
+const tableComponent = reactive({
+    mainbar: {
+        showProvidersDeleted: false,
+    },
+});
 
 const loadProviders = (page = 1) => {
     loading.value = true;
 
     window.axios
         .get("/admin/v1/providers", {
-            params: { page: page, per_page: pagination.value.per_page, q: filter.value },
+            params: {
+                page: page,
+                per_page: pagination.value.per_page,
+                q: filter.value,
+                show_deleted: tableComponent.mainbar.showProvidersDeleted,
+            },
         })
         .then((res) => {
             pagination.value = res.data;
@@ -114,6 +126,10 @@ const deleteProvider = () => {
             emit("item-error", error);
         });
 };
+const toggleShowProvidersDeleted = () => {
+    tableComponent.mainbar.showProvidersDeleted = !tableComponent.mainbar.showProvidersDeleted;
+    loadProviders(1);
+};
 
 onMounted(() => {
     loadProviders();
@@ -129,15 +145,25 @@ onMounted(() => {
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
                             {{ $t("admin.providers.table.title") }}
                         </h3>
-                        <IconField iconPosition="left">
-                            <InputIcon class="pi pi-search text-surface-400" />
-                            <InputText
-                                v-model="filter"
-                                :placeholder="$t('admin.providers.table.search_placeholder')"
-                                @input="onFilterChange"
-                                class="!rounded-lg"
-                            />
-                        </IconField>
+                        <div class="flex gap-4">
+                            <Button
+                                variant="text"
+                                severity="danger"
+                                @click="toggleShowProvidersDeleted"
+                                v-tooltip.top="$t('admin.providers.table.show_deleted_tooltip')"
+                            >
+                                <Icon icon="hugeicons:delete-put-back" width="24" height="24" />
+                            </Button>
+                            <IconField iconPosition="left">
+                                <InputIcon class="pi pi-search text-surface-400" />
+                                <InputText
+                                    v-model="filter"
+                                    :placeholder="$t('admin.providers.table.search_placeholder')"
+                                    @input="onFilterChange"
+                                    class="rounded-lg!"
+                                />
+                            </IconField>
+                        </div>
                     </div>
                 </template>
 
@@ -167,6 +193,15 @@ onMounted(() => {
                         <span v-else class="text-surface-400 italic">
                             {{ $t("admin.providers.table.default_url") }}
                         </span>
+                    </template>
+                </Column>
+                <Column
+                    field="deleted_at"
+                    :header="$t('admin.providers.table.deleted_at')"
+                    v-if="tableComponent.mainbar.showProvidersDeleted === true"
+                >
+                    <template #body="slotProps">
+                        <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
                     </template>
                 </Column>
 

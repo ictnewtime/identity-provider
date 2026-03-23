@@ -41,9 +41,13 @@ class ProviderController extends Controller
     ]
     public function all(Request $request)
     {
+        $show_deleted = $request->boolean("show_deleted");
         $query = Provider::query();
         if ($request->filled("q")) {
             $query->where("domain", "like", "%" . $request->q . "%");
+        }
+        if ($show_deleted) {
+            $query->withTrashed();
         }
         $perPage = $request->input("per_page", 10);
         return $query->paginate($perPage);

@@ -45,6 +45,7 @@ class RoleController extends Controller
     ]
     public function all(Request $request)
     {
+        $show_deleted = $request->boolean("show_deleted");
         $query = Role::with("provider");
 
         $provider_id = $request->input("provider_id");
@@ -62,6 +63,9 @@ class RoleController extends Controller
                     $q->where("domain", "like", $searchTerm);
                 });
             });
+        }
+        if ($show_deleted) {
+            $query->withTrashed();
         }
 
         $perPage = $request->input("per_page", 10);

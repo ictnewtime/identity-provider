@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n";
 
@@ -13,6 +13,8 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
 import ProviderUserRoleForm from "./ProviderUserRoleForm.vue";
+import { Icon } from "@iconify/vue";
+import { formatDate } from "../utils/data";
 
 const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
@@ -25,13 +27,23 @@ const selectedItem = ref(null);
 const displayDeleteModal = ref(false);
 const itemToDelete = ref(null);
 let searchTimeout = null;
+const tableComponent = reactive({
+    mainbar: {
+        showRecordsDeleted: false,
+    },
+});
 
-const loadItems = (page = 1) => {
+const loadRecords = (page = 1) => {
     loading.value = true;
 
     window.axios
         .get("/admin/v1/provider-user-roles", {
-            params: { page: page, per_page: pagination.value.per_page, q: filter.value },
+            params: {
+                page: page,
+                per_page: pagination.value.per_page,
+                q: filter.value,
+                show_deleted: tableComponent.mainbar.showRecordsDeleted,
+            },
         })
         .then((res) => {
             pagination.value = res.data;
@@ -52,13 +64,13 @@ const loadItems = (page = 1) => {
 };
 
 const onPage = (event) => {
-    loadItems(event.page + 1);
+    loadRecords(event.page + 1);
 };
 
 const onFilterChange = () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
-        loadItems(1);
+        loadRecords(1);
     }, 500);
 };
 
@@ -74,7 +86,7 @@ defineExpose({
 
 const onItemSaved = () => {
     displayModal.value = false;
-    loadItems();
+    loadRecords();
 };
 
 const editItem = (item) => {
@@ -95,7 +107,7 @@ const deleteItem = () => {
         .then(() => {
             displayDeleteModal.value = false;
             itemToDelete.value = null;
-            loadItems();
+            loadRecords();
             toast.add({
                 severity: "success",
                 summary: trans("common.success"),
@@ -115,9 +127,13 @@ const deleteItem = () => {
             emit("item-error", error);
         });
 };
+const toggleShowRecordsDeleted = () => {
+    tableComponent.mainbar.showRecordsDeleted = !tableComponent.mainbar.showRecordsDeleted;
+    loadRecords(1);
+};
 
 onMounted(() => {
-    loadItems();
+    loadRecords();
 });
 </script>
 
@@ -130,15 +146,25 @@ onMounted(() => {
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
                             {{ $t("admin.provider_user_roles.table.title") }}
                         </h3>
-                        <IconField iconPosition="left">
-                            <InputIcon class="pi pi-search text-surface-400" />
-                            <InputText
-                                v-model="filter"
-                                :placeholder="$t('admin.provider_user_roles.table.search_placeholder')"
-                                @input="onFilterChange"
-                                class="!rounded-lg"
-                            />
-                        </IconField>
+                        <div class="flex gap-4">
+                            <Button
+                                variant="text"
+                                severity="danger"
+                                @click="toggleShowRecordsDeleted"
+                                v-tooltip.top="$t('admin.provider_user_roles.table.show_deleted_tooltip')"
+                            >
+                                <Icon icon="hugeicons:delete-put-back" width="24" height="24" />
+                            </Button>
+                            <IconField iconPosition="left">
+                                <InputIcon class="pi pi-search text-surface-400" />
+                                <InputText
+                                    v-model="filter"
+                                    :placeholder="$t('admin.provider_user_roles.table.search_placeholder')"
+                                    @input="onFilterChange"
+                                    class="rounded-lg!"
+                                />
+                            </IconField>
+                        </div>
                     </div>
                 </template>
 
@@ -178,6 +204,15 @@ onMounted(() => {
                         <span v-else class="text-surface-400 italic">{{
                             $t("admin.provider_user_roles.table.missing_role")
                         }}</span>
+                    </template>
+                </Column>
+                <Column
+                    field="deleted_at"
+                    :header="$t('admin.provider_user_roles.table.deleted_at')"
+                    v-if="tableComponent.mainbar.showRecordsDeleted === true"
+                >
+                    <template #body="slotProps">
+                        <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
                     </template>
                 </Column>
 

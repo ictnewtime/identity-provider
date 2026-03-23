@@ -1,19 +1,20 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n";
 
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Paginator from "primevue/paginator";
-import IconField from "primevue/iconfield";
-import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import Tag from "primevue/tag";
-
+import IconField from "primevue/iconfield";
+import InputIcon from "primevue/inputicon";
 import UserForm from "./UserForm.vue";
+import { Icon } from "@iconify/vue";
+import { formatDate } from "../utils/data";
 
 const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
@@ -26,15 +27,26 @@ const selectedUser = ref(null);
 const displayDeleteModal = ref(false);
 const userToDelete = ref(null);
 let searchTimeout = null;
+const tableComponent = reactive({
+    mainbar: {
+        showUsersDeleted: false,
+    },
+});
 
 const loadUsers = (page = 1) => {
     loading.value = true;
     window.axios
         .get("/admin/v1/users", {
-            params: { page: page, per_page: pagination.value.per_page, q: filter.value },
+            params: {
+                page: page,
+                per_page: pagination.value.per_page,
+                q: filter.value,
+                show_deleted: tableComponent.mainbar.showUsersDeleted,
+            },
         })
         .then((res) => {
             pagination.value = res.data;
+            console.log("pagination.value", pagination.value);
         })
         .catch((err) => {
             toast.add({
@@ -112,6 +124,11 @@ const deleteUser = () => {
         });
 };
 
+const toggleShowUsersDeleted = () => {
+    tableComponent.mainbar.showUsersDeleted = !tableComponent.mainbar.showUsersDeleted;
+    loadUsers(1);
+};
+
 onMounted(() => {
     loadUsers();
 });
@@ -126,14 +143,22 @@ onMounted(() => {
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
                             {{ $t("admin.users.table.title") }}
                         </h3>
-                        <div>
+                        <div class="flex gap-4">
+                            <Button
+                                variant="text"
+                                severity="danger"
+                                @click="toggleShowUsersDeleted"
+                                v-tooltip.top="$t('admin.users.table.show_deleted_tooltip')"
+                            >
+                                <Icon icon="hugeicons:delete-put-back" width="24" height="24" />
+                            </Button>
                             <IconField iconPosition="left">
                                 <InputIcon class="pi pi-search text-surface-400" />
                                 <InputText
                                     v-model="filter"
                                     :placeholder="$t('admin.users.table.search_placeholder')"
                                     @input="onFilterChange"
-                                    class="!rounded-lg"
+                                    class="rounded-lg!"
                                 />
                             </IconField>
                         </div>
@@ -166,8 +191,15 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column field="name" :header="$t('admin.users.table.name')"></Column>
-                <Column field="surname" :header="$t('admin.users.table.surname')"></Column>
+                <Column
+                    field="deleted_at"
+                    :header="$t('admin.users.table.deleted_at')"
+                    v-if="tableComponent.mainbar.showUsersDeleted === true"
+                >
+                    <template #body="slotProps">
+                        <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
+                    </template>
+                </Column>
 
                 <Column :header="$t('common.actions')" :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">

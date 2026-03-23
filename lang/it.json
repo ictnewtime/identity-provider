@@ -72,6 +72,8 @@
     "admin.users.table.name": "Nome",
     "admin.users.table.surname": "Cognome",
     "admin.users.table.empty": "Nessun utente trovato nel sistema.",
+    "admin.users.table.deleted_at": "Data Eliminazione",
+    "admin.users.table.show_deleted_tooltip": "Visualizza Utenti Eliminati",
 
     "admin.users.form.title_create": "Nuovo Utente",
     "admin.users.form.title_edit": "Modifica Utente",
@@ -120,6 +122,8 @@
     "admin.roles.table.missing_provider": "Nessun Provider",
     "admin.roles.table.missing_domain": "Nessun Dominio",
     "admin.roles.table.empty": "Nessun ruolo trovato nel sistema.",
+    "admin.roles.table.show_deleted_tooltip": "Visualizza Ruoli Eliminati",
+    "admin.roles.table.deleted_at": "Data Eliminazione",
 
     "admin.roles.form.title_create": "Nuovo Ruolo",
     "admin.roles.form.title_edit": "Modifica Ruolo",
@@ -161,6 +165,8 @@
     "admin.providers.table.logout_url": "Logout URL",
     "admin.providers.table.default_url": "Predefinito",
     "admin.providers.table.empty": "Nessun provider trovato nel sistema.",
+    "admin.providers.table.show_deleted_tooltip": "Visualizza Provider Eliminati",
+    "admin.providers.table.deleted_at": "Data Eliminazione",
 
     "admin.providers.form.title_create": "Nuovo Provider",
     "admin.providers.form.title_edit": "Modifica Provider",
@@ -244,6 +250,8 @@
     "admin.provider_user_roles.delete.prompt": "Sei sicuro di voler rimuovere l'associazione per l'utente ",
     "admin.provider_user_roles.errors.unique_role": "Questo utente possiede già questo ruolo per il provider selezionato.",
     "admin.provider_user_roles.errors.creation": "Si è verificato un errore durante la creazione.",
+    "admin.provider_user_roles.table.show_deleted_tooltip": "Mostra associazioni cancellate",
+    "admin.provider_user_roles.table.deleted_at": "Data Eliminazione",
 
     "admin.sessions.title": "Gestione Sessioni",
 

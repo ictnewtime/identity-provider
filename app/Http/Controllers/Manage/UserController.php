@@ -86,10 +86,17 @@ class UserController extends Controller
     ]
     public function all(Request $request)
     {
-        $query = User::select("id", "username", "name", "surname", "email", "enabled");
+        $user_select_columns = ["id", "username", "email", "enabled"];
+        $show_deleted = $request->boolean("show_deleted");
+        if ($show_deleted) {
+            $user_select_columns[] = "deleted_at";
+        }
+        $query = User::select($user_select_columns);
 
         if ($request->filled("q")) {
-            $query->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
+            $query->where(function ($q) use ($request) {
+                $q->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
+            });
         }
 
         if ($request->filled("sortField")) {
@@ -99,7 +106,9 @@ class UserController extends Controller
         } else {
             $query->orderBy("created_at", "asc");
         }
-
+        if ($show_deleted) {
+            $query->withTrashed();
+        }
         $perPage = $request->input("per_page", 10);
         $users = $query->paginate($perPage);
 
