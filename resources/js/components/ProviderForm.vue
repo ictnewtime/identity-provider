@@ -3,7 +3,9 @@ import { ref, watch, computed } from "vue";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n"; // Import obbligatorio per usare le traduzioni nel setup
 
+import { Icon } from "@iconify/vue";
 import InputGroup from "primevue/inputgroup";
+import InputGroupAddon from "primevue/inputgroupaddon";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
 import Button from "primevue/button";
@@ -38,6 +40,12 @@ const errors = ref({
     secret_key: "",
     logoutUrl: "",
     protocol: "",
+});
+
+const formItems = ref({
+    secret_key: {
+        visible: false,
+    },
 });
 
 const isEditMode = computed(() => !!props.selectedProvider);
@@ -170,6 +178,10 @@ const fetchProvider = async (id) => {
     }
 };
 
+const toggleSignatureVisibility = () => {
+    formItems.value.secret_key.visible = !formItems.value.secret_key.visible;
+};
+
 watch(
     () => props.selectedProvider,
     (newVal) => {
@@ -245,7 +257,7 @@ const generateSecret = () => {
                     {{ $t("admin.providers.form.url_label") }}
                     <i
                         class="pi pi-question-circle"
-                        style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
+                        style="color: var(--p-yellow-500); cursor: pointer; font-size: 0.875rem"
                         v-tooltip.top="{
                             value: $t('admin.providers.form.url_tooltip'),
                             escape: true,
@@ -304,7 +316,7 @@ const generateSecret = () => {
                     >{{ $t("admin.providers.form.logout_url_label") }}
                     <i
                         class="pi pi-question-circle"
-                        style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
+                        style="color: var(--p-yellow-500); cursor: pointer; font-size: 0.875rem"
                         v-tooltip.top="{
                             value: $t('admin.providers.form.logout_url_hint'),
                             escape: true,
@@ -331,7 +343,7 @@ const generateSecret = () => {
                     <i
                         v-if="isEditMode"
                         class="pi pi-question-circle"
-                        style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
+                        style="color: var(--p-yellow-500); cursor: pointer; font-size: 0.875rem"
                         v-tooltip.top="{
                             value: $t('admin.providers.form.secret_key_tooltip'),
                             escape: true,
@@ -350,16 +362,37 @@ const generateSecret = () => {
                         :invalid="!!errors.secret_key"
                         :placeholder="$t('admin.providers.form.secret_key_placeholder')"
                         :feedback="false"
-                        toggleMask
                         fluid
                         class="flex-grow"
+                        :pt="{
+                            pcInputText: {
+                                root: {
+                                    type: formItems.secret_key.visible ? 'text' : 'password',
+                                },
+                            },
+                        }"
                     />
-                    <Button
-                        icon="pi pi-refresh"
-                        severity="secondary"
-                        @click="generateSecret"
-                        v-tooltip.top="$t('admin.providers.form.secret_key_btn_tooltip')"
-                    />
+                    <InputGroupAddon class="p-0 border-none">
+                        <Button
+                            type="button"
+                            severity="secondary"
+                            :icon="formItems.secret_key.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                            v-tooltip.top="null"
+                            @click="toggleSignatureVisibility"
+                        />
+                    </InputGroupAddon>
+                    <InputGroupAddon>
+                        <Button
+                            type="button"
+                            severity="secondary"
+                            @click="generateSecret"
+                            v-tooltip.top="$t('admin.providers.form.secret_key_btn_tooltip')"
+                        >
+                            <template #icon>
+                                <Icon icon="mdi:dice-multiple-outline" width="24" height="24" />
+                            </template>
+                        </Button>
+                    </InputGroupAddon>
                 </InputGroup>
 
                 <Message v-if="errors.secret_key" severity="error" size="small" variant="simple">
