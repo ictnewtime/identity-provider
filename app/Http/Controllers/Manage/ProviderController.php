@@ -41,12 +41,67 @@ class ProviderController extends Controller
     ]
     public function all(Request $request)
     {
+        $show_deleted = $request->boolean("show_deleted");
         $query = Provider::query();
         if ($request->filled("q")) {
             $query->where("domain", "like", "%" . $request->q . "%");
         }
+        if ($show_deleted) {
+            $query->withTrashed();
+        }
         $perPage = $request->input("per_page", 10);
         return $query->paginate($perPage);
+    }
+
+    #[
+        OA\Get(
+            path: "/api/v1/providers/{id}",
+            summary: "Get provider by id",
+            description: "Returns provider details by id",
+            operationId: "Provider.find",
+            tags: ["Providers"],
+            security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    in: "path",
+                    required: true,
+                    description: "Provider id",
+                    name: "id",
+                    schema: new OA\Schema(type: "string"),
+                ),
+            ],
+            responses: [
+                new OA\Response(
+                    response: 200,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 404,
+                    description: "Not found",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Internal server error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
+        ),
+    ]
+    public function find($id)
+    {
+        try {
+            $provider = Provider::find($id);
+        } catch (\Exception $e) {
+            return response()->json(["message" => "Invalid id" . $e], 500);
+        }
+
+        if (empty($provider)) {
+            return response()->json(["message" => "Provider not found"], 404);
+        }
+
+        return response()->json(["provider" => $provider], 200);
     }
 
     #[
@@ -97,8 +152,8 @@ class ProviderController extends Controller
                             new OA\Property(
                                 property: "secret_key",
                                 type: "string",
-                                example: "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6f8d6f2d6f",
-                                description: "Secret key of the provider",
+                                example: "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6",
+                                description: "Signature key of the provider",
                             ),
                         ],
                         required: ["name", "url", "domain", "logoutUrl", "secret_key"],
@@ -124,21 +179,6 @@ class ProviderController extends Controller
             ],
         ),
     ]
-    public function find($id)
-    {
-        try {
-            $provider = Provider::find($id);
-        } catch (\Exception $e) {
-            return response()->json(["message" => "Invalid id" . $e], 500);
-        }
-
-        if (empty($provider)) {
-            return response()->json(["message" => "Provider not found"], 404);
-        }
-
-        return response()->json(["provider" => $provider], 200);
-    }
-
     public function create(ProviderRequest $request)
     {
         $data = $request->only("name", "url", "domain", "protocol", "logoutUrl", "secret_key");
@@ -210,11 +250,11 @@ class ProviderController extends Controller
                             new OA\Property(
                                 property: "secret_key",
                                 type: "string",
-                                example: "123",
-                                description: "secret key for JWT token",
+                                example: "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6",
+                                description: "Signature key for JWT token. Must be 32 characters long. Leave empty to not change it.",
                             ),
                         ],
-                        required: ["name", "url", "domain", "logoutUrl", "secret_key"],
+                        required: ["name", "url", "domain", "logoutUrl"],
                     ),
                 ),
             ),

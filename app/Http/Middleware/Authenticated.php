@@ -91,7 +91,7 @@ class Authenticated
     {
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
-        $domain = env("PROVIDER_DOMAIN");
+        $domain = config("idp.provider_id");
 
         // 1. Accodiamo la distruzione dei cookie (funziona sia su Web che su API)
         Cookie::queue(Cookie::forget($cookieName, "/", $domain));

@@ -17,7 +17,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["role-saved"]);
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 // Stato Form
@@ -85,6 +85,7 @@ const loadProvidersList = async () => {
             detail: trans("admin.roles.toast.load_providers_error"),
             life: 3000,
         });
+        emit("item-error", err);
     } finally {
         loadingProviders.value = false;
     }
@@ -115,8 +116,7 @@ const submit = async () => {
                 : trans("admin.roles.toast.detail_created"),
             life: 3000,
         });
-
-        emit("role-saved");
+        emit("item-saved");
         resetForm();
     } catch (error) {
         toast.add({
@@ -125,6 +125,7 @@ const submit = async () => {
             detail: trans("admin.roles.toast.submit_error"),
             life: 3000,
         });
+        emit("item-error", error);
 
         if (error.response?.data?.errors) {
             // Mappa gli errori di validazione del backend
@@ -158,6 +159,7 @@ const fetchRole = async (id) => {
             detail: trans("admin.roles.toast.load_role_error"),
             life: 3000,
         });
+        emit("item-error", err);
     } finally {
         loading.value = false;
     }

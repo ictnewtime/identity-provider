@@ -8,11 +8,11 @@ use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\Provider;
 use App\Models\Session;
 use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Auth;
-use OpenApi\Attributes as OA;
 use Illuminate\Support\Facades\Cookie;
 use Inertia\Inertia;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -33,23 +33,6 @@ class LoginController extends Controller
         ]);
     }
 
-    /**
-     * Shows page for authenticated user.
-     *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     */
-    // public function authenticated()
-    // {
-    //     $user = Auth::user();
-    //     // TODO: verificare che il ruolo dia all' interno della applicazione,
-    //     // tramite controllo del provider
-    //     $is_role_admin = $user->hasRole(config("role.admin"));
-    //     if ($is_role_admin) {
-    //         return redirect()->route("web-users");
-    //     }
-    //     return redirect()->route("sso.unauthorized");
-    // }
-
     public function login(LoginRequest $request)
     {
         $credentials = $request->only("username", "password");
@@ -60,10 +43,22 @@ class LoginController extends Controller
         }
 
         $user = Auth::user();
-        Log::info("Login effettuato per utente " . $user->id);
         event(new LoginEvent($user, $request->ip()));
 
         $provider_id = $request->input("provider_id");
+
+        // 1. BLOCCO SCADENZA PASSWORD (PRIMA DI OGNI TOKEN)
+        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
+            Log::info("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
+
+            // Salviamo in sessione dove voleva andare, così non perde la destinazione
+            if ($provider_id) {
+                $request->session()->put("pending_sso_provider_id", $provider_id);
+                $request->session()->put("pending_sso_redirect_to", $request->input("redirect_to"));
+            }
+
+            return redirect()->route("password.expired");
+        }
 
         // 2A. BIVIO SSO: L'utente va verso un'app esterna (es. App2)
         if ($provider_id) {
@@ -88,7 +83,6 @@ class LoginController extends Controller
         }
 
         // 2B. BIVIO LOCALE: L'utente accede all'IdP (Pannello Admin)
-        Log::info("2B. BIVIO LOCALE");
         if ($user->isAdmin()) {
             $request->session()->regenerate();
 
@@ -112,7 +106,6 @@ class LoginController extends Controller
                 return redirect()->route("sso.unauthorized");
             }
 
-            Log::info("2B. BIVIO LOCALE: Token creato");
             Cookie::queue($tokenService->cookieCretion($token, $idpProviderId));
             return redirect()->route("admin-home");
         }
@@ -156,7 +149,8 @@ class LoginController extends Controller
     {
         $idpProviderId = config("idp.provider_id");
         $dynamicCookieName = "idp_token_" . $idpProviderId;
-        $cookieDomain = env("PROVIDER_DOMAIN"); // es. .miosito.it (o null per localhost)
+        $provider = Provider::find(config("idp.provider_id"));
+        $cookieDomain = $provider->domain; // es. .miosito.it (o null per localhost)
 
         // 1. RECUPERO USER ID (Da sessione o decodificando il cookie)
         $userId = Auth::id();
@@ -212,25 +206,6 @@ class LoginController extends Controller
             $response->withCookie($cookie);
         }
 
-        return $response;
-    }
-
-    private function createResponse(int $status = 200, string $message = null, $cookie = null)
-    {
-        if (empty($message)) {
-            $response = response()->json([], $status);
-        }
-
-        $response = response()->json(
-            [
-                "message" => $message,
-            ],
-            $status,
-        );
-
-        if ($cookie) {
-            return $response->withCookie($cookie);
-        }
         return $response;
     }
 }

@@ -31,6 +31,7 @@ class ProviderUserRoleController extends Controller
     ]
     public function all(Request $request)
     {
+        $show_deleted = $request->boolean("show_deleted");
         $query = ProviderUserRole::with(["user", "provider", "role"]);
 
         if ($request->filled("q")) {
@@ -47,8 +48,11 @@ class ProviderUserRoleController extends Controller
                     $q->where("name", "like", $searchTerm);
                 });
         }
-
-        return $query->paginate($request->input("per_page", 10));
+        if ($show_deleted) {
+            $query->withTrashed();
+        }
+        $perPage = $request->input("per_page", 10);
+        return $query->paginate($perPage);
     }
 
     #[

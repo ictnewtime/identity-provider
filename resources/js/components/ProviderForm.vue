@@ -16,7 +16,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["provider-saved"]);
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 const loading = ref(false);
@@ -117,7 +117,7 @@ const submit = async () => {
                 : trans("admin.providers.toast.detail_created"),
             life: 3000,
         });
-        emit("provider-saved");
+        emit("item-saved");
         resetForm();
     } catch (error) {
         toast.add({
@@ -126,6 +126,7 @@ const submit = async () => {
             detail: trans("admin.providers.toast.submit_error"),
             life: 3000,
         });
+        emit("item-error", error);
 
         if (error.response?.data?.errors) {
             const backendErrors = error.response.data.errors;
@@ -163,6 +164,7 @@ const fetchProvider = async (id) => {
             detail: trans("admin.providers.toast.load_error"),
             life: 3000,
         });
+        emit("item-error", err);
     } finally {
         loading.value = false;
     }
@@ -202,6 +204,7 @@ const parseUrlAndFill = () => {
             detail: trans("admin.providers.toast.invalid_url"),
             life: 3000,
         });
+        emit("item-error", error);
     }
 };
 
@@ -249,7 +252,7 @@ const generateSecret = () => {
                         }"
                     ></i>
                 </label>
-                <InputGroup class="flex gap-2">
+                <InputGroup class="flex">
                     <InputText
                         id="url"
                         v-model="form.url"
@@ -297,9 +300,17 @@ const generateSecret = () => {
             </div>
 
             <div class="flex flex-col gap-1 md:col-span-2">
-                <label for="logoutUrl" class="font-medium text-surface-900">{{
-                    $t("admin.providers.form.logout_url_label")
-                }}</label>
+                <label for="logoutUrl" class="font-medium text-surface-900"
+                    >{{ $t("admin.providers.form.logout_url_label") }}
+                    <i
+                        class="pi pi-question-circle"
+                        style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
+                        v-tooltip.top="{
+                            value: $t('admin.providers.form.logout_url_hint'),
+                            escape: true,
+                        }"
+                    ></i>
+                </label>
                 <InputText
                     id="logoutUrl"
                     v-model="form.logoutUrl"
@@ -310,7 +321,6 @@ const generateSecret = () => {
                 <Message v-if="errors.logoutUrl" severity="error" size="small" variant="simple">
                     {{ errors.logoutUrl }}
                 </Message>
-                <small v-else class="text-surface-500">{{ $t("admin.providers.form.logout_url_hint") }}</small>
             </div>
 
             <div class="flex flex-col gap-1 md:col-span-2">
@@ -333,7 +343,7 @@ const generateSecret = () => {
                     {{ $t("admin.providers.form.secret_key_tooltip") }}
                 </Message>
 
-                <InputGroup class="flex gap-2">
+                <InputGroup class="flex">
                     <Password
                         id="secret_key"
                         v-model="form.secret_key"

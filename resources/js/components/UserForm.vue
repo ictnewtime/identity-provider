@@ -1,12 +1,18 @@
 <script setup>
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed } from "vue"; // Niente toRef!
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n";
+import { usePassword } from "@/Composables/usePassword";
 
+import { Icon } from "@iconify/vue";
+import InputGroup from "primevue/inputgroup";
+import InputGroupAddon from "primevue/inputgroupaddon";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
-import Button from "primevue/button";
+import DatePicker from "primevue/datepicker";
+
 import ToggleSwitch from "primevue/toggleswitch";
+import Button from "primevue/button";
 import Message from "primevue/message";
 
 const props = defineProps({
@@ -16,10 +22,11 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["user-created", "user-updated"]);
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 const loading = ref(false);
+
 const form = ref({
     id: null,
     username: "",
@@ -28,7 +35,14 @@ const form = ref({
     surname: "",
     password: "",
     password_confirmation: "",
+    password_expires_at: null,
     enabled: true,
+});
+
+const formItems = ref({
+    password: {
+        visible: false,
+    },
 });
 
 const errors = ref({
@@ -38,10 +52,27 @@ const errors = ref({
     surname: "",
     password: "",
     password_confirmation: "",
+    password_expires_at: "",
     form: "",
 });
 
 const isEditMode = computed(() => !!props.selectedUser);
+
+const pwdComputed = computed(() => form.value.password);
+const confirmComputed = computed(() => form.value.password_confirmation);
+
+const { requirements, strength, strengthColorClass, strengthTextColorClass, strengthText, generatePassword } =
+    usePassword(pwdComputed, confirmComputed);
+
+const handleGeneratePassword = () => {
+    const newPwd = generatePassword();
+    form.value.password = newPwd;
+    form.value.password_confirmation = newPwd;
+};
+
+const togglePasswordVisibility = () => {
+    formItems.value.password.visible = !formItems.value.password.visible;
+};
 
 const resetForm = () => {
     form.value = {
@@ -52,8 +83,8 @@ const resetForm = () => {
         surname: "",
         password: "",
         password_confirmation: "",
+        password_expires_at: null,
         enabled: true,
-        form: "",
     };
     resetErrors();
 };
@@ -70,11 +101,8 @@ const clearPasswords = () => {
 };
 
 const validateEmail = (email) => {
-    return String(email)
-        .toLowerCase()
-        .match(
-            /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-        );
+    const re = /\S+@\S+\.\S+/;
+    return re.test(email);
 };
 
 const validate = () => {
@@ -116,7 +144,7 @@ const fetchUser = async (id) => {
     try {
         const res = await window.axios.get(`/admin/v1/users/${id}`);
         const data = res.data;
-
+        const parsedExpiresAt = data.password_expires_at ? new Date(data.password_expires_at.replace(" ", "T")) : null;
         form.value = {
             id: data.id,
             username: data.username,
@@ -126,6 +154,7 @@ const fetchUser = async (id) => {
             enabled: data.enabled == 1,
             password: "",
             password_confirmation: "",
+            password_expires_at: parsedExpiresAt,
         };
     } catch (err) {
         toast.add({
@@ -134,6 +163,7 @@ const fetchUser = async (id) => {
             detail: trans("admin.users.toast.load_user_error"),
             life: 3000,
         });
+        emit("item-error", err);
     } finally {
         loading.value = false;
     }
@@ -152,6 +182,7 @@ const submit = async () => {
         email: form.value.email,
         name: form.value.name,
         surname: form.value.surname,
+        password_expires_at: form.value.password_expires_at,
         enabled: form.value.enabled,
     };
 
@@ -170,7 +201,7 @@ const submit = async () => {
                 : trans("admin.users.toast.detail_created"),
             life: 3000,
         });
-        emit(isEditMode.value ? "user-updated" : "user-created");
+        emit("item-saved");
         resetForm();
     } catch (error) {
         toast.add({
@@ -179,6 +210,7 @@ const submit = async () => {
             detail: trans("admin.users.toast.submit_error"),
             life: 3000,
         });
+        emit("item-error", error);
 
         if (error.response?.data?.errors) {
             const backendErrors = error.response.data.errors;
@@ -214,7 +246,9 @@ watch(
     <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
-                <label for="username" class="font-medium text-surface-900">{{ $t("admin.users.form.username") }}</label>
+                <label for="username" class="font-medium text-surface-900">{{
+                    $t("admin.users.form.username_label")
+                }}</label>
                 <InputText id="username" v-model="form.username" :invalid="!!errors.username" fluid />
                 <Message v-if="errors.username" severity="error" size="small" variant="simple">
                     {{ errors.username }}
@@ -222,7 +256,7 @@ watch(
             </div>
 
             <div class="flex flex-col gap-1">
-                <label for="email" class="font-medium text-surface-900">{{ $t("admin.users.form.email") }}</label>
+                <label for="email" class="font-medium text-surface-900">{{ $t("admin.users.form.email_label") }}</label>
                 <InputText id="email" type="email" v-model="form.email" :invalid="!!errors.email" fluid />
                 <Message v-if="errors.email" severity="error" size="small" variant="simple">
                     {{ errors.email }}
@@ -230,7 +264,7 @@ watch(
             </div>
 
             <div class="flex flex-col gap-1">
-                <label for="name" class="font-medium text-surface-900">{{ $t("admin.users.form.name") }}</label>
+                <label for="name" class="font-medium text-surface-900">{{ $t("admin.users.form.name_label") }}</label>
                 <InputText id="name" v-model="form.name" :invalid="!!errors.name" fluid />
                 <Message v-if="errors.name" severity="error" size="small" variant="simple">
                     {{ errors.name }}
@@ -238,7 +272,9 @@ watch(
             </div>
 
             <div class="flex flex-col gap-1">
-                <label for="surname" class="font-medium text-surface-900">{{ $t("admin.users.form.surname") }}</label>
+                <label for="surname" class="font-medium text-surface-900">{{
+                    $t("admin.users.form.surname_label")
+                }}</label>
                 <InputText id="surname" v-model="form.surname" :invalid="!!errors.surname" fluid />
                 <Message v-if="errors.surname" severity="error" size="small" variant="simple">
                     {{ errors.surname }}
@@ -249,9 +285,10 @@ watch(
                 <div class="flex items-center justify-between gap-2">
                     <div class="flex items-center gap-2">
                         <label for="password" class="font-medium text-surface-900">{{
-                            $t("admin.users.form.password")
+                            $t("admin.users.form.password_label")
                         }}</label>
                         <i
+                            v-if="isEditMode"
                             class="pi pi-question-circle"
                             style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
                             v-tooltip.top="{ value: $t('admin.users.form.password_tip'), escape: true }"
@@ -270,15 +307,136 @@ watch(
                     />
                 </div>
 
-                <Password
-                    id="password"
-                    v-model="form.password"
-                    autocomplete="new-password"
-                    :invalid="!!errors.password"
-                    :feedback="false"
-                    toggleMask
-                    fluid
-                />
+                <InputGroup>
+                    <Password
+                        inputId="password"
+                        name="password"
+                        v-model="form.password"
+                        text
+                        :placeholder="$t('admin.users.form.password_placeholder')"
+                        :invalid="!!errors.password"
+                        :feedback="true"
+                        fluid
+                        :pt="{
+                            pcInputText: {
+                                root: {
+                                    type: formItems.password.visible ? 'text' : 'password',
+                                },
+                            },
+                        }"
+                    >
+                        <template #content>
+                            <div class="w-full sm:w-[22rem] p-1">
+                                <div class="mb-4">
+                                    <div class="w-full bg-surface-200 h-1.5 rounded-full overflow-hidden">
+                                        <div
+                                            class="h-full transition-all duration-300"
+                                            :class="strengthColorClass"
+                                            :style="{ width: `${(strength / 5) * 100}%` }"
+                                        ></div>
+                                    </div>
+                                    <small class="text-surface-700 mt-1 block font-medium">
+                                        {{ $t("auth.password_strength") }}:
+                                        <span class="font-bold" :class="strengthTextColorClass">{{
+                                            strengthText
+                                        }}</span>
+                                    </small>
+                                </div>
+
+                                <h6 class="text-sm font-bold mb-2 text-surface-900">
+                                    {{ $t("auth.password_requirements") }}
+                                </h6>
+                                <ul class="text-sm flex flex-col gap-1 m-0 p-0 list-none">
+                                    <li
+                                        :class="
+                                            requirements.minLength ? 'text-green-600 font-medium' : 'text-surface-700'
+                                        "
+                                    >
+                                        <i
+                                            class="pi mr-2 text-xs"
+                                            :class="requirements.minLength ? 'pi-check-circle' : 'pi-circle'"
+                                        ></i>
+                                        {{ $t("auth.req_min_length") }}
+                                    </li>
+                                    <li
+                                        :class="
+                                            requirements.hasUpperCase
+                                                ? 'text-green-600 font-medium'
+                                                : 'text-surface-700'
+                                        "
+                                    >
+                                        <i
+                                            class="pi mr-2 text-xs"
+                                            :class="requirements.hasUpperCase ? 'pi-check-circle' : 'pi-circle'"
+                                        ></i>
+                                        {{ $t("auth.req_upper") }}
+                                    </li>
+                                    <li
+                                        :class="
+                                            requirements.hasLowerCase
+                                                ? 'text-green-600 font-medium'
+                                                : 'text-surface-700'
+                                        "
+                                    >
+                                        <i
+                                            class="pi mr-2 text-xs"
+                                            :class="requirements.hasLowerCase ? 'pi-check-circle' : 'pi-circle'"
+                                        ></i>
+                                        {{ $t("auth.req_lower") }}
+                                    </li>
+                                    <li
+                                        :class="
+                                            requirements.hasNumber ? 'text-green-600 font-medium' : 'text-surface-700'
+                                        "
+                                    >
+                                        <i
+                                            class="pi mr-2 text-xs"
+                                            :class="requirements.hasNumber ? 'pi-check-circle' : 'pi-circle'"
+                                        ></i>
+                                        {{ $t("auth.req_number") }}
+                                    </li>
+                                    <li
+                                        :class="
+                                            requirements.hasSpecialChar
+                                                ? 'text-green-600 font-medium'
+                                                : 'text-surface-700'
+                                        "
+                                    >
+                                        <i
+                                            class="pi mr-2 text-xs"
+                                            :class="requirements.hasSpecialChar ? 'pi-check-circle' : 'pi-circle'"
+                                        ></i>
+                                        {{ $t("auth.req_special") }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </template>
+                    </Password>
+
+                    <InputGroupAddon class="p-0 border-none">
+                        <Button
+                            type="button"
+                            severity="secondary"
+                            :icon="formItems.password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                            v-tooltip.top="null"
+                            @click="togglePasswordVisibility"
+                        />
+                    </InputGroupAddon>
+
+                    <InputGroupAddon class="p-0 border-none">
+                        <Button
+                            type="button"
+                            severity="secondary"
+                            @click="handleGeneratePassword"
+                            v-tooltip.top="$t('auth.generate_random_btn')"
+                        >
+                            <template #icon>
+                                <Icon icon="mdi:dice-multiple-outline" width="24" height="24" />
+                            </template>
+                        </Button>
+                    </InputGroupAddon>
+                </InputGroup>
+
                 <Message v-if="errors.password" severity="error" size="small" variant="simple">
                     {{ errors.password }}
                 </Message>
@@ -286,7 +444,7 @@ watch(
 
             <div class="flex flex-col gap-1">
                 <label for="password_confirmation" class="font-medium text-surface-900">
-                    {{ $t("admin.users.form.password_confirmation") }}
+                    {{ $t("admin.users.form.password_confirmation_label") }}
                 </label>
                 <Password
                     id="password_confirmation"
@@ -302,8 +460,29 @@ watch(
                 </Message>
             </div>
 
-            <div class="flex items-center gap-3 mt-2 md:col-span-2">
-                <label for="enabled" class="font-medium text-surface-900">{{ $t("admin.users.form.enabled") }}</label>
+            <div class="flex flex-col gap-1">
+                <label for="password_expires_at" class="font-medium text-surface-900">
+                    {{ $t("admin.users.form.password_expires_at_label") }}
+                </label>
+                <InputGroup>
+                    <DatePicker
+                        id="password_expires_at"
+                        v-model="form.password_expires_at"
+                        :invalid="!!errors.password_expires_at"
+                        :showTime="true"
+                        :showIcon="true"
+                        dateFormat="dd/mm/yy"
+                    />
+                </InputGroup>
+                <Message v-if="errors.password_expires_at" severity="error" size="small" variant="simple">
+                    {{ errors.password_expires_at }}
+                </Message>
+            </div>
+
+            <div class="flex items-center gap-3 mt-2">
+                <label for="enabled" class="font-medium text-surface-900">{{
+                    $t("admin.users.form.enabled_label")
+                }}</label>
                 <ToggleSwitch id="enabled" v-model="form.enabled" />
             </div>
         </div>

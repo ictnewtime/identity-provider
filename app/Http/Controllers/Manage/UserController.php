@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 // use App\Repositories\RepositoryInterface;
 // use App\Repositories\UserRepositoryInterface;
@@ -85,10 +86,17 @@ class UserController extends Controller
     ]
     public function all(Request $request)
     {
-        $query = User::query();
+        $user_select_columns = ["id", "username", "email", "enabled"];
+        $show_deleted = $request->boolean("show_deleted");
+        if ($show_deleted) {
+            $user_select_columns[] = "deleted_at";
+        }
+        $query = User::select($user_select_columns);
 
         if ($request->filled("q")) {
-            $query->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
+            $query->where(function ($q) use ($request) {
+                $q->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
+            });
         }
 
         if ($request->filled("sortField")) {
@@ -98,8 +106,10 @@ class UserController extends Controller
         } else {
             $query->orderBy("created_at", "asc");
         }
-
-        $perPage = $request->get("per_page", 10);
+        if ($show_deleted) {
+            $query->withTrashed();
+        }
+        $perPage = $request->input("per_page", 10);
         $users = $query->paginate($perPage);
 
         return response()->json($users);
@@ -162,6 +172,12 @@ class UserController extends Controller
                                 type: "boolean",
                                 example: true,
                             ),
+                            new OA\Property(
+                                property: "password_expires_at",
+                                description: "User password expires at, format: Y-m-d H:i:s. If null, means the user is at his first login, so the password must be changed.",
+                                type: "string",
+                                format: "date-time",
+                            ),
                         ],
                     ),
                 ),
@@ -187,24 +203,36 @@ class UserController extends Controller
     ]
     public function create(UserRequest $request)
     {
-        $data = $request->only(["username", "password", "email", "name", "surname", "enabled"]);
+        $credentials = $request->only([
+            "username",
+            "password",
+            "email",
+            "name",
+            "surname",
+            "enabled",
+            "password_expires_at",
+        ]);
 
-        DB::beginTransaction();
+        if (array_key_exists("password_expires_at", $credentials)) {
+            $credentials["password_expires_at"] = $credentials["password_expires_at"]
+                ? Carbon::parse($credentials["password_expires_at"])
+                    ->setTimezone(config("app.timezone"))
+                    ->format("Y-m-d H:i:s")
+                : null;
+        }
 
         try {
-            $data["password"] = Hash::make($data["password"]);
+            $credentials["password"] = Hash::make($credentials["password"]);
 
-            $data["enabled"] = $request->input("enabled", true);
-            $data["is_verified"] = true;
+            $credentials["enabled"] = $request->input("enabled", true);
+            $credentials["is_verified"] = true;
 
-            $user = User::create($data);
+            $user = User::create($credentials);
 
-            DB::commit();
-            return response()->json(["user" => $user], 200);
+            return response()->json($user, 200);
         } catch (\Exception $e) {
-            DB::rollBack();
             Log::error("Errore creazione utente: " . $e->getMessage());
-            return response()->json(["message" => "Error during saving user"], 500);
+            return response()->json(["message" => $e->getMessage()], 500);
         }
     }
 
@@ -329,6 +357,12 @@ class UserController extends Controller
                                 type: "boolean",
                                 example: true,
                             ),
+                            new OA\Property(
+                                property: "password_expires_at",
+                                description: "User password expires at, format: Y-m-d H:i:s.",
+                                type: "string",
+                                format: "date-time",
+                            ),
                         ],
                     ),
                 ),
@@ -354,7 +388,15 @@ class UserController extends Controller
     ]
     public function update(UserRequest $request, $id)
     {
-        $credentials = $request->only("email", "username", "name", "surname", "enabled");
+        $credentials = $request->only("email", "username", "name", "surname", "enabled", "password_expires_at");
+
+        if (array_key_exists("password_expires_at", $credentials)) {
+            $credentials["password_expires_at"] = $credentials["password_expires_at"]
+                ? Carbon::parse($credentials["password_expires_at"])
+                    ->setTimezone(config("app.timezone"))
+                    ->format("Y-m-d H:i:s")
+                : null;
+        }
 
         if ($request->filled("password")) {
             $credentials["password"] = Hash::make($request->password);
@@ -380,12 +422,7 @@ class UserController extends Controller
             );
         }
 
-        return response()->json(
-            [
-                "user" => UserResource::make($user),
-            ],
-            200,
-        );
+        return response()->json($user, 200);
     }
 
     #[
