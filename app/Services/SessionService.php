@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Provider;
 use App\Models\Session;
+use App\Models\User;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -47,6 +49,11 @@ class SessionService
                 "expires_at" => $expires_at,
                 "last_activity" => now(),
             ]);
+
+            // INTEGRAZIONE LOG ESTERNO (GRAPHQL)
+            $provider = Provider::find($provider_id);
+            $user = User::find($user_id);
+            LogExternal::logToLogService($user->username, "login", $ip_address, $provider->name);
         }
 
         return $session;

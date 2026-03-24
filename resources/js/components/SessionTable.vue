@@ -13,6 +13,7 @@ import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import { formatDate } from "../utils/data";
 
+const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
 const filter = ref("");
@@ -40,6 +41,7 @@ const loadSessions = (page = 1) => {
                 detail: trans("admin.sessions.toast.load_error"),
                 life: 3000,
             });
+            emit("item-error", err);
         })
         .finally(() => {
             loading.value = false;
@@ -75,6 +77,7 @@ const deleteSession = () => {
                 detail: trans("admin.sessions.toast.delete_success"),
                 life: 3000,
             });
+            emit("item-saved");
             // Aspettiamo 1,5 secondi per far leggere il toast, poi aggiorniamo la tabella
             // (e ci facciamo buttare fuori se era la nostra sessione)
             setTimeout(() => {
@@ -94,6 +97,7 @@ const deleteSession = () => {
                 detail: trans("admin.sessions.toast.delete_error"),
                 life: 3000,
             });
+            emit("item-error", error);
         });
 };
 

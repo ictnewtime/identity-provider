@@ -48,25 +48,42 @@
                         "application/x-www-form-urlencoded": {
                             "schema": {
                                 "required": [
+                                    "name",
+                                    "url",
                                     "domain",
                                     "logoutUrl",
                                     "secret_key"
                                 ],
                                 "properties": {
-                                    "domain": {
-                                        "description": "Provider domain",
+                                    "name": {
+                                        "description": "Name of the provider",
                                         "type": "string",
-                                        "example": "portale.newtimegroup.it"
+                                        "example": "Example"
+                                    },
+                                    "url": {
+                                        "description": "URL of the provider",
+                                        "type": "string",
+                                        "example": "https://example.com"
+                                    },
+                                    "domain": {
+                                        "description": "Domain of the provider",
+                                        "type": "string",
+                                        "example": "example.com"
+                                    },
+                                    "protocol": {
+                                        "description": "Protocol of the provider",
+                                        "type": "string",
+                                        "example": "http"
                                     },
                                     "logoutUrl": {
-                                        "description": "URL for logout",
+                                        "description": "Logout URL of the provider",
                                         "type": "string",
-                                        "example": "https://portale.newtimegroup.it/logout/"
+                                        "example": "https://example.com/logout"
                                     },
                                     "secret_key": {
-                                        "description": "secret key for JWT token",
+                                        "description": "Signature key of the provider",
                                         "type": "string",
-                                        "example": ""
+                                        "example": "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6"
                                     }
                                 },
                                 "type": "object"
@@ -102,6 +119,50 @@
             }
         },
         "/api/v1/providers/{id}": {
+            "get": {
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Get provider by id",
+                "description": "Returns provider details by id",
+                "operationId": "Provider.find",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Provider id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            },
             "put": {
                 "tags": [
                     "Providers"
@@ -126,15 +187,31 @@
                         "application/x-www-form-urlencoded": {
                             "schema": {
                                 "required": [
+                                    "name",
+                                    "url",
                                     "domain",
-                                    "logoutUrl",
-                                    "secret_key"
+                                    "logoutUrl"
                                 ],
                                 "properties": {
+                                    "name": {
+                                        "description": "Provider name",
+                                        "type": "string",
+                                        "example": "Portale Newtimegroup"
+                                    },
+                                    "url": {
+                                        "description": "Provider url",
+                                        "type": "string",
+                                        "example": "https://portale.newtimegroup.it"
+                                    },
                                     "domain": {
                                         "description": "Provider domain",
                                         "type": "string",
                                         "example": "portale.newtimegroup.it"
+                                    },
+                                    "protocol": {
+                                        "description": "Provider protocol",
+                                        "type": "string",
+                                        "example": "http"
                                     },
                                     "logoutUrl": {
                                         "description": "URL for logout",
@@ -142,9 +219,9 @@
                                         "example": "https://portale.newtimegroup.it/logout/"
                                     },
                                     "secret_key": {
-                                        "description": "secret key for JWT token",
+                                        "description": "Signature key for JWT token. Must be 32 characters long. Leave empty to not change it.",
                                         "type": "string",
-                                        "example": "123"
+                                        "example": "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6"
                                     }
                                 },
                                 "type": "object"
@@ -827,6 +904,16 @@
                                         "description": "User surname",
                                         "type": "string",
                                         "example": "rossi"
+                                    },
+                                    "enabled": {
+                                        "description": "User enabled",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "password_expires_at": {
+                                        "description": "User password expires at, format: Y-m-d H:i:s. If null, means the user is at his first login, so the password must be changed.",
+                                        "type": "string",
+                                        "format": "date-time"
                                     }
                                 },
                                 "type": "object"
@@ -959,6 +1046,16 @@
                                         "description": "User surname",
                                         "type": "string",
                                         "example": "Rossi"
+                                    },
+                                    "enabled": {
+                                        "description": "User enabled",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "password_expires_at": {
+                                        "description": "User password expires at, format: Y-m-d H:i:s.",
+                                        "type": "string",
+                                        "format": "date-time"
                                     }
                                 },
                                 "type": "object"

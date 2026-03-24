@@ -29,8 +29,9 @@ class UserRequest extends FormRequest
             "username" => ["required", "string", Rule::unique("users", "username")->ignore($userId)],
             "name" => "required|string|max:255",
             "surname" => "required|string|max:255",
-            "password" => $this->isMethod("post") ? "required|min:8|confirmed" : "sometimes|nullable|min:8|confirmed",
-            "password_confirmation" => $this->isMethod("post") ? "required|min:8" : "sometimes|nullable|min:8",
+            "password" => $this->isMethod("post") ? "required|min:12|confirmed" : "sometimes|nullable|min:12|confirmed",
+            "password_confirmation" => $this->isMethod("post") ? "required|min:12" : "sometimes|nullable|min:12",
+            "password_expires_at" => "nullable|date",
         ];
     }
 }

@@ -72,6 +72,7 @@ const logout = () => {
 
 <template>
     <div class="flex h-screen bg-slate-100 overflow-hidden font-sans text-surface-900 antialiased">
+        <notification />
         <aside
             :class="[
                 'bg-white flex flex-col flex-shrink-0 z-20 shadow-[4px_0_24px_rgba(0,0,0,0.04)] transition-all duration-300 ease-in-out relative',
@@ -163,7 +164,6 @@ const logout = () => {
                         severity="secondary"
                         class="hover:!text-red-600 hover:!bg-red-50 transition-colors"
                         @click="logout"
-                        v-tooltip.bottom="$t('common.logout')"
                     />
                 </div>
             </header>

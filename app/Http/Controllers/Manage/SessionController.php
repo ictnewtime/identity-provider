@@ -54,7 +54,7 @@ class SessionController extends Controller
     /**
      * Controlla lo stato di una sessione (Chiamata dall'IdP Extension M2M)
      */
-    public function check(Request $request): JsonResponse
+    public function check(Request $request): \Illuminate\Http\JsonResponse
     {
         // 1. Recuperiamo i dati ultra-sicuri che il middleware ha estratto dal JWT
         $providerId = $request->attributes->get("jwt_provider_id");
@@ -65,7 +65,26 @@ class SessionController extends Controller
             return response()->json(["valid" => false, "message" => "JWT Claims missing"], 401);
         }
 
-        // 2. Validiamo solo i dati ambientali che arrivano dalla GET di App2
+        // --- 2. CONTROLLO SICUREZZA: SCADENZA PASSWORD ---
+        $user = \App\Models\User::find($userId);
+
+        if (!$user) {
+            return response()->json(["valid" => false, "message" => "User not found"], 404);
+        }
+
+        // Se la password è scaduta o deve essere forzata, uccidiamo la sessione esterna
+        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
+            return response()->json(
+                [
+                    "valid" => false,
+                    "message" => "Password expired. User must authenticate and change password.",
+                ],
+                401,
+            ); // 401 Unauthorized dirà all'App2 di fare logout
+        }
+        // -------------------------------------------------
+
+        // 3. Validiamo solo i dati ambientali che arrivano dalla GET di App2
         $validated = $request->validate([
             "ip_address" => "nullable|ip",
             "user_agent" => "nullable|string",
@@ -74,7 +93,7 @@ class SessionController extends Controller
         $ip_address = $validated["ip_address"] ?? $request->ip();
         $user_agent = $validated["user_agent"] ?? $request->userAgent();
 
-        // 3. Logica di Business
+        // 4. Logica di Business
         $result = $this->sessionService->validateAndRefreshSession(
             $ip_address,
             $providerId,

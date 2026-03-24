@@ -5,6 +5,26 @@
     "auth.verification.errors.save_failed": "An error occurred while activating the account.",
     "auth.verification.errors.delete_failed": "Account activated, but unable to remove security code.",
 
+    "auth.forgot_password": "Forgot Password?",
+    "auth.recover_password_title": "Recover Password",
+    "auth.recover_password_body": "Enter your username. We will send you a recovery link to the email address associated with your profile.",
+    "auth.send_recovery_link": "Send Recovery Link",
+    "auth.back_to_login": "Back to Login",
+
+    "auth.new_password_body": "You are resetting the password for the user",
+    "auth.password_label": "New Password",
+    "auth.password_confirmation_label": "Confirm Password",
+    "auth.password_placeholder": "New Password (min. 12)",
+    "auth.password_confirmation_placeholder": "Confirm Password",
+    "auth.reset_password_btn": "Save and Login",
+
+    "auth.username_not_found": "This username is not present in our systems.",
+    "auth.no_email_configured": "This account does not have an email configured for password recovery. Please contact the administrator.",
+    "auth.recovery_link_sent": "We have sent you a recovery link to the email address associated with your profile.",
+    "auth.password_reset_success": "Password updated successfully! You can now log in.",
+
+    "auth.password_same_as_old": "The new password cannot be the same as the current one.",
+
     "common.id": "ID",
     "common.actions": "Actions",
     "common.edit": "Edit",
@@ -39,6 +59,8 @@
     "admin.users.table.name": "First Name",
     "admin.users.table.surname": "Last Name",
     "admin.users.table.empty": "No users found in the system.",
+    "admin.users.table.deleted_at": "Deleted At",
+    "admin.users.table.show_deleted_tooltip": "Show Deleted Users",
 
     "admin.users.form.title_create": "New User",
     "admin.users.form.title_edit": "Edit User",
@@ -49,13 +71,14 @@
 
     "admin.users.delete.prompt": "Are you sure you want to delete the user ",
 
-    "admin.users.form.username": "Username",
-    "admin.users.form.email": "Email",
-    "admin.users.form.name": "First Name",
-    "admin.users.form.surname": "Last Name",
-    "admin.users.form.password": "Password",
-    "admin.users.form.password_confirmation": "Confirm Password",
-    "admin.users.form.enabled": "User Enabled",
+    "admin.users.form.username_label": "Username",
+    "admin.users.form.email_label": "Email",
+    "admin.users.form.name_label": "First Name",
+    "admin.users.form.surname_label": "Last Name",
+    "admin.users.form.password_label": "Password",
+    "admin.users.form.password_confirmation_label": "Confirm Password",
+    "admin.users.form.password_expires_at_label": "Password Expiration Date",
+    "admin.users.form.enabled_label": "User Enabled",
 
     "admin.users.form.btn_create": "Create User",
     "admin.users.form.btn_clear": "Clear",
@@ -85,6 +108,8 @@
     "admin.roles.table.missing_provider": "No Provider",
     "admin.roles.table.missing_domain": "No Domain",
     "admin.roles.table.empty": "No roles found in the system.",
+    "admin.roles.table.show_deleted_tooltip": "Show Deleted Roles",
+    "admin.roles.table.deleted_at": "Deleted At",
 
     "admin.roles.form.title_create": "New Role",
     "admin.roles.form.title_edit": "Edit Role",
@@ -124,6 +149,8 @@
     "admin.providers.table.logout_url": "Logout URL",
     "admin.providers.table.default_url": "Default",
     "admin.providers.table.empty": "No providers found in the system.",
+    "admin.providers.table.show_deleted_tooltip": "Show Deleted Providers",
+    "admin.providers.table.deleted_at": "Deleted At",
 
     "admin.providers.form.title_create": "New Provider",
     "admin.providers.form.title_edit": "Edit Provider",
@@ -167,7 +194,7 @@
 
     "admin.providers.toast.invalid_url": "The URL format entered is invalid",
 
-    "admin.providerUserRoles.title": "Provider-User Associations",
+    "admin.providerUserRoles.title": "User-Roles Associations",
     "admin.providerUserRoles.new_providerUserRole": "New Association",
     "admin.provider_user_roles.form.title_create": "New Association",
     "admin.provider_user_roles.form.title_edit": "Edit Association",
@@ -207,6 +234,10 @@
     "admin.provider_user_roles.delete.prompt": "Are you sure you want to remove the association for the user ",
     "admin.provider_user_roles.errors.unique_role": "This user already has this role for the provider selected.",
     "admin.provider_user_roles.errors.creation": "An error occurred while creating the association",
+    "admin.provider_user_roles.table.show_deleted_tooltip": "Show deleted associations",
+    "admin.provider_user_roles.table.deleted_at": "Deleted At",
+
+    "role.error.is_in_use": "This role is in use and cannot be deleted.",
 
     "admin.sessions.title": "Session Management",
 
@@ -258,5 +289,14 @@
 
     "admin.audits.toast.load_error": "Unable to load system logs",
     "client.unauthorized.title": "Unauthorized",
-    "client.unauthorized.message": "You are not authorized to access this resource. If you think this is a mistake, please contact the system administrator."
+    "client.unauthorized.message": "You are not authorized to access this resource. If you think this is a mistake, please contact the system administrator.",
+
+    "auth.mandatory_change_title": "Password Change Required",
+    "auth.mandatory_change_body": "Your password is expired or is the first access. For security reasons, you must set a new password for the user:",
+    "auth.logout": "Logout",
+    "auth.current_password": "Current Password",
+    "auth.new_password": "New Password",
+    "auth.hide_password": "Hide password",
+    "auth.show_password": "Show password",
+    "auth.update_password_btn": "Save New Password"
 }

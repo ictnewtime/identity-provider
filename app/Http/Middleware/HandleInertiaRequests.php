@@ -36,12 +36,23 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         return array_merge(parent::share($request), [
-            ...parent::share($request),
+            // ...parent::share($request),
             "auth" => [
                 "user" => $request->user(),
             ],
             "locale" => app()->getLocale(),
             "csrf_token" => csrf_token(),
+            "flash" => [
+                "success" => function () use ($request) {
+                    // Usiamo PULL: legge il dato e lo cancella per non farlo riapparire in futuro
+                    $msg = $request->session()->pull("success");
+                    return $msg;
+                },
+                "error" => function () use ($request) {
+                    $msg = $request->session()->pull("error");
+                    return $msg;
+                },
+            ],
         ]);
     }
 }

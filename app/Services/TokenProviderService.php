@@ -173,7 +173,7 @@ class TokenProviderService
             return null;
         }
 
-        $redirectUrl = $provider->protocol . $provider->domain;
+        $redirectUrl = $provider->url;
 
         // Gestione sicura del redirect_to
         if ($redirectToParam) {
