@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use App\Models\Provider;
 use App\Models\User;
 use App\Models\Role;
+use App\Models\Session;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\CustomAuditable;
 
@@ -40,7 +41,7 @@ class ProviderUserRole extends Model
 
             // Distruggiamo la sessione SOLO se il ruolo modificato NON appartiene all'IdP
             if ($providerUserRole->provider_id != $idpProviderId) {
-                \App\Models\Session::where("user_id", $providerUserRole->user_id)
+                Session::where("user_id", $providerUserRole->user_id)
                     ->where("provider_id", $providerUserRole->provider_id)
                     ->delete();
             }
@@ -52,7 +53,7 @@ class ProviderUserRole extends Model
 
             // Distruggiamo la sessione SOLO se il ruolo eliminato NON appartiene all'IdP
             if ($providerUserRole->provider_id != $idpProviderId) {
-                \App\Models\Session::where("user_id", $providerUserRole->user_id)
+                Session::where("user_id", $providerUserRole->user_id)
                     ->where("provider_id", $providerUserRole->provider_id)
                     ->delete();
             }

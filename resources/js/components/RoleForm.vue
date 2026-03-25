@@ -11,7 +11,7 @@ import Message from "primevue/message";
 
 // Props & Emits
 const props = defineProps({
-    selectedRole: {
+    roleSelected: {
         type: Object,
         default: null,
     },
@@ -37,7 +37,7 @@ const errors = ref({
 });
 
 // Computed
-const isEditMode = computed(() => !!props.selectedRole);
+const isEditMode = computed(() => !!props.roleSelected);
 
 // Metodi di utilità
 const resetForm = () => {
@@ -167,7 +167,7 @@ const fetchRole = async (id) => {
 
 // Watcher per riempire il form quando il padre ci passa un ruolo da modificare
 watch(
-    () => props.selectedRole,
+    () => props.roleSelected,
     (newVal) => {
         if (newVal && newVal.id) {
             fetchRole(newVal.id);

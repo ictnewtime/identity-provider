@@ -16,7 +16,7 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 
 const props = defineProps({
-    selectedUser: {
+    userSelected: {
         type: Object,
         default: null,
     },
@@ -56,7 +56,7 @@ const errors = ref({
     form: "",
 });
 
-const isEditMode = computed(() => !!props.selectedUser);
+const isEditMode = computed(() => !!props.userSelected);
 
 const pwdComputed = computed(() => form.value.password);
 const confirmComputed = computed(() => form.value.password_confirmation);
@@ -230,7 +230,7 @@ const submit = async () => {
 };
 
 watch(
-    () => props.selectedUser,
+    () => props.userSelected,
     (newVal) => {
         if (newVal && newVal.id) {
             fetchUser(newVal.id);

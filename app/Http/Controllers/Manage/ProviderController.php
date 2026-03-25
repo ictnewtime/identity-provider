@@ -47,7 +47,7 @@ class ProviderController extends Controller
             $query->where("domain", "like", "%" . $request->q . "%");
         }
         if ($show_deleted) {
-            $query->withTrashed();
+            $query->onlyTrashed();
         }
         $perPage = $request->input("per_page", 10);
         return $query->paginate($perPage);
@@ -366,6 +366,57 @@ class ProviderController extends Controller
             DB::rollBack();
             Log::error("Errore delete Provider: " . $e->getMessage());
             return response()->json(["message" => "Server error: " . $e->getMessage()], 500);
+        }
+    }
+
+    #[
+        OA\Post(
+            path: "/api/v1/providers/{id}/restore",
+            summary: "Restore provider by id",
+            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            operationId: "Provider.restore",
+            tags: ["Providers"],
+            security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    in: "path",
+                    required: true,
+                    description: "Provider id",
+                    name: "id",
+                    schema: new OA\Schema(type: "string"),
+                ),
+            ],
+            responses: [
+                new OA\Response(
+                    response: 200,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 404,
+                    description: "Not found",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Server error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
+        ),
+    ]
+    public function restore($id)
+    {
+        try {
+            $provider = Provider::withTrashed()->find($id);
+            if (empty($provider)) {
+                return response()->json(["message" => __("provider.not_found")], 404);
+            }
+            $provider->restore();
+            return response()->json(["provider" => $provider], 200);
+        } catch (\Exception $e) {
+            Log::error("Errore restore Provider: " . $e->getMessage());
+            return response()->json(["message" => __("provider.restore_error")], 500);
         }
     }
 }

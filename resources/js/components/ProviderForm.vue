@@ -12,7 +12,7 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 
 const props = defineProps({
-    selectedProvider: {
+    providerSelected: {
         type: Object,
         default: null,
     },
@@ -48,7 +48,7 @@ const formItems = ref({
     },
 });
 
-const isEditMode = computed(() => !!props.selectedProvider);
+const isEditMode = computed(() => !!props.providerSelected);
 const showsecret_keyTip = ref(false);
 
 const resetForm = () => {
@@ -183,7 +183,7 @@ const toggleSignatureVisibility = () => {
 };
 
 watch(
-    () => props.selectedProvider,
+    () => props.providerSelected,
     (newVal) => {
         if (newVal && newVal.id) {
             fetchProvider(newVal.id);

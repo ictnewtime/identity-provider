@@ -96,6 +96,10 @@
     "admin.users.toast.detail_created": "The new user has been successfully created",
     "admin.users.toast.detail_updated": "User data has been updated",
 
+    "user.error.not_found": "User not found",
+    "user.delete_error": "Error during deleting user",
+    "user.restore_error": "Error during restoring user",
+
     "admin.roles.title": "Role Management",
     "admin.roles.new_role": "New Role",
 
@@ -138,6 +142,9 @@
     "admin.roles.form.error.domain.unique": "Il dominio del provider deve essere univoco",
     "admin.roles.form.error.domain.mandatory": "The provider domain cannot be empty",
     "admin.roles.form.error.logout_url.invalid": "The logout URL is invalid",
+
+    "role.error.not_found": "Role not found",
+    "role.error.restoring": "Error on restoring role",
 
     "admin.providers.title": "Provider Management",
     "admin.providers.new_provider": "New Provider",
@@ -194,6 +201,9 @@
 
     "admin.providers.toast.invalid_url": "The URL format entered is invalid",
 
+    "provider.not_found": "Provider not found",
+    "provider.restore_error": "Server error",
+
     "admin.providerUserRoles.title": "User-Roles Associations",
     "admin.providerUserRoles.new_providerUserRole": "New Association",
     "admin.provider_user_roles.form.title_create": "New Association",
@@ -236,6 +246,18 @@
     "admin.provider_user_roles.errors.creation": "An error occurred while creating the association",
     "admin.provider_user_roles.table.show_deleted_tooltip": "Show deleted associations",
     "admin.provider_user_roles.table.deleted_at": "Deleted At",
+
+    "provider_user_roles.bulk_delete_error": "Error deleting provider user roles",
+    "provider_user_roles.bulk_delete_success": "Provider user roles deleted successfully",
+
+    "provider_user_roles.not_found": "Provider user role not found",
+    "provider_user_roles.conflict_unique": "There is already an active Provider-user-role",
+    "provider_user_roles.restore_success": "Provider user role restored",
+
+    "provider_user_roles.bulk_restore_error": "Unprocessable Entity",
+    "provider_user_roles.not_found_multiple": "Provider user roles not found",
+    "provider_user_roles.conflict_unique_multiple": "There is already an active Provider-user-role for one or more selected items",
+    "provider_user_roles.bulk_restore_success": "Provider user roles restored successfully",
 
     "role.error.is_in_use": "This role is in use and cannot be deleted.",
 

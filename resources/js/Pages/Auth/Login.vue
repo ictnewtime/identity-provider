@@ -40,7 +40,6 @@ onMounted(() => {
     // Nota: dipende da come hai configurato HandleInertiaRequests.php.
     // Di solito Inertia lo mappa sotto `page.props.flash.success` o `page.props.success`
     const successMessage = page.props.flash?.success || page.props.success;
-    console.log("page.props.flash", page.props.flash);
     if (successMessage) {
         toast.add({
             severity: "success",
