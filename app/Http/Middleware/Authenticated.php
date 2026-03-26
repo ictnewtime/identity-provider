@@ -11,16 +11,27 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
+use Lcobucci\JWT\Configuration;
 
 class Authenticated
 {
     public function handle($request, Closure $next)
     {
+        Log::info("=== START AUTHENTICATED MIDDLEWARE ===");
+
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
 
+        Log::debug("Atteso Provider ID: {$idpProviderId} | Nome Cookie: {$cookieName}");
+
         // Estrazione del token
+        $fromCookie = $request->hasCookie($cookieName);
+        $fromBearer = !empty($request->bearerToken());
         $tokenString = $request->cookie($cookieName) ?? $request->bearerToken();
+
+        Log::debug(
+            "Ricerca Token -> Cookie: " . ($fromCookie ? "SI" : "NO") . " | Bearer: " . ($fromBearer ? "SI" : "NO"),
+        );
 
         if (empty($tokenString)) {
             Log::warning("Fallimento: Nessun token trovato nel cookie [{$cookieName}] o nell'header Bearer.");
@@ -38,16 +49,34 @@ class Authenticated
             $algo = config("jwt.algo", "HS256");
             $keys = config("jwt.keys", []);
 
+            Log::debug("Inizio decodifica token...");
+
             // Creiamo il provider specifico al volo per decodificare
             $customProvider = new Lcobucci($provider->secret_key, $algo, $keys);
 
             // Proviamo a decodificare. Se la firma o la sintassi sono errate, lancerà un'eccezione
             $payload = $customProvider->decode($tokenString);
+
+            // LOG DEL PAYLOAD DECODIFICATO
             Log::debug("Token decodificato: " . json_encode($payload));
 
             // VERIFICA SCADENZA (exp)
-            if (isset($payload["exp"]) && $payload["exp"] < time()) {
-                throw new TokenExpiredException("Token has expired");
+            if (isset($payload["exp"])) {
+                $currentTime = time();
+                Log::debug(
+                    "Verifica scadenza (exp) -> Current: {$currentTime} (" .
+                        date("Y-m-d H:i:s", $currentTime) .
+                        ") | Token Exp: {$payload["exp"]} (" .
+                        date("Y-m-d H:i:s", $payload["exp"]) .
+                        ")",
+                );
+
+                if ($payload["exp"] < $currentTime) {
+                    Log::warning("Fallimento: Il token è scaduto!");
+                    throw new TokenExpiredException("Token has expired");
+                }
+            } else {
+                Log::warning("Attenzione: Il token decodificato NON ha il claim 'exp' (scadenza).");
             }
 
             $userId = $payload["sub"] ?? null;
@@ -65,6 +94,7 @@ class Authenticated
             // Diciamo a Laravel chi è l'utente corrente per questa richiesta,
             // così Auth::user() funzionerà nel resto del codice!
             Auth::login($user);
+            Log::debug("Utente ID {$userId} autenticato in Laravel.");
 
             $sessionExists = Session::where("token", $tokenString)->exists();
 
@@ -77,7 +107,10 @@ class Authenticated
                     'La tua sessione è stata terminata dall\'amministratore.',
                 );
             }
+
+            Log::info("=== END AUTHENTICATED MIDDLEWARE: Successo ===");
         } catch (TokenExpiredException $e) {
+            Log::warning("Eccezione catturata: TokenExpiredException.");
             return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));
         } catch (\Exception $e) {
             Log::error("Errore decodifica JWT: " . $e->getMessage());
@@ -91,11 +124,16 @@ class Authenticated
     {
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
-        $domain = config("idp.provider_id");
+        $provider = Provider::find($idpProviderId);
 
-        // 1. Accodiamo la distruzione dei cookie (funziona sia su Web che su API)
-        Cookie::queue(Cookie::forget($cookieName, "/", $domain));
-        Cookie::queue(Cookie::forget("token", "/", $domain));
+        Log::debug(
+            "Esecuzione forceLogoutAndRedirect - Distruzione cookie per il dominio: " .
+                ($provider->domain ?? "null (locale)"),
+        );
+
+        // 1. Accodiamo la distruzione dei cookie
+        Cookie::queue(Cookie::forget($cookieName, "/", $provider->domain));
+        Cookie::queue(Cookie::forget("token", "/", $provider->domain));
 
         // 2. Se è una richiesta API pura o AJAX (non Inertia), rispondiamo subito con 401
         // SENZA toccare la sessione web (evitando il crash)
