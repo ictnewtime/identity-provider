@@ -46,7 +46,7 @@ class TokenProviderService
 
         // $ttlInMinutes = $this->ttlInSeconds / 60;
         // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
-        JWTAuth::factory()->setTTL($$this->ttlInSeconds);
+        JWTAuth::factory()->setTTL($this->ttlInSeconds);
         $provider = Provider::where("id", $redirectId)->first();
         if (empty($provider)) {
             Log::warning("TokenCreation - Provider not found: " . $redirectId);
