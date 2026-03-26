@@ -18,32 +18,42 @@ const props = defineProps({
 
 const form = useForm({
     current_password: "",
-    password: "",
+    new_password: "",
     password_confirmation: "",
 });
 
-const passwordRef = toRef(form, "password");
+const formItems = ref({
+    current_password: {
+        visible: false,
+    },
+    new_password: {
+        visible: false,
+    },
+    password_confirmation: {
+        visible: false,
+    },
+});
+
+const passwordRef = toRef(form, "new_password");
 const confirmPasswordRef = toRef(form, "password_confirmation");
-const showPassword = ref(false);
 
 const { requirements, strength, strengthColorClass, strengthTextColorClass, strengthText, isValid, generatePassword } =
     usePassword(passwordRef, confirmPasswordRef);
 
 const isFormValid = computed(() => form.current_password.length > 0 && isValid.value);
 
-const togglePasswordVisibility = () => {
-    showPassword.value = !showPassword.value;
-};
-
 const handleGeneratePassword = () => {
     const newPwd = generatePassword();
-    form.password = newPwd;
+    form.new_password = newPwd;
     form.password_confirmation = newPwd;
 };
 
 const submit = () => {
     if (!isFormValid.value) return;
     form.post("/password/force-update");
+};
+const togglePasswordVisibility = (password_type) => {
+    formItems.value[password_type].visible = !formItems.value[password_type].visible;
 };
 </script>
 
@@ -61,37 +71,58 @@ const submit = () => {
 
             <form @submit.prevent="submit" class="flex flex-col gap-4 w-full">
                 <div class="flex flex-col gap-1">
-                    <FloatLabel variant="on">
-                        <Password
-                            inputId="current_password"
-                            name="current_password"
-                            v-model="form.current_password"
-                            :feedback="false"
-                            toggleMask
-                            fluid
-                            :invalid="!!form.errors.current_password"
-                        />
-                        <label for="current_password" class="font-medium text-gray-700 z-10">
-                            {{ $t("auth.current_password") }}
-                        </label>
-                    </FloatLabel>
+                    <InputGroup>
+                        <FloatLabel variant="on">
+                            <Password
+                                inputId="current_password"
+                                name="current_password"
+                                v-model="form.current_password"
+                                :feedback="false"
+                                fluid
+                                :invalid="!!form.errors.current_password"
+                                :pt="{
+                                    pcInputText: {
+                                        root: {
+                                            type: formItems.current_password.visible ? 'text' : 'password',
+                                        },
+                                    },
+                                }"
+                            />
+                            <label for="current_password" class="font-medium text-gray-700 z-10">
+                                {{ $t("auth.current_password") }}
+                            </label>
+                        </FloatLabel>
+                        <InputGroupAddon class="p-0 border-none">
+                            <Button
+                                type="button"
+                                severity="secondary"
+                                :icon="formItems.current_password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                                v-tooltip.top="null"
+                                @click="togglePasswordVisibility('current_password')"
+                            />
+                        </InputGroupAddon>
+                    </InputGroup>
                     <Message v-if="form.errors.current_password" severity="error" size="small" variant="simple">
                         {{ form.errors.current_password }}
                     </Message>
                 </div>
 
                 <div class="flex flex-col gap-1 mt-2">
-                    <FloatLabel variant="on">
-                        <InputGroup>
+                    <InputGroup>
+                        <FloatLabel variant="on">
                             <Password
                                 inputId="password"
                                 name="password"
-                                v-model="form.password"
+                                v-model="form.new_password"
                                 :feedback="true"
                                 fluid
-                                :invalid="!!form.errors.password"
+                                :invalid="!!form.errors.new_password"
                                 :pt="{
-                                    pcInputText: { root: { type: showPassword ? 'text' : 'password' } },
+                                    pcInputText: {
+                                        root: {
+                                            type: formItems.new_password.visible ? 'text' : 'password',
+                                        },
+                                    },
                                 }"
                             >
                                 <template #content>
@@ -112,54 +143,70 @@ const submit = () => {
                                     </div>
                                 </template>
                             </Password>
+                            <label for="password" class="font-medium text-gray-700 z-10">
+                                {{ $t("auth.new_password") }}
+                            </label>
+                        </FloatLabel>
 
-                            <InputGroupAddon class="p-0 border-none">
-                                <Button
-                                    type="button"
-                                    severity="secondary"
-                                    :icon="showPassword ? 'pi pi-eye-slash' : 'pi pi-eye'"
-                                    text
-                                    v-tooltip.top="showPassword ? $t('auth.hide_password') : $t('auth.show_password')"
-                                    @click="togglePasswordVisibility"
-                                />
-                                <Button
-                                    type="button"
-                                    severity="secondary"
-                                    text
-                                    @click="handleGeneratePassword"
-                                    v-tooltip.top="$t('auth.generate_random_btn')"
-                                >
-                                    <template #icon>
-                                        <Icon icon="mdi:dice-multiple-outline" width="24" height="24" />
-                                    </template>
-                                </Button>
-                            </InputGroupAddon>
-                        </InputGroup>
+                        <InputGroupAddon class="p-0 border-none">
+                            <Button
+                                type="button"
+                                severity="secondary"
+                                :icon="formItems.new_password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                                v-tooltip.top="null"
+                                @click="togglePasswordVisibility('new_password')"
+                            />
+                        </InputGroupAddon>
+                        <InputGroupAddon class="p-0 border-none">
+                            <Button
+                                type="button"
+                                severity="secondary"
+                                @click="handleGeneratePassword"
+                                v-tooltip.top="$t('auth.generate_random_btn')"
+                            >
+                                <template #icon>
+                                    <Icon icon="mdi:dice-multiple-outline" width="24" height="24" />
+                                </template>
+                            </Button>
+                        </InputGroupAddon>
+                    </InputGroup>
 
-                        <label for="password" class="font-medium text-gray-700 z-10">
-                            {{ $t("auth.new_password") }}
-                        </label>
-                    </FloatLabel>
-
-                    <Message v-if="form.errors.password" severity="error" size="small" variant="simple">
-                        {{ form.errors.password }}
+                    <Message v-if="form.errors.new_password" severity="error" size="small" variant="simple">
+                        {{ form.errors.new_password }}
                     </Message>
                 </div>
 
                 <div class="flex flex-col gap-1 mt-2">
-                    <FloatLabel variant="on">
-                        <Password
-                            inputId="password_confirmation"
-                            name="password_confirmation"
-                            v-model="form.password_confirmation"
-                            :feedback="false"
-                            toggleMask
-                            fluid
-                        />
-                        <label for="password_confirmation" class="font-medium text-gray-700 z-10">
-                            {{ $t("auth.password_confirmation_label") }}
-                        </label>
-                    </FloatLabel>
+                    <InputGroup>
+                        <FloatLabel variant="on">
+                            <Password
+                                inputId="password_confirmation"
+                                name="password_confirmation"
+                                v-model="form.password_confirmation"
+                                :feedback="false"
+                                fluid
+                                :pt="{
+                                    pcInputText: {
+                                        root: {
+                                            type: formItems.password_confirmation.visible ? 'text' : 'password',
+                                        },
+                                    },
+                                }"
+                            />
+                            <label for="password_confirmation" class="font-medium text-gray-700 z-10">
+                                {{ $t("auth.password_confirmation_label") }}
+                            </label>
+                        </FloatLabel>
+                        <InputGroupAddon class="p-0 border-none">
+                            <Button
+                                type="button"
+                                severity="secondary"
+                                :icon="formItems.password_confirmation.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                                v-tooltip.top="null"
+                                @click="togglePasswordVisibility('password_confirmation')"
+                            />
+                        </InputGroupAddon>
+                    </InputGroup>
                 </div>
 
                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-400 mt-2">

@@ -34,17 +34,29 @@ class TokenProviderService
      */
     public function tokenCretion(User $user, ?string $redirectId = null)
     {
+        // --- INIZIO DEBUG STAGING ---
+        Log::info("=== START TOKEN CREATION DEBUG (Staging) ===");
+        Log::info("User ID: " . $user->id . " | Provider ID: " . $redirectId);
+
+        // Stampiamo i valori esatti con var_export per vedere se sono null, int(0) o stringhe vuote
+        Log::info("DEBUG TTL - \$this->ttlInSeconds is: " . var_export($this->ttlInSeconds, true));
+        Log::info("DEBUG TTL - env('JWT_TTL') is: " . var_export(env("JWT_TTL"), true));
+        Log::info("DEBUG TTL - config('jwt.ttl') is: " . var_export(config("jwt.ttl"), true));
+        // --- FINE DEBUG STAGING ---
+
         $ttlInMinutes = $this->ttlInSeconds / 60;
         // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
         JWTAuth::factory()->setTTL($ttlInMinutes);
         $provider = Provider::where("id", $redirectId)->first();
         if (empty($provider)) {
+            Log::warning("TokenCreation - Provider not found: " . $redirectId);
             return null;
         }
 
         // dato un provider e un user, ottengo tutti i ruoli associati
         $tokenBody = $this->providerUserRoleService->getJwtTokenInfo($provider->id, $user->id);
         if (empty($tokenBody)) {
+            Log::warning("TokenCreation - Empty token body for User: {$user->id}, Provider: {$provider->id}");
             return null;
         }
 
@@ -58,19 +70,38 @@ class TokenProviderService
                 throw new \Exception("Provider misconfigured.");
             }
 
+            // --- DEBUG CALCOLO TEMPO ---
+            $currentTime = time();
+            $fallbackTriggered = $this->ttlInSeconds === null || $this->ttlInSeconds === 0;
+            $calculatedTtl = $this->ttlInSeconds ?? 3600;
+
+            Log::info("DEBUG TIME - Current time: {$currentTime} (" . date("Y-m-d H:i:s", $currentTime) . ")");
+            Log::info(
+                "DEBUG TIME - Was the fallback (3600) triggered?: " .
+                    ($fallbackTriggered ? "YES! ttlInSeconds was empty" : "NO, using {$calculatedTtl}"),
+            );
+
             // Definiamo i claims
+            $expirationTime = $currentTime + $calculatedTtl;
+            Log::info(
+                "DEBUG TIME - Expiration time (exp): {$expirationTime} (" . date("Y-m-d H:i:s", $expirationTime) . ")",
+            );
+
             $payloadData = array_merge(
                 [
                     "iss" => url("/"),
-                    "iat" => time(),
-                    "exp" => time() + ($this->ttlInSeconds ?? 3600),
-                    "nbf" => time(),
+                    "iat" => $currentTime,
+                    "exp" => $expirationTime,
+                    "nbf" => $currentTime,
                     "jti" => bin2hex(random_bytes(10)),
                     "sub" => (string) $user->id,
                     "prv" => $provider->id,
                 ],
                 ["payload" => $payload],
             );
+
+            // Stampiamo l'intero payload
+            Log::debug("DEBUG PAYLOAD - Final Payload Data: ", $payloadData);
 
             /**
              * Creazione di istanze "usa e getta" per firmare il token,
@@ -85,6 +116,8 @@ class TokenProviderService
 
             // Firmiamo il token usando ESCLUSIVAMENTE questo provider temporaneo
             $token = $customProvider->encode($payloadData);
+
+            Log::info("=== END TOKEN CREATION DEBUG: Success ===");
         } catch (\Exception $e) {
             Log::error(
                 "Error generating token for user " .

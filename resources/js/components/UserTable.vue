@@ -23,14 +23,13 @@ const filter = ref("");
 const loading = ref(false);
 const pagination = ref({ data: [], total: 0, per_page: 10 });
 const displayModal = ref(false);
-const selectedUser = ref(null);
+const userSelected = ref(null);
 const displayDeleteModal = ref(false);
+const displayRestoreModal = ref(false);
 const userToDelete = ref(null);
 let searchTimeout = null;
 const tableComponent = reactive({
-    mainbar: {
-        showUsersDeleted: false,
-    },
+    showUsersDeleted: false,
 });
 
 const loadUsers = (page = 1) => {
@@ -41,12 +40,11 @@ const loadUsers = (page = 1) => {
                 page: page,
                 per_page: pagination.value.per_page,
                 q: filter.value,
-                show_deleted: tableComponent.mainbar.showUsersDeleted,
+                show_deleted: tableComponent.showUsersDeleted,
             },
         })
         .then((res) => {
             pagination.value = res.data;
-            console.log("pagination.value", pagination.value);
         })
         .catch((err) => {
             toast.add({
@@ -74,7 +72,7 @@ const onFilterChange = () => {
 };
 
 const openCreateModal = () => {
-    selectedUser.value = null;
+    userSelected.value = null;
     displayModal.value = true;
 };
 
@@ -88,7 +86,7 @@ const onUserSaved = () => {
 };
 
 const editUser = (user) => {
-    selectedUser.value = user;
+    userSelected.value = user;
     displayModal.value = true;
 };
 
@@ -104,7 +102,7 @@ const deleteUser = () => {
         .then(() => {
             displayDeleteModal.value = false;
             userToDelete.value = null;
-            loadUsers();
+            loadUsers(pagination.value.current_page);
             toast.add({
                 severity: "success",
                 summary: trans("common.success"),
@@ -124,8 +122,39 @@ const deleteUser = () => {
         });
 };
 
+const confirmRestore = (user) => {
+    userSelected.value = user;
+    displayRestoreModal.value = true;
+};
+const restoreUser = () => {
+    if (!userSelected.value) return;
+    window.axios
+        .patch(`/admin/v1/users/${userSelected.value.id}/restore`)
+        .then(() => {
+            displayRestoreModal.value = false;
+            userSelected.value = null;
+            loadUsers(pagination.value.current_page);
+            toast.add({
+                severity: "success",
+                summary: trans("common.success"),
+                detail: trans("admin.users.toast.restore_success"),
+                life: 3000,
+            });
+            emit("item-saved");
+        })
+        .catch((error) => {
+            toast.add({
+                severity: "error",
+                summary: trans("common.error"),
+                detail: trans("admin.users.toast.restore_error"),
+                life: 3000,
+            });
+            emit("item-error", error);
+        });
+};
+
 const toggleShowUsersDeleted = () => {
-    tableComponent.mainbar.showUsersDeleted = !tableComponent.mainbar.showUsersDeleted;
+    tableComponent.showUsersDeleted = !tableComponent.showUsersDeleted;
     loadUsers(1);
 };
 
@@ -148,9 +177,18 @@ onMounted(() => {
                                 variant="text"
                                 severity="danger"
                                 @click="toggleShowUsersDeleted"
-                                v-tooltip.top="$t('admin.users.table.show_deleted_tooltip')"
+                                v-tooltip.top="
+                                    tableComponent.showUsersDeleted
+                                        ? $t('admin.providers.table.hide_deleted_tooltip')
+                                        : $t('admin.providers.table.show_deleted_tooltip')
+                                "
                             >
-                                <Icon icon="hugeicons:delete-put-back" width="24" height="24" />
+                                <Icon
+                                    icon="material-symbols:delete-forever-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    :class="tableComponent.showUsersDeleted ? 'text-red-500' : 'text-gray-500'"
+                                />
                             </Button>
                             <IconField iconPosition="left">
                                 <InputIcon class="pi pi-search text-surface-400" />
@@ -194,7 +232,7 @@ onMounted(() => {
                 <Column
                     field="deleted_at"
                     :header="$t('admin.users.table.deleted_at')"
-                    v-if="tableComponent.mainbar.showUsersDeleted === true"
+                    v-if="tableComponent.showUsersDeleted === true"
                 >
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
@@ -209,16 +247,41 @@ onMounted(() => {
                             rounded
                             severity="warn"
                             class="mr-1 hover:!bg-orange-50"
-                            @click="editUser(slotProps.data)"
-                        />
-                        <Button
-                            icon="pi pi-trash"
-                            text
-                            rounded
-                            severity="danger"
-                            class="hover:!bg-red-50"
-                            @click="confirmDelete(slotProps.data)"
-                        />
+                            @click="editProvider(slotProps.data)"
+                            ><Icon
+                                icon="material-symbols:edit-outline"
+                                width="24"
+                                height="24"
+                                class="text-yellow-400"
+                            />
+                        </Button>
+                        <template v-if="slotProps.data.deleted_at">
+                            <Button
+                                icon="pi pi-undo"
+                                text
+                                rounded
+                                severity="success"
+                                class="mr-1 hover:!bg-green-50"
+                                @click="confirmRestore(slotProps.data)"
+                                ><Icon
+                                    icon="material-symbols:restore-from-trash-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    class="text-orange-500"
+                                />
+                            </Button>
+                        </template>
+                        <template v-else>
+                            <Button
+                                icon="pi pi-trash"
+                                text
+                                rounded
+                                severity="danger"
+                                class="hover:!bg-red-50"
+                                @click="confirmDelete(slotProps.data)"
+                                ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
+                            </Button>
+                        </template>
                     </template>
                 </Column>
 
@@ -241,12 +304,12 @@ onMounted(() => {
 
         <Dialog
             v-model:visible="displayModal"
-            :header="selectedUser ? $t('admin.users.form.title_edit') : $t('admin.users.form.title_create')"
+            :header="userSelected ? $t('admin.users.form.title_edit') : $t('admin.users.form.title_create')"
             :style="{ width: '60vw', maxWidth: '800px' }"
             modal
             :draggable="false"
         >
-            <UserForm :selectedUser="selectedUser" @item-saved="onUserSaved" />
+            <UserForm :userSelected="userSelected" @item-saved="onUserSaved" />
         </Dialog>
 
         <Dialog
@@ -271,6 +334,32 @@ onMounted(() => {
                     icon="pi pi-check"
                     severity="danger"
                     @click="deleteUser"
+                    autofocus
+                />
+            </template>
+        </Dialog>
+        <Dialog
+            v-model:visible="displayRestoreModal"
+            :header="$t('admin.users.restore.title')"
+            :style="{ width: '450px' }"
+            modal
+            :draggable="false"
+        >
+            <div class="flex items-center gap-4 pt-2">
+                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
+                <span v-if="userSelected" class="text-surface-700">
+                    {{ $t("admin.users.restore.prompt") }}
+                    <b class="text-surface-900">{{ userSelected.username }}</b
+                    >?
+                </span>
+            </div>
+            <template #footer>
+                <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="displayRestoreModal = false" />
+                <Button
+                    :label="$t('common.restore')"
+                    icon="pi pi-check"
+                    severity="danger"
+                    @click="restoreUser([userSelected.id])"
                     autofocus
                 />
             </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n";
 
@@ -11,7 +11,6 @@ import InputIcon from "primevue/inputicon";
 import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
-
 import ProviderUserRoleForm from "./ProviderUserRoleForm.vue";
 import { Icon } from "@iconify/vue";
 import { formatDate } from "../utils/data";
@@ -23,14 +22,13 @@ const filter = ref("");
 const loading = ref(false);
 const pagination = ref({ data: [], total: 0, per_page: 10 });
 const displayModal = ref(false);
-const selectedItem = ref(null);
+const itemSelected = ref(null);
 const displayDeleteModal = ref(false);
-const itemToDelete = ref(null);
+const displayRestoreModal = ref(false);
+const selectedProviderUserRoles = ref();
 let searchTimeout = null;
 const tableComponent = reactive({
-    mainbar: {
-        showRecordsDeleted: false,
-    },
+    showRecordsDeleted: false,
 });
 
 const loadRecords = (page = 1) => {
@@ -42,7 +40,7 @@ const loadRecords = (page = 1) => {
                 page: page,
                 per_page: pagination.value.per_page,
                 q: filter.value,
-                show_deleted: tableComponent.mainbar.showRecordsDeleted,
+                show_deleted: tableComponent.showRecordsDeleted,
             },
         })
         .then((res) => {
@@ -75,7 +73,7 @@ const onFilterChange = () => {
 };
 
 const openCreateModal = () => {
-    selectedItem.value = null;
+    itemSelected.value = null;
     displayModal.value = true;
 };
 
@@ -90,24 +88,38 @@ const onItemSaved = () => {
 };
 
 const editItem = (item) => {
-    selectedItem.value = item;
+    itemSelected.value = item;
     displayModal.value = true;
 };
 
 const confirmDelete = (item) => {
-    itemToDelete.value = item;
+    itemSelected.value = item;
     displayDeleteModal.value = true;
 };
+const confirmRestore = (item) => {
+    itemSelected.value = item;
+    displayRestoreModal.value = true;
+};
 
-const deleteItem = () => {
-    if (!itemToDelete.value) return;
+const toggleShowRecordsDeleted = () => {
+    tableComponent.showRecordsDeleted = !tableComponent.showRecordsDeleted;
+    selectedProviderUserRoles.value = [];
+    loadRecords(1);
+};
 
+// --- FUNZIONI CORE (Gestiscono le chiamate API con array di ID) ---
+
+const deleteProviderUserRoles = (ids) => {
+    if (!ids || ids.length === 0) return;
+
+    // Assicurati che il backend abbia una rotta che accetti { ids: [...] } nel payload
     window.axios
-        .delete(`/admin/v1/provider-user-roles/${itemToDelete.value.id}`)
+        .delete("/admin/v1/provider-user-roles/bulk-delete", { data: { ids } })
         .then(() => {
             displayDeleteModal.value = false;
-            itemToDelete.value = null;
-            loadRecords();
+            itemSelected.value = null;
+            selectedProviderUserRoles.value = []; // Svuota la selezione della tabella
+            loadRecords(pagination.value.current_page);
             toast.add({
                 severity: "success",
                 summary: trans("common.success"),
@@ -127,10 +139,64 @@ const deleteItem = () => {
             emit("item-error", error);
         });
 };
-const toggleShowRecordsDeleted = () => {
-    tableComponent.mainbar.showRecordsDeleted = !tableComponent.mainbar.showRecordsDeleted;
-    loadRecords(1);
+
+const restoreProviderUserRoles = (ids) => {
+    if (!ids || ids.length === 0) return;
+
+    window.axios
+        .patch("/admin/v1/provider-user-roles/bulk-restore", { ids })
+        .then(() => {
+            displayRestoreModal.value = false;
+            itemSelected.value = null;
+            selectedProviderUserRoles.value = [];
+            loadRecords(pagination.value.current_page);
+            toast.add({
+                severity: "success",
+                summary: trans("common.success"),
+                detail: trans("admin.provider_user_roles.toast.restore_success"),
+                life: 3000,
+            });
+            emit("item-saved");
+        })
+        .catch((error) => {
+            console.error(error);
+            toast.add({
+                severity: "error",
+                summary: trans("common.error"),
+                detail: trans("admin.provider_user_roles.toast.restore_error"),
+                life: 3000,
+            });
+            emit("item-error", error);
+        });
 };
+
+// FUNZIONI COLLEGATE AI BOTTONI / MODALI DELL'UI
+
+const deleteSelectedProviderUserRoles = () => {
+    const rawData = getSelectedProviderUserRoles();
+    const ids = rawData.map((item) => item.id);
+    deleteProviderUserRoles(ids);
+};
+
+const restoreSelectedProviderUserRoles = () => {
+    const rawData = getSelectedProviderUserRoles();
+    const ids = rawData.map((item) => item.id);
+    restoreProviderUserRoles(ids);
+};
+
+const getSelectedProviderUserRoles = () => {
+    let rawData = [];
+    try {
+        rawData = JSON.parse(JSON.stringify(selectedProviderUserRoles.value));
+    } catch (error) {
+        console.error(error);
+    }
+    return rawData;
+};
+
+const hasSelectedProviderUserRoles = computed(() => {
+    return selectedProviderUserRoles.value && selectedProviderUserRoles.value.length > 0;
+});
 
 onMounted(() => {
     loadRecords();
@@ -140,7 +206,15 @@ onMounted(() => {
 <template>
     <div>
         <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
-            <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
+            <DataTable
+                v-model:selection="selectedProviderUserRoles"
+                :value="pagination.data"
+                dataKey="id"
+                :loading="loading"
+                responsiveLayout="scroll"
+                stripedRows
+                size="small"
+            >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
@@ -148,12 +222,41 @@ onMounted(() => {
                         </h3>
                         <div class="flex gap-4">
                             <Button
+                                v-if="hasSelectedProviderUserRoles && !tableComponent.showRecordsDeleted"
                                 variant="text"
                                 severity="danger"
+                                @click="deleteSelectedProviderUserRoles"
+                                v-tooltip.top="$t('admin.provider_user_roles.table.delete_selected_tooltip')"
+                                ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
+                            </Button>
+                            <Button
+                                v-if="hasSelectedProviderUserRoles && tableComponent.showRecordsDeleted"
+                                variant="text"
+                                severity="warn"
+                                @click="restoreSelectedProviderUserRoles"
+                                v-tooltip.top="$t('admin.provider_user_roles.table.restore_selected_tooltip')"
+                                ><Icon
+                                    icon="material-symbols:restore-from-trash-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    class="text-orange-500"
+                                />
+                            </Button>
+                            <Button
+                                variant="text"
                                 @click="toggleShowRecordsDeleted"
-                                v-tooltip.top="$t('admin.provider_user_roles.table.show_deleted_tooltip')"
+                                v-tooltip.top="
+                                    tableComponent.showRecordsDeleted
+                                        ? $t('admin.provider_user_roles.table.hide_deleted_tooltip')
+                                        : $t('admin.provider_user_roles.table.show_deleted_tooltip')
+                                "
                             >
-                                <Icon icon="hugeicons:delete-put-back" width="24" height="24" />
+                                <Icon
+                                    icon="material-symbols:delete-forever-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    :class="tableComponent.showRecordsDeleted ? 'text-red-500' : 'text-gray-500'"
+                                />
                             </Button>
                             <IconField iconPosition="left">
                                 <InputIcon class="pi pi-search text-surface-400" />
@@ -168,11 +271,7 @@ onMounted(() => {
                     </div>
                 </template>
 
-                <Column field="id" :header="$t('common.id')" style="width: 5%">
-                    <template #body="slotProps">
-                        <span class="text-surface-500 text-sm">{{ slotProps.data.id }}</span>
-                    </template>
-                </Column>
+                <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
                 <Column :header="$t('admin.provider_user_roles.table.user')">
                     <template #body="slotProps">
@@ -209,7 +308,7 @@ onMounted(() => {
                 <Column
                     field="deleted_at"
                     :header="$t('admin.provider_user_roles.table.deleted_at')"
-                    v-if="tableComponent.mainbar.showRecordsDeleted === true"
+                    v-if="tableComponent.showRecordsDeleted === true"
                 >
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
@@ -218,22 +317,39 @@ onMounted(() => {
 
                 <Column :header="$t('common.actions')" :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Button
-                            icon="pi pi-pencil"
-                            text
-                            rounded
-                            severity="warn"
-                            class="mr-1 hover:!bg-orange-50"
-                            @click="editItem(slotProps.data)"
-                        />
-                        <Button
-                            icon="pi pi-trash"
-                            text
-                            rounded
-                            severity="danger"
-                            class="hover:!bg-red-50"
-                            @click="confirmDelete(slotProps.data)"
-                        />
+                        <Button text rounded class="mr-1 hover:!bg-orange-50" @click="editItem(slotProps.data)"
+                            ><Icon
+                                icon="material-symbols:edit-outline"
+                                width="24"
+                                height="24"
+                                class="text-yellow-400"
+                            />
+                        </Button>
+                        <template v-if="slotProps.data.deleted_at">
+                            <Button
+                                text
+                                rounded
+                                severity="warn"
+                                class="hover:!bg-red-50"
+                                @click="confirmRestore(slotProps.data)"
+                                ><Icon
+                                    icon="material-symbols:restore-from-trash-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    class="text-orange-500"
+                                />
+                            </Button>
+                        </template>
+                        <template v-else>
+                            <Button
+                                text
+                                rounded
+                                severity="danger"
+                                class="hover:!bg-red-50"
+                                @click="confirmDelete(slotProps.data)"
+                                ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
+                            </Button>
+                        </template>
                     </template>
                 </Column>
 
@@ -257,7 +373,7 @@ onMounted(() => {
         <Dialog
             v-model:visible="displayModal"
             :header="
-                selectedItem
+                itemSelected
                     ? $t('admin.provider_user_roles.form.title_edit')
                     : $t('admin.provider_user_roles.form.title_create')
             "
@@ -265,9 +381,35 @@ onMounted(() => {
             modal
             :draggable="false"
         >
-            <ProviderUserRoleForm :selectedItem="selectedItem" @item-saved="onItemSaved" />
+            <ProviderUserRoleForm :itemSelected="itemSelected" @item-saved="onItemSaved" />
         </Dialog>
 
+        <Dialog
+            v-model:visible="displayRestoreModal"
+            :header="$t('admin.provider_user_roles.restore.title')"
+            :style="{ width: '450px' }"
+            modal
+            :draggable="false"
+        >
+            <div class="flex items-center gap-4 pt-2">
+                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
+                <span v-if="itemSelected" class="text-surface-700">
+                    {{ $t("admin.provider_user_roles.restore.prompt") }}
+                    <b class="text-surface-900">{{ itemSelected.user ? itemSelected.user.username : "Selezionato" }}</b
+                    >?
+                </span>
+            </div>
+            <template #footer>
+                <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="displayRestoreModal = false" />
+                <Button
+                    :label="$t('common.restore')"
+                    icon="pi pi-check"
+                    severity="danger"
+                    @click="restoreProviderUserRoles([itemSelected.id])"
+                    autofocus
+                />
+            </template>
+        </Dialog>
         <Dialog
             v-model:visible="displayDeleteModal"
             :header="$t('common.confirm_delete_title')"
@@ -277,9 +419,9 @@ onMounted(() => {
         >
             <div class="flex items-center gap-4 pt-2">
                 <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
-                <span v-if="itemToDelete" class="text-surface-700">
+                <span v-if="itemSelected" class="text-surface-700">
                     {{ $t("admin.provider_user_roles.delete.prompt") }}
-                    <b class="text-surface-900">{{ itemToDelete.user ? itemToDelete.user.email : "Selezionato" }}</b
+                    <b class="text-surface-900">{{ itemSelected.user ? itemSelected.user.username : "Selezionato" }}</b
                     >?
                 </span>
             </div>
@@ -289,7 +431,7 @@ onMounted(() => {
                     :label="$t('common.delete')"
                     icon="pi pi-check"
                     severity="danger"
-                    @click="deleteItem"
+                    @click="deleteProviderUserRoles([itemSelected.id])"
                     autofocus
                 />
             </template>

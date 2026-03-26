@@ -107,7 +107,7 @@ class UserController extends Controller
             $query->orderBy("created_at", "asc");
         }
         if ($show_deleted) {
-            $query->withTrashed();
+            $query->onlyTrashed();
         }
         $perPage = $request->input("per_page", 10);
         $users = $query->paginate($perPage);
@@ -274,19 +274,9 @@ class UserController extends Controller
     ]
     public function find($id)
     {
-        try {
-            $user = User::find($id);
-        } catch (\Exception $e) {
-            return response()->json([
-                "message" => "Error during finding user",
-                "error" => [
-                    "code" => 500,
-                    "message" => $e->getMessage(),
-                ],
-            ]);
-        }
+        $user = User::find($id);
         if (empty($user)) {
-            return response()->json(["message" => "User not found"], 404);
+            return response()->json(["message" => __("user.error.not_found")], 404);
         }
         return response()->json($user);
     }
@@ -471,14 +461,61 @@ class UserController extends Controller
         try {
             $user->delete();
         } catch (\Exception $e) {
-            return response()->json([
-                "message" => "Error during deleting user",
-                "error" => [
-                    "code" => 500,
-                    "message" => $e->getMessage(),
-                ],
-            ]);
+            Log::error($e->getMessage());
+            return response()->json(["message" => __("user.delete_error")], 500);
         }
         return response()->json([], 204);
+    }
+
+    #[
+        OA\Patch(
+            path: "/api/v1/users/{id}/restore",
+            summary: "Restore user by id",
+            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            operationId: "User.restore",
+            tags: ["Users"],
+            security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    in: "path",
+                    required: true,
+                    description: "User id",
+                    name: "id",
+                    schema: new OA\Schema(type: "string"),
+                ),
+            ],
+            responses: [
+                new OA\Response(
+                    response: 200,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 404,
+                    description: "Not found",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Server error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
+        ),
+    ]
+    public function restore($id)
+    {
+        $user = User::withTrashed()->find($id);
+        if (empty($user)) {
+            return response()->json([], 404);
+        }
+
+        try {
+            $user->restore();
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(["message" => __("user.restore_error")], 500);
+        }
+        return response()->json($user, 200);
     }
 }

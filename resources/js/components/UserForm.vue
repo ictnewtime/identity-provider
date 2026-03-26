@@ -16,7 +16,7 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 
 const props = defineProps({
-    selectedUser: {
+    userSelected: {
         type: Object,
         default: null,
     },
@@ -56,7 +56,7 @@ const errors = ref({
     form: "",
 });
 
-const isEditMode = computed(() => !!props.selectedUser);
+const isEditMode = computed(() => !!props.userSelected);
 
 const pwdComputed = computed(() => form.value.password);
 const confirmComputed = computed(() => form.value.password_confirmation);
@@ -230,7 +230,7 @@ const submit = async () => {
 };
 
 watch(
-    () => props.selectedUser,
+    () => props.userSelected,
     (newVal) => {
         if (newVal && newVal.id) {
             fetchUser(newVal.id);
@@ -290,21 +290,17 @@ watch(
                         <i
                             v-if="isEditMode"
                             class="pi pi-question-circle"
-                            style="color: var(--p-yellow-400); cursor: pointer; font-size: 0.875rem"
+                            style="color: var(--p-yellow-500); cursor: pointer; font-size: 0.875rem"
                             v-tooltip.top="{ value: $t('admin.users.form.password_tip'), escape: true }"
                         ></i>
+                        <i
+                            v-if="isEditMode && form.password.length > 0"
+                            class="pi pi-eraser"
+                            style="cursor: pointer; font-size: 0.875rem"
+                            v-tooltip.top="{ value: $t('admin.users.form.btn_clear'), escape: true }"
+                            @click="clearPasswords"
+                        ></i>
                     </div>
-
-                    <Button
-                        v-if="isEditMode && form.password.length > 0"
-                        icon="pi pi-eraser"
-                        :label="$t('admin.users.form.btn_clear')"
-                        severity="secondary"
-                        size="small"
-                        text
-                        @click="clearPasswords"
-                        class="p-0 h-auto text-surface-500 hover:text-surface-900"
-                    />
                 </div>
 
                 <InputGroup>
@@ -422,7 +418,6 @@ watch(
                             @click="togglePasswordVisibility"
                         />
                     </InputGroupAddon>
-
                     <InputGroupAddon class="p-0 border-none">
                         <Button
                             type="button"
@@ -446,15 +441,33 @@ watch(
                 <label for="password_confirmation" class="font-medium text-surface-900">
                     {{ $t("admin.users.form.password_confirmation_label") }}
                 </label>
-                <Password
-                    id="password_confirmation"
-                    v-model="form.password_confirmation"
-                    autocomplete="new-password"
-                    :invalid="!!errors.password_confirmation"
-                    :feedback="false"
-                    toggleMask
-                    fluid
-                />
+
+                <InputGroup>
+                    <Password
+                        id="password_confirmation"
+                        v-model="form.password_confirmation"
+                        autocomplete="new-password"
+                        :invalid="!!errors.password_confirmation"
+                        :feedback="false"
+                        fluid
+                        :pt="{
+                            pcInputText: {
+                                root: {
+                                    type: formItems.password.visible ? 'text' : 'password',
+                                },
+                            },
+                        }"
+                    />
+                    <InputGroupAddon class="p-0 border-none">
+                        <Button
+                            type="button"
+                            severity="secondary"
+                            :icon="formItems.password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                            v-tooltip.top="null"
+                            @click="togglePasswordVisibility"
+                        />
+                    </InputGroupAddon>
+                </InputGroup>
                 <Message v-if="errors.password_confirmation" severity="error" size="small" variant="simple">
                     {{ errors.password_confirmation }}
                 </Message>

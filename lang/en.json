@@ -96,6 +96,10 @@
     "admin.users.toast.detail_created": "The new user has been successfully created",
     "admin.users.toast.detail_updated": "User data has been updated",
 
+    "user.error.not_found": "User not found",
+    "user.delete_error": "Error during deleting user",
+    "user.restore_error": "Error during restoring user",
+
     "admin.roles.title": "Role Management",
     "admin.roles.new_role": "New Role",
 
@@ -110,6 +114,7 @@
     "admin.roles.table.empty": "No roles found in the system.",
     "admin.roles.table.show_deleted_tooltip": "Show Deleted Roles",
     "admin.roles.table.deleted_at": "Deleted At",
+    "admin.roles.table.hide_deleted_tooltip": "Hide Deleted Roles",
 
     "admin.roles.form.title_create": "New Role",
     "admin.roles.form.title_edit": "Edit Role",
@@ -134,14 +139,21 @@
     "admin.roles.toast.submit_error": "An error occurred while saving the role",
     "admin.roles.toast.detail_created": "The new role has been successfully created",
     "admin.roles.toast.detail_updated": "The role has been successfully updated",
+    "admin.roles.toast.restore_success": "Role restored successfully",
+    "admin.roles.toast.restore_error": "An error occurred while restoring the role",
+    "admin.users.toast.restore_success": "User restored successfully",
+    "admin.users.toast.restore_error": "An error occurred while restoring the user",
 
     "admin.roles.form.error.domain.unique": "Il dominio del provider deve essere univoco",
     "admin.roles.form.error.domain.mandatory": "The provider domain cannot be empty",
     "admin.roles.form.error.logout_url.invalid": "The logout URL is invalid",
+    "admin.roles.restore.prompt": "Are you sure you want to restore the role ",
+
+    "role.error.not_found": "Role not found",
+    "role.error.restoring": "Error on restoring role",
 
     "admin.providers.title": "Provider Management",
     "admin.providers.new_provider": "New Provider",
-
     "admin.providers.table.title": "Provider List",
     "admin.providers.table.search_placeholder": "Search domain...",
     "admin.providers.table.domain": "Domain",
@@ -151,12 +163,31 @@
     "admin.providers.table.empty": "No providers found in the system.",
     "admin.providers.table.show_deleted_tooltip": "Show Deleted Providers",
     "admin.providers.table.deleted_at": "Deleted At",
+    "admin.providers.delete.prompt": "Are you sure you want to permanently delete the provider ",
+    "admin.providers.table.hide_deleted_tooltip": "Hide Deleted Providers",
+    "admin.providers.restore.title": "Restore Provider",
+    "admin.providers.restore.prompt": "Are you sure you want to restore the provider ",
+    "admin.users.restore.prompt": "Are you sure you want to restore the user ",
 
     "admin.providers.form.title_create": "New Provider",
     "admin.providers.form.title_edit": "Edit Provider",
     "admin.providers.form.name_label": "Name",
     "admin.providers.form.name_placeholder": "Enter name",
-
+    "admin.providers.form.btn_create": "Create Provider",
+    "admin.providers.form.url_label": "Main App URL",
+    "admin.providers.form.url_placeholder": "e.g., https://myapp.com or localhost:8000",
+    "admin.providers.form.url_tooltip": "Enter the URL and use the magic wand to auto-fill the fields below.",
+    "admin.providers.form.url_btn_tooltip": "Extract Domain, Protocol, and Logout URL",
+    "admin.providers.form.domain_label": "Domain",
+    "admin.providers.form.domain_placeholder": "idp.newtimegroup.it",
+    "admin.providers.form.protocol_label": "Protocol",
+    "admin.providers.form.protocol_placeholder": "http or https",
+    "admin.providers.form.logout_url_label": "Logout URL",
+    "admin.providers.form.logout_url_hint": "If left blank, the default value will be used",
+    "admin.providers.form.secret_key_label": "Secret Key",
+    "admin.providers.form.secret_key_placeholder": "Enter or generate the Secret Key",
+    "admin.providers.form.secret_key_tooltip": "Leave blank to keep the current Secret Key.",
+    "admin.providers.form.secret_key_btn_tooltip": "Generate a secure random key (32 characters)",
     "admin.providers.form.validate.name.mandatory": "Name is required",
     "admin.providers.form.validate.url.mandatory": "URL is required",
     "admin.providers.form.validate.domain.mandatory": "Domain is required",
@@ -169,33 +200,15 @@
     "admin.providers.toast.submit_error": "An error occurred while saving",
     "admin.providers.toast.detail_created": "The new provider has been created",
     "admin.providers.toast.detail_updated": "The provider has been updated",
-
-    "admin.providers.delete.prompt": "Are you sure you want to permanently delete the provider ",
-    "admin.providers.form.btn_create": "Create Provider",
-
-    "admin.providers.form.url_label": "Main App URL",
-    "admin.providers.form.url_placeholder": "e.g., https://myapp.com or localhost:8000",
-    "admin.providers.form.url_tooltip": "Enter the URL and use the magic wand to auto-fill the fields below.",
-    "admin.providers.form.url_btn_tooltip": "Extract Domain, Protocol, and Logout URL",
-
-    "admin.providers.form.domain_label": "Domain",
-    "admin.providers.form.domain_placeholder": "idp.newtimegroup.it",
-
-    "admin.providers.form.protocol_label": "Protocol",
-    "admin.providers.form.protocol_placeholder": "http or https",
-
-    "admin.providers.form.logout_url_label": "Logout URL",
-    "admin.providers.form.logout_url_hint": "If left blank, the default value will be used",
-
-    "admin.providers.form.secret_key_label": "Secret Key",
-    "admin.providers.form.secret_key_placeholder": "Enter or generate the Secret Key",
-    "admin.providers.form.secret_key_tooltip": "Leave blank to keep the current Secret Key.",
-    "admin.providers.form.secret_key_btn_tooltip": "Generate a secure random key (32 characters)",
-
     "admin.providers.toast.invalid_url": "The URL format entered is invalid",
+    "admin.providers.toast.restore_success": "Provider restored successfully",
+    "admin.providers.toast.restore_error": "An error occurred while restoring the provider",
 
-    "admin.providerUserRoles.title": "User-Roles Associations",
-    "admin.providerUserRoles.new_providerUserRole": "New Association",
+    "provider.not_found": "Provider not found",
+    "provider.restore_error": "Server error",
+
+    "admin.provider_user_roles.title": "User-Roles Associations",
+    "admin.provider_user_roles.new_providerUserRole": "New Association",
     "admin.provider_user_roles.form.title_create": "New Association",
     "admin.provider_user_roles.form.title_edit": "Edit Association",
     "admin.provider_user_roles.form.btn_create": "Create Association",
@@ -216,6 +229,13 @@
     "admin.provider_user_roles.toast.submit_error": "Unable to save the association data",
     "admin.provider_user_roles.toast.detail_created": "The association has been successfully created",
     "admin.provider_user_roles.toast.detail_updated": "The association has been successfully updated",
+    "admin.provider_user_roles.toast.restore_success": "Association restored successfully",
+    "admin.provider_user_roles.toast.restore_error": "An error occurred while restoring the association",
+    "admin.provider_user_roles.table.delete_selected_tooltip": "Delete selected associations",
+    "admin.provider_user_roles.table.restore_selected_tooltip": "Restore selected associations",
+    "admin.provider_user_roles.table.hide_deleted_tooltip": "Hide deleted associations",
+    "admin.provider_user_roles.restore.title": "Restore Association",
+    "admin.provider_user_roles.restore.prompt": "Are you sure you want to restore the association for the user ",
 
     "admin.provider_user_roles.table.title": "Association List",
     "admin.provider_user_roles.table.search_placeholder": "Search user or domain...",
@@ -236,6 +256,18 @@
     "admin.provider_user_roles.errors.creation": "An error occurred while creating the association",
     "admin.provider_user_roles.table.show_deleted_tooltip": "Show deleted associations",
     "admin.provider_user_roles.table.deleted_at": "Deleted At",
+
+    "provider_user_roles.bulk_delete_error": "Error deleting provider user roles",
+    "provider_user_roles.bulk_delete_success": "Provider user roles deleted successfully",
+
+    "provider_user_roles.not_found": "Provider user role not found",
+    "provider_user_roles.conflict_unique": "There is already an active Provider-user-role",
+    "provider_user_roles.restore_success": "Provider user role restored",
+
+    "provider_user_roles.bulk_restore_error": "Unprocessable Entity",
+    "provider_user_roles.not_found_multiple": "Provider user roles not found",
+    "provider_user_roles.conflict_unique_multiple": "There is already an active Provider-user-role for one or more selected items",
+    "provider_user_roles.bulk_restore_success": "Provider user roles restored successfully",
 
     "role.error.is_in_use": "This role is in use and cannot be deleted.",
 

@@ -23,11 +23,11 @@ const handleNewProviderUserRolesClick = () => {
     <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-surface-900 tracking-tight">
-                {{ $t("admin.providerUserRoles.title") }}
+                {{ $t("admin.provider_user_roles.title") }}
             </h1>
         </div>
         <Button
-            :label="$t('admin.providerUserRoles.new_providerUserRole')"
+            :label="$t('admin.provider_user_roles.new_providerUserRole')"
             icon="pi pi-plus"
             @click="handleNewProviderUserRolesClick"
         />
