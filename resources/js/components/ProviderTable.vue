@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, onMounted } from "vue";
 import { useToast } from "primevue/usetoast";
-import { trans } from "laravel-vue-i18n"; // Importato per usare le traduzioni nello script
+import { trans } from "laravel-vue-i18n";
 
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
@@ -23,14 +23,12 @@ const filter = ref("");
 const loading = ref(false);
 const pagination = ref({ data: [], total: 0, per_page: 10 });
 const displayModal = ref(false);
-const selectedProvider = ref(null);
+const providerSelected = ref(null);
 const displayDeleteModal = ref(false);
-const providerToDelete = ref(null);
+const displayRestoreModal = ref(false);
 let searchTimeout = null;
 const tableComponent = reactive({
-    mainbar: {
-        showProvidersDeleted: false,
-    },
+    showProvidersDeleted: false,
 });
 
 const loadProviders = (page = 1) => {
@@ -42,7 +40,7 @@ const loadProviders = (page = 1) => {
                 page: page,
                 per_page: pagination.value.per_page,
                 q: filter.value,
-                show_deleted: tableComponent.mainbar.showProvidersDeleted,
+                show_deleted: tableComponent.showProvidersDeleted,
             },
         })
         .then((res) => {
@@ -75,7 +73,7 @@ const onFilterChange = () => {
 };
 
 const openCreateModal = () => {
-    selectedProvider.value = null;
+    providerSelected.value = null;
     displayModal.value = true;
 };
 
@@ -89,24 +87,24 @@ const onProviderSaved = () => {
 };
 
 const editProvider = (provider) => {
-    selectedProvider.value = provider;
+    providerSelected.value = provider;
     displayModal.value = true;
 };
 
 const confirmDelete = (provider) => {
-    providerToDelete.value = provider;
+    providerSelected.value = provider;
     displayDeleteModal.value = true;
 };
 
 const deleteProvider = () => {
-    if (!providerToDelete.value) return;
+    if (!providerSelected.value) return;
 
     window.axios
-        .delete(`/admin/v1/providers/${providerToDelete.value.id}`)
+        .delete(`/admin/v1/providers/${providerSelected.value.id}`)
         .then(() => {
             displayDeleteModal.value = false;
-            providerToDelete.value = null;
-            loadProviders();
+            providerSelected.value = null;
+            loadProviders(pagination.value.current_page);
             toast.add({
                 severity: "success",
                 summary: trans("common.success"),
@@ -126,8 +124,41 @@ const deleteProvider = () => {
             emit("item-error", error);
         });
 };
+
+const confirmRestore = (provider) => {
+    providerSelected.value = provider;
+    displayRestoreModal.value = true;
+};
+const restoreProvider = () => {
+    if (!providerSelected.value) return;
+    window.axios
+        .patch(`/admin/v1/providers/${providerSelected.value.id}/restore`)
+        .then(() => {
+            displayRestoreModal.value = false;
+            providerSelected.value = null;
+            loadProviders(pagination.value.current_page);
+            toast.add({
+                severity: "success",
+                summary: trans("common.success"),
+                detail: trans("admin.providers.toast.restore_success"),
+                life: 3000,
+            });
+            emit("item-saved");
+        })
+        .catch((error) => {
+            console.error(error);
+            toast.add({
+                severity: "error",
+                summary: trans("common.error"),
+                detail: trans("admin.providers.toast.restore_error"),
+                life: 3000,
+            });
+            emit("item-error", error);
+        });
+};
+
 const toggleShowProvidersDeleted = () => {
-    tableComponent.mainbar.showProvidersDeleted = !tableComponent.mainbar.showProvidersDeleted;
+    tableComponent.showProvidersDeleted = !tableComponent.showProvidersDeleted;
     loadProviders(1);
 };
 
@@ -150,9 +181,18 @@ onMounted(() => {
                                 variant="text"
                                 severity="danger"
                                 @click="toggleShowProvidersDeleted"
-                                v-tooltip.top="$t('admin.providers.table.show_deleted_tooltip')"
+                                v-tooltip.top="
+                                    tableComponent.showProvidersDeleted
+                                        ? $t('admin.providers.table.hide_deleted_tooltip')
+                                        : $t('admin.providers.table.show_deleted_tooltip')
+                                "
                             >
-                                <Icon icon="hugeicons:delete-put-back" width="24" height="24" />
+                                <Icon
+                                    icon="material-symbols:delete-forever-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    :class="tableComponent.showProvidersDeleted ? 'text-red-500' : 'text-gray-500'"
+                                />
                             </Button>
                             <IconField iconPosition="left">
                                 <InputIcon class="pi pi-search text-surface-400" />
@@ -198,7 +238,7 @@ onMounted(() => {
                 <Column
                     field="deleted_at"
                     :header="$t('admin.providers.table.deleted_at')"
-                    v-if="tableComponent.mainbar.showProvidersDeleted === true"
+                    v-if="tableComponent.showProvidersDeleted === true"
                 >
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
@@ -214,15 +254,40 @@ onMounted(() => {
                             severity="warn"
                             class="mr-1 hover:!bg-orange-50"
                             @click="editProvider(slotProps.data)"
-                        />
-                        <Button
-                            icon="pi pi-trash"
-                            text
-                            rounded
-                            severity="danger"
-                            class="hover:!bg-red-50"
-                            @click="confirmDelete(slotProps.data)"
-                        />
+                            ><Icon
+                                icon="material-symbols:edit-outline"
+                                width="24"
+                                height="24"
+                                class="text-yellow-400"
+                            />
+                        </Button>
+                        <template v-if="slotProps.data.deleted_at">
+                            <Button
+                                icon="pi pi-undo"
+                                text
+                                rounded
+                                severity="success"
+                                class="mr-1 hover:!bg-green-50"
+                                @click="confirmRestore(slotProps.data)"
+                                ><Icon
+                                    icon="material-symbols:restore-from-trash-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    class="text-orange-500"
+                                />
+                            </Button>
+                        </template>
+                        <template v-else>
+                            <Button
+                                icon="pi pi-trash"
+                                text
+                                rounded
+                                severity="danger"
+                                class="hover:!bg-red-50"
+                                @click="confirmDelete(slotProps.data)"
+                                ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
+                            </Button>
+                        </template>
                     </template>
                 </Column>
 
@@ -247,12 +312,12 @@ onMounted(() => {
 
         <Dialog
             v-model:visible="displayModal"
-            :header="selectedProvider ? $t('admin.providers.form.title_edit') : $t('admin.providers.form.title_create')"
+            :header="providerSelected ? $t('admin.providers.form.title_edit') : $t('admin.providers.form.title_create')"
             :style="{ width: '60vw', maxWidth: '800px' }"
             modal
             :draggable="false"
         >
-            <ProviderForm :selectedProvider="selectedProvider" @item-saved="onProviderSaved" />
+            <ProviderForm :providerSelected="providerSelected" @item-saved="onProviderSaved" />
         </Dialog>
 
         <Dialog
@@ -264,9 +329,9 @@ onMounted(() => {
         >
             <div class="flex items-center gap-4 pt-2">
                 <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
-                <span v-if="providerToDelete" class="text-surface-700">
+                <span v-if="providerSelected" class="text-surface-700">
                     {{ $t("admin.providers.delete.prompt") }}
-                    <b class="text-surface-900">{{ providerToDelete.domain }}</b
+                    <b class="text-surface-900">{{ providerSelected.domain }}</b
                     >?
                 </span>
             </div>
@@ -277,6 +342,32 @@ onMounted(() => {
                     icon="pi pi-check"
                     severity="danger"
                     @click="deleteProvider"
+                    autofocus
+                />
+            </template>
+        </Dialog>
+        <Dialog
+            v-model:visible="displayRestoreModal"
+            :header="$t('admin.providers.restore.title')"
+            :style="{ width: '450px' }"
+            modal
+            :draggable="false"
+        >
+            <div class="flex items-center gap-4 pt-2">
+                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
+                <span v-if="providerSelected" class="text-surface-700">
+                    {{ $t("admin.providers.restore.prompt") }}
+                    <b class="text-surface-900">{{ providerSelected.domain }}</b
+                    >?
+                </span>
+            </div>
+            <template #footer>
+                <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="displayRestoreModal = false" />
+                <Button
+                    :label="$t('common.restore')"
+                    icon="pi pi-check"
+                    severity="danger"
+                    @click="restoreProvider"
                     autofocus
                 />
             </template>

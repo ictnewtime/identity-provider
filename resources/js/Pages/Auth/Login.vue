@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useForm, Link, usePage } from "@inertiajs/vue3";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n";
@@ -10,6 +10,8 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 import Image from "primevue/image";
 import FloatLabel from "primevue/floatlabel";
+import InputGroup from "primevue/inputgroup";
+import InputGroupAddon from "primevue/inputgroupaddon";
 import { Toast } from "primevue";
 
 const form = useForm({
@@ -17,6 +19,12 @@ const form = useForm({
     password: "",
     provider_id: null,
     redirect_to: null,
+});
+
+const formItems = ref({
+    password: {
+        visible: false,
+    },
 });
 
 const toast = useToast();
@@ -32,7 +40,6 @@ onMounted(() => {
     // Nota: dipende da come hai configurato HandleInertiaRequests.php.
     // Di solito Inertia lo mappa sotto `page.props.flash.success` o `page.props.success`
     const successMessage = page.props.flash?.success || page.props.success;
-    console.log("page.props.flash", page.props.flash);
     if (successMessage) {
         toast.add({
             severity: "success",
@@ -50,6 +57,10 @@ const isFormValid = computed(() => {
 const submit = () => {
     if (!isFormValid.value) return;
     form.post("/v2/login");
+};
+
+const togglePasswordVisibility = () => {
+    formItems.value.password.visible = !formItems.value.password.visible;
 };
 </script>
 
@@ -81,19 +92,36 @@ const submit = () => {
                 </div>
 
                 <div class="flex flex-col gap-1 mt-2">
-                    <FloatLabel variant="on">
-                        <Password
-                            inputId="password"
-                            name="password"
-                            v-model="form.password"
-                            :feedback="false"
-                            toggleMask
-                            fluid
-                            :invalid="!!form.errors.password"
-                            :disabled="form.processing"
-                        />
-                        <label for="password" class="font-medium text-gray-700 z-10">Password</label>
-                    </FloatLabel>
+                    <InputGroup>
+                        <FloatLabel variant="on">
+                            <Password
+                                inputId="password"
+                                name="password"
+                                v-model="form.password"
+                                :feedback="false"
+                                fluid
+                                :invalid="!!form.errors.password"
+                                :disabled="form.processing"
+                                :pt="{
+                                    pcInputText: {
+                                        root: {
+                                            type: formItems.password.visible ? 'text' : 'password',
+                                        },
+                                    },
+                                }"
+                            />
+                            <label for="password" class="font-medium text-gray-700 z-10">Password</label>
+                        </FloatLabel>
+                        <InputGroupAddon class="p-0 border-none">
+                            <Button
+                                type="button"
+                                severity="secondary"
+                                :icon="formItems.password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                                v-tooltip.top="null"
+                                @click="togglePasswordVisibility"
+                            />
+                        </InputGroupAddon>
+                    </InputGroup>
 
                     <div class="flex justify-end mt-1 mb-2">
                         <Link

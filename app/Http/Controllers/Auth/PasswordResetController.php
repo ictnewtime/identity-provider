@@ -113,14 +113,14 @@ class PasswordResetController extends Controller
     {
         $request->validate([
             "current_password" => "required|current_password",
-            "password" => "required|min:12|confirmed",
+            "new_password" => "required|min:12|confirmed",
         ]);
 
         $user = $request->user();
 
         if (Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                "password" => [__("auth.password_same_as_old")],
+                "new_password" => [__("auth.password_same_as_old")],
             ]);
         }
 
@@ -133,7 +133,7 @@ class PasswordResetController extends Controller
         }
         try {
             $user->update([
-                "password" => Hash::make($request->password),
+                "password" => Hash::make($request->new_password),
                 "password_expires_at" => now()->addDays($add_day),
             ]);
         } catch (\Exception $e) {

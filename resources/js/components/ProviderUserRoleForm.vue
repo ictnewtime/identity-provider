@@ -8,7 +8,7 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 
 const props = defineProps({
-    selectedItem: {
+    itemSelected: {
         type: Object,
         default: null,
     },
@@ -38,7 +38,7 @@ const errors = ref({
     role_id: "",
 });
 
-const isEditMode = computed(() => !!props.selectedItem);
+const isEditMode = computed(() => !!props.itemSelected);
 
 // Caricamento inziale Utenti e Provider
 const loadInitialData = async () => {
@@ -181,7 +181,7 @@ const submit = async () => {
 };
 
 watch(
-    () => props.selectedItem,
+    () => props.itemSelected,
     async (newVal) => {
         if (newVal && newVal.id) {
             form.value.id = newVal.id;

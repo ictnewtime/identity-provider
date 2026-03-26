@@ -80,9 +80,8 @@ class SessionController extends Controller
                     "message" => "Password expired. User must authenticate and change password.",
                 ],
                 401,
-            ); // 401 Unauthorized dirà all'App2 di fare logout
+            );
         }
-        // -------------------------------------------------
 
         // 3. Validiamo solo i dati ambientali che arrivano dalla GET di App2
         $validated = $request->validate([

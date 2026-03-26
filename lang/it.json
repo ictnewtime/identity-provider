@@ -110,6 +110,10 @@
     "admin.users.toast.detail_created": "Il nuovo utente è stato creato con successo",
     "admin.users.toast.detail_updated": "I dati dell'utente sono stati aggiornati",
 
+    "user.error.not_found": "Utente non trovato",
+    "user.delete_error": "Errore durante l'eliminazione dell'utente",
+    "user.restore_error": "Errore durante la ripristina dell'utente",
+
     "admin.roles.title": "Gestione Ruoli",
     "admin.roles.new_role": "Nuovo Ruolo",
 
@@ -124,6 +128,7 @@
     "admin.roles.table.empty": "Nessun ruolo trovato nel sistema.",
     "admin.roles.table.show_deleted_tooltip": "Visualizza Ruoli Eliminati",
     "admin.roles.table.deleted_at": "Data Eliminazione",
+    "admin.roles.table.hide_deleted_tooltip": "Nascondi Ruoli Eliminati",
 
     "admin.roles.form.title_create": "Nuovo Ruolo",
     "admin.roles.form.title_edit": "Modifica Ruolo",
@@ -148,10 +153,18 @@
     "admin.roles.toast.submit_error": "Si è verificato un errore durante il salvataggio del ruolo",
     "admin.roles.toast.detail_created": "Il nuovo ruolo è stato creato con successo",
     "admin.roles.toast.detail_updated": "Il ruolo è stato aggiornato con successo",
+    "admin.roles.toast.restore_success": "Ruolo ripristinato con successo",
+    "admin.roles.toast.restore_error": "Siè verificato un errore durante la ripristina del ruolo",
+    "admin.users.toast.restore_success": "Utente ripristinato con successo",
+    "admin.users.toast.restore_error": "Siè verificato un errore durante la ripristina dell'utente",
 
     "admin.roles.form.error.domain.unique": "Il dominio del provider deve essere univoco",
     "admin.roles.form.error.domain.mandatory": "Il dominio del provider non puo' essere vuoto",
     "admin.roles.form.error.logout_url.invalid": "L'URL di logout non è valido",
+    "admin.roles.restore.prompt": "Sei sicuro di voler ripristinare definitivamente il ruolo ",
+
+    "role.error.not_found": "Ruolo non trovato",
+    "role.error.restoring": "Errore durante la ripristina del ruolo",
 
     "role.error.is_in_use": "Questo ruolo non puo' essere eliminato perche' viene utilizzato da uno o piu' utenti",
 
@@ -167,12 +180,31 @@
     "admin.providers.table.empty": "Nessun provider trovato nel sistema.",
     "admin.providers.table.show_deleted_tooltip": "Visualizza Provider Eliminati",
     "admin.providers.table.deleted_at": "Data Eliminazione",
+    "admin.providers.delete.prompt": "Sei sicuro di voler eliminare definitivamente il provider ",
+    "admin.providers.table.hide_deleted_tooltip": "Nascondi Provider Eliminati",
+    "admin.providers.restore.title": "Ripristina Provider",
+    "admin.providers.restore.prompt": "Sei sicuro di voler ripristinare definitivamente il provider ",
+    "admin.users.restore.prompt": "Sei sicuro di voler ripristinare definitivamente l'utente ",
 
     "admin.providers.form.title_create": "Nuovo Provider",
     "admin.providers.form.title_edit": "Modifica Provider",
     "admin.providers.form.name_label": "Nome",
     "admin.providers.form.name_placeholder": "Inserisci il nome",
-
+    "admin.providers.form.btn_create": "Crea Provider",
+    "admin.providers.form.url_label": "URL Principale App",
+    "admin.providers.form.url_placeholder": "es. https://myapp.com o localhost:8000",
+    "admin.providers.form.url_tooltip": "Inserisci l'URL e usa la bacchetta per auto-compilare i campi sottostanti.",
+    "admin.providers.form.url_btn_tooltip": "Estrai Dominio, Protocollo e Logout URL",
+    "admin.providers.form.domain_label": "Dominio",
+    "admin.providers.form.domain_placeholder": "idp.newtimegroup.it",
+    "admin.providers.form.protocol_label": "Protocollo",
+    "admin.providers.form.protocol_placeholder": "http o https",
+    "admin.providers.form.logout_url_label": "Logout URL",
+    "admin.providers.form.logout_url_hint": "Se vuoto, il valore è quello di default",
+    "admin.providers.form.secret_key_label": "Secret Key",
+    "admin.providers.form.secret_key_placeholder": "Inserisci o genera la Secret Key",
+    "admin.providers.form.secret_key_tooltip": "Lascia vuoto per non modificare la Secret Key attuale.",
+    "admin.providers.form.secret_key_btn_tooltip": "Genera chiave sicura casuale (32 caratteri)",
     "admin.providers.form.validate.name.mandatory": "Il nome è obbligatorio",
     "admin.providers.form.validate.url.mandatory": "L'URL è obbligatorio",
     "admin.providers.form.validate.domain.mandatory": "Il dominio è obbligatorio",
@@ -185,33 +217,15 @@
     "admin.providers.toast.submit_error": "Si è verificato un errore durante il salvataggio",
     "admin.providers.toast.detail_created": "Il nuovo provider è stato creato",
     "admin.providers.toast.detail_updated": "Il provider è stato aggiornato",
-
-    "admin.providers.delete.prompt": "Sei sicuro di voler eliminare definitivamente il provider ",
-    "admin.providers.form.btn_create": "Crea Provider",
-
-    "admin.providers.form.url_label": "URL Principale App",
-    "admin.providers.form.url_placeholder": "es. https://myapp.com o localhost:8000",
-    "admin.providers.form.url_tooltip": "Inserisci l'URL e usa la bacchetta per auto-compilare i campi sottostanti.",
-    "admin.providers.form.url_btn_tooltip": "Estrai Dominio, Protocollo e Logout URL",
-
-    "admin.providers.form.domain_label": "Dominio",
-    "admin.providers.form.domain_placeholder": "idp.newtimegroup.it",
-
-    "admin.providers.form.protocol_label": "Protocollo",
-    "admin.providers.form.protocol_placeholder": "http o https",
-
-    "admin.providers.form.logout_url_label": "Logout URL",
-    "admin.providers.form.logout_url_hint": "Se vuoto, il valore è quello di default",
-
-    "admin.providers.form.secret_key_label": "Secret Key",
-    "admin.providers.form.secret_key_placeholder": "Inserisci o genera la Secret Key",
-    "admin.providers.form.secret_key_tooltip": "Lascia vuoto per non modificare la Secret Key attuale.",
-    "admin.providers.form.secret_key_btn_tooltip": "Genera chiave sicura casuale (32 caratteri)",
-
     "admin.providers.toast.invalid_url": "Il formato dell'URL inserito non è valido",
+    "admin.providers.toast.restore_success": "Provider ripristinato con successo",
+    "admin.providers.toast.restore_error": "Siè verificato un errore durante la ripristina del provider",
 
-    "admin.providerUserRoles.title": "Associazioni User-Ruoli",
-    "admin.providerUserRoles.new_providerUserRole": "Nuova Associazione",
+    "provider.not_found": "Provider non trovato",
+    "provider.restore_error": "Errore del server",
+
+    "admin.provider_user_roles.title": "Associazioni User-Ruoli",
+    "admin.provider_user_roles.new_providerUserRole": "Nuova Associazione",
     "admin.provider_user_roles.form.title_create": "Nuova Associazione",
     "admin.provider_user_roles.form.title_edit": "Modifica Associazione",
     "admin.provider_user_roles.form.btn_create": "Crea Associazione",
@@ -232,6 +246,13 @@
     "admin.provider_user_roles.toast.submit_error": "Impossibile salvare i dati dell'associazione",
     "admin.provider_user_roles.toast.detail_created": "L'associazione è stata creata correttamente",
     "admin.provider_user_roles.toast.detail_updated": "L'associazione è stata aggiornata correttamente",
+    "admin.provider_user_roles.toast.restore_success": "L'associazione viene ripristinata con successo",
+    "admin.provider_user_roles.toast.restore_error": "Siè verificato un errore durante la ripristina dell'associazione",
+    "admin.provider_user_roles.table.delete_selected_tooltip": "Cancella l'associazione selezionata",
+    "admin.provider_user_roles.table.restore_selected_tooltip": "Ripristina l'associazione selezionata",
+    "admin.provider_user_roles.table.hide_deleted_tooltip": "Nascondi associazioni eliminate",
+    "admin.provider_user_roles.restore.title": "Ripristina Associazione",
+    "admin.provider_user_roles.restore.prompt": "Sei sicuro di voler ripristinare l'associazione per l'utente ",
 
     "admin.provider_user_roles.table.title": "Lista Associazioni",
     "admin.provider_user_roles.table.search_placeholder": "Cerca utente o dominio...",
@@ -252,6 +273,18 @@
     "admin.provider_user_roles.errors.creation": "Si è verificato un errore durante la creazione.",
     "admin.provider_user_roles.table.show_deleted_tooltip": "Mostra associazioni cancellate",
     "admin.provider_user_roles.table.deleted_at": "Data Eliminazione",
+
+    "provider_user_roles.bulk_delete_error": "Error deleting provider user roles",
+    "provider_user_roles.bulk_delete_success": "Provider user roles deleted successfully",
+
+    "provider_user_roles.not_found": "Relazione Provider-user-role non trovata",
+    "provider_user_roles.conflict_unique": "C'è già una relazione attiva per Provider-user-role",
+    "provider_user_roles.restore_success": "Relazione Provider-user-role ripristinata",
+
+    "provider_user_roles.bulk_restore_error": "Entità non processabile",
+    "provider_user_roles.not_found_multiple": "Relazioni Provider-user-role non trovate",
+    "provider_user_roles.conflict_unique_multiple": "C'è gia' una relazione attiva per una o piu' relazioni selezionate",
+    "provider_user_roles.bulk_restore_success": "Relazioni Provider-user-role ripristinate correttamente",
 
     "admin.sessions.title": "Gestione Sessioni",
 

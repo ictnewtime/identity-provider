@@ -23,14 +23,12 @@ const filter = ref("");
 const loading = ref(false);
 const pagination = ref({ data: [], total: 0, per_page: 10 });
 const displayModal = ref(false);
-const selectedRole = ref(null);
+const roleSelected = ref(null);
 const displayDeleteModal = ref(false);
-const roleToDelete = ref(null);
+const displayRestoreModal = ref(false);
 let searchTimeout = null;
 const tableComponent = reactive({
-    mainbar: {
-        showRolesDeleted: false,
-    },
+    showRolesDeleted: false,
 });
 
 const loadRoles = (page = 1) => {
@@ -42,7 +40,7 @@ const loadRoles = (page = 1) => {
                 page: page,
                 per_page: pagination.value.per_page,
                 q: filter.value,
-                show_deleted: tableComponent.mainbar.showRolesDeleted,
+                show_deleted: tableComponent.showRolesDeleted,
             },
         })
         .then((res) => {
@@ -76,7 +74,7 @@ const onFilterChange = () => {
 
 // Funzione esposta al padre
 const openCreateModal = () => {
-    selectedRole.value = null;
+    roleSelected.value = null;
     displayModal.value = true;
 };
 
@@ -90,24 +88,24 @@ const onRoleSaved = () => {
 };
 
 const editRole = (role) => {
-    selectedRole.value = role;
+    roleSelected.value = role;
     displayModal.value = true;
 };
 
 const confirmDelete = (role) => {
-    roleToDelete.value = role;
+    roleSelected.value = role;
     displayDeleteModal.value = true;
 };
 
 const deleteRole = () => {
-    if (!roleToDelete.value) return;
+    if (!roleSelected.value) return;
 
     window.axios
-        .delete(`/admin/v1/roles/${roleToDelete.value.id}`)
+        .delete(`/admin/v1/roles/${roleSelected.value.id}`)
         .then(() => {
             displayDeleteModal.value = false;
-            roleToDelete.value = null;
-            loadRoles();
+            roleSelected.value = null;
+            loadRoles(pagination.value.current_page);
             toast.add({
                 severity: "success",
                 summary: trans("common.success"),
@@ -127,8 +125,41 @@ const deleteRole = () => {
         });
 };
 
+const confirmRestore = (role) => {
+    roleSelected.value = role;
+    displayRestoreModal.value = true;
+};
+
+const restoreRole = () => {
+    if (!roleSelected.value) return;
+    window.axios
+        .patch(`/admin/v1/roles/${roleSelected.value.id}/restore`)
+        .then(() => {
+            displayRestoreModal.value = false;
+            roleSelected.value = null;
+            loadRoles(pagination.value.current_page);
+            toast.add({
+                severity: "success",
+                summary: trans("common.success"),
+                detail: trans("admin.roles.toast.restore_success"),
+                life: 3000,
+            });
+            emit("item-saved");
+        })
+        .catch((error) => {
+            console.error(error);
+            toast.add({
+                severity: "error",
+                summary: trans("common.error"),
+                detail: trans("admin.roles.toast.restore_error"),
+                life: 3000,
+            });
+            emit("item-error", error);
+        });
+};
+
 const toggleShowRolesDeleted = () => {
-    tableComponent.mainbar.showRolesDeleted = !tableComponent.mainbar.showRolesDeleted;
+    tableComponent.showRolesDeleted = !tableComponent.showRolesDeleted;
     loadRoles(1);
 };
 
@@ -151,9 +182,18 @@ onMounted(() => {
                                 variant="text"
                                 severity="danger"
                                 @click="toggleShowRolesDeleted"
-                                v-tooltip.top="$t('admin.roles.table.show_deleted_tooltip')"
+                                v-tooltip.top="
+                                    tableComponent.showRolesDeleted
+                                        ? $t('admin.roles.table.hide_deleted_tooltip')
+                                        : $t('admin.roles.table.show_deleted_tooltip')
+                                "
                             >
-                                <Icon icon="hugeicons:delete-put-back" width="24" height="24" />
+                                <Icon
+                                    icon="material-symbols:delete-forever-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    :class="tableComponent.showRolesDeleted ? 'text-red-500' : 'text-gray-500'"
+                                />
                             </Button>
                             <IconField iconPosition="left">
                                 <InputIcon class="pi pi-search text-surface-400" />
@@ -205,7 +245,7 @@ onMounted(() => {
                 <Column
                     field="deleted_at"
                     :header="$t('admin.roles.table.deleted_at')"
-                    v-if="tableComponent.mainbar.showRolesDeleted === true"
+                    v-if="tableComponent.showRolesDeleted === true"
                 >
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
@@ -221,15 +261,41 @@ onMounted(() => {
                             severity="warn"
                             class="mr-1 hover:!bg-orange-50"
                             @click="editRole(slotProps.data)"
-                        />
-                        <Button
-                            icon="pi pi-trash"
-                            text
-                            rounded
-                            severity="danger"
-                            class="hover:!bg-red-50"
-                            @click="confirmDelete(slotProps.data)"
-                        />
+                            ><Icon
+                                icon="material-symbols:edit-outline"
+                                width="24"
+                                height="24"
+                                class="text-yellow-400"
+                            />
+                        </Button>
+
+                        <template v-if="slotProps.data.deleted_at">
+                            <Button
+                                icon="pi pi-undo"
+                                text
+                                rounded
+                                severity="success"
+                                class="mr-1 hover:!bg-green-50"
+                                @click="confirmRestore(slotProps.data)"
+                                ><Icon
+                                    icon="material-symbols:restore-from-trash-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    class="text-orange-500"
+                                />
+                            </Button>
+                        </template>
+                        <template v-else>
+                            <Button
+                                icon="pi pi-trash"
+                                text
+                                rounded
+                                severity="danger"
+                                class="hover:!bg-red-50"
+                                @click="confirmDelete(slotProps.data)"
+                                ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
+                            </Button>
+                        </template>
                     </template>
                 </Column>
 
@@ -254,12 +320,12 @@ onMounted(() => {
 
         <Dialog
             v-model:visible="displayModal"
-            :header="selectedRole ? $t('admin.roles.form.title_edit') : $t('admin.roles.form.title_create')"
+            :header="roleSelected ? $t('admin.roles.form.title_edit') : $t('admin.roles.form.title_create')"
             :style="{ width: '60vw', maxWidth: '800px' }"
             modal
             :draggable="false"
         >
-            <RoleForm :selectedRole="selectedRole" @item-saved="onRoleSaved" />
+            <RoleForm :roleSelected="roleSelected" @item-saved="onRoleSaved" />
         </Dialog>
 
         <Dialog
@@ -271,9 +337,9 @@ onMounted(() => {
         >
             <div class="flex items-center gap-4 pt-2">
                 <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
-                <span v-if="roleToDelete" class="text-surface-700">
+                <span v-if="roleSelected" class="text-surface-700">
                     {{ $t("admin.roles.delete.prompt") }}
-                    <b class="text-surface-900">{{ roleToDelete.name }}</b
+                    <b class="text-surface-900">{{ roleSelected.name }}</b
                     >?
                 </span>
             </div>
@@ -285,6 +351,33 @@ onMounted(() => {
                     icon="pi pi-check"
                     severity="danger"
                     @click="deleteRole"
+                    autofocus
+                />
+            </template>
+        </Dialog>
+        <Dialog
+            v-model:visible="displayRestoreModal"
+            :header="$t('admin.roles.restore.title')"
+            :style="{ width: '450px' }"
+            modal
+            :draggable="false"
+        >
+            <div class="flex items-center gap-4 pt-2">
+                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
+                <span v-if="roleSelected" class="text-surface-700">
+                    {{ $t("admin.roles.restore.prompt") }}
+                    <b class="text-surface-900">{{ roleSelected.name }}</b
+                    >?
+                </span>
+            </div>
+
+            <template #footer>
+                <Button :label="$t('common.cancel')" icon="pi pi-times" @click="displayRestoreModal = false" text />
+                <Button
+                    :label="$t('common.restore')"
+                    icon="pi pi-check"
+                    severity="danger"
+                    @click="restoreRole"
                     autofocus
                 />
             </template>

@@ -138,19 +138,36 @@ const submit = () => {
                 </div>
 
                 <div class="flex flex-col gap-1 mt-2">
-                    <FloatLabel variant="on">
-                        <Password
-                            inputId="password_confirmation"
-                            name="password_confirmation"
-                            v-model="form.password_confirmation"
-                            :feedback="false"
-                            toggleMask
-                            fluid
-                        />
-                        <label for="password_confirmation" class="font-medium text-gray-700 z-10">
-                            {{ $t("auth.password_confirmation_label") }}
-                        </label>
-                    </FloatLabel>
+                    <InputGroup>
+                        <FloatLabel variant="on">
+                            <Password
+                                inputId="password_confirmation"
+                                name="password_confirmation"
+                                v-model="form.password_confirmation"
+                                :feedback="false"
+                                fluid
+                                :pt="{
+                                    pcInputText: {
+                                        root: {
+                                            type: formItems.password.visible ? 'text' : 'password',
+                                        },
+                                    },
+                                }"
+                            />
+                            <label for="password_confirmation" class="font-medium text-gray-700 z-10">
+                                {{ $t("auth.password_confirmation_label") }}
+                            </label>
+                        </FloatLabel>
+                        <InputGroupAddon class="p-0 border-none">
+                            <Button
+                                type="button"
+                                severity="secondary"
+                                :icon="formItems.password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                                v-tooltip.top="null"
+                                @click="togglePasswordVisibility"
+                            />
+                        </InputGroupAddon>
+                    </InputGroup>
                 </div>
 
                 <div class="bg-gray-50 p-4 rounded-lg border border-gray-400 mt-2">
