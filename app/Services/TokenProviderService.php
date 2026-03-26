@@ -44,9 +44,9 @@ class TokenProviderService
         Log::info("DEBUG TTL - config('jwt.ttl') is: " . var_export(config("jwt.ttl"), true));
         // --- FINE DEBUG STAGING ---
 
-        $ttlInMinutes = $this->ttlInSeconds / 60;
+        // $ttlInMinutes = $this->ttlInSeconds / 60;
         // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
-        JWTAuth::factory()->setTTL($ttlInMinutes);
+        JWTAuth::factory()->setTTL($$this->ttlInSeconds);
         $provider = Provider::where("id", $redirectId)->first();
         if (empty($provider)) {
             Log::warning("TokenCreation - Provider not found: " . $redirectId);
@@ -139,7 +139,7 @@ class TokenProviderService
         // creo un cookie con il token
         $cookie_name = "idp_token_" . $provider_id;
         $provider = Provider::where("id", $provider_id)->first();
-        $domain = env("PROVIDER_DOMAIN") ?? null;
+        $domain = env("PROVIDER_DOMAIN", null);
         $is_https = str_starts_with($provider->protocol, "https");
         $cookie = cookie(
             $cookie_name, // Nome del cookie
