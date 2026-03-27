@@ -135,7 +135,6 @@ class SessionController extends Controller
         // 1. Recuperiamo tutte le sessioni prima di cancellarle
         $sessions = Session::where("user_id", $userId)->get();
         $deletedCount = $sessions->count();
-        Log::info("Single Logout eseguito. Sessioni distrutte: " . $deletedCount);
 
         // 2. Le eliminiamo ciclando sui modelli
         // In questo modo, il Trait CustomAuditable intercetterà l'evento 'deleted' per ciascuna.

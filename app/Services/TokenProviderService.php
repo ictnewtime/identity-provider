@@ -34,16 +34,6 @@ class TokenProviderService
      */
     public function tokenCretion(User $user, ?string $redirectId = null)
     {
-        // --- INIZIO DEBUG STAGING ---
-        Log::info("=== START TOKEN CREATION DEBUG (Staging) ===");
-        Log::info("User ID: " . $user->id . " | Provider ID: " . $redirectId);
-
-        // Stampiamo i valori esatti con var_export per vedere se sono null, int(0) o stringhe vuote
-        Log::info("DEBUG TTL - \$this->ttlInSeconds is: " . var_export($this->ttlInSeconds, true));
-        Log::info("DEBUG TTL - env('JWT_TTL') is: " . var_export(env("JWT_TTL"), true));
-        Log::info("DEBUG TTL - config('jwt.ttl') is: " . var_export(config("jwt.ttl"), true));
-        // --- FINE DEBUG STAGING ---
-
         $ttlInMinutes = $this->ttlInSeconds / 60;
         // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
         JWTAuth::factory()->setTTL($ttlInMinutes);
@@ -75,17 +65,8 @@ class TokenProviderService
             $fallbackTriggered = $this->ttlInSeconds === null || $this->ttlInSeconds === 0;
             $calculatedTtl = $this->ttlInSeconds ?? 3600;
 
-            Log::info("DEBUG TIME - Current time: {$currentTime} (" . date("Y-m-d H:i:s", $currentTime) . ")");
-            Log::info(
-                "DEBUG TIME - Was the fallback (3600) triggered?: " .
-                    ($fallbackTriggered ? "YES! ttlInSeconds was empty" : "NO, using {$calculatedTtl}"),
-            );
-
             // Definiamo i claims
             $expirationTime = $currentTime + $calculatedTtl;
-            Log::info(
-                "DEBUG TIME - Expiration time (exp): {$expirationTime} (" . date("Y-m-d H:i:s", $expirationTime) . ")",
-            );
 
             $payloadData = array_merge(
                 [
@@ -100,9 +81,6 @@ class TokenProviderService
                 ["payload" => $payload],
             );
 
-            // Stampiamo l'intero payload
-            Log::debug("DEBUG PAYLOAD - Final Payload Data: ", $payloadData);
-
             /**
              * Creazione di istanze "usa e getta" per firmare il token,
              * con la secret key specifica del provider,
@@ -116,8 +94,6 @@ class TokenProviderService
 
             // Firmiamo il token usando ESCLUSIVAMENTE questo provider temporaneo
             $token = $customProvider->encode($payloadData);
-
-            Log::info("=== END TOKEN CREATION DEBUG: Success ===");
         } catch (\Exception $e) {
             Log::error(
                 "Error generating token for user " .

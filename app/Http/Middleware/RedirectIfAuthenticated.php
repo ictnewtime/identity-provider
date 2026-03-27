@@ -55,7 +55,7 @@ class RedirectIfAuthenticated
         }
 
         // 4. BIVIO SSO: Seamless SSO verso App esterna
-        Log::info("Seamless SSO innescato! Rinnovo accesso automatico per Provider ID: {$providerId}");
+        // Log::info("Seamless SSO innescato! Rinnovo accesso automatico per Provider ID: {$providerId}");
 
         $ssoData = TokenProviderService::respondWithSsoRedirect($user, $providerId, $request, $redirectTo);
 
@@ -63,7 +63,7 @@ class RedirectIfAuthenticated
             return $this->handleSsoFailure($request, $providerId);
         }
 
-        Log::info("Seamless SSO Response: " . json_encode($ssoData));
+        // Log::info("Seamless SSO Response: " . json_encode($ssoData));
         Cookie::queue($ssoData["cookie"]);
 
         return redirect()->away($ssoData["url"])->withCookie($ssoData["cookie"]);
@@ -108,7 +108,7 @@ class RedirectIfAuthenticated
                 }
             }
         } catch (\Exception $e) {
-            Log::debug("JWT IdP non valido durante redirect SSO: " . $e->getMessage());
+            Log::error("JWT IdP non valido durante redirect SSO: " . $e->getMessage());
         }
 
         return null;
