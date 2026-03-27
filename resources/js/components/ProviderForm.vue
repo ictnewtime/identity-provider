@@ -10,6 +10,7 @@ import InputText from "primevue/inputtext";
 import Password from "primevue/password";
 import Button from "primevue/button";
 import Message from "primevue/message";
+import { getDomain } from "../utils/urls";
 
 const props = defineProps({
     providerSelected: {
@@ -203,11 +204,10 @@ const parseUrlAndFill = () => {
     if (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) {
         rawUrl = "http://" + rawUrl;
     }
-
+    const parsed = new URL(rawUrl);
+    form.value.protocol = parsed.protocol.replace(":", "");
+    form.value.domain = getDomain(rawUrl);
     try {
-        const parsed = new URL(rawUrl);
-        form.value.protocol = parsed.protocol.replace(":", "");
-        form.value.domain = parsed.hostname;
         form.value.logoutUrl = `${parsed.protocol}//${parsed.host}/logout`;
     } catch (error) {
         toast.add({
