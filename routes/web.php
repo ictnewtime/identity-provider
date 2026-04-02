@@ -12,6 +12,7 @@ use App\Http\Controllers\Manage\RoleController;
 use App\Http\Controllers\Manage\SessionController;
 use App\Http\Controllers\Manage\AuditController;
 use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Manage\ParametersController;
 use Illuminate\Support\Facades\Log;
 
 // 1. Redirect Home -> Login
@@ -86,6 +87,10 @@ Route::prefix("admin")
             return Inertia::render("Admin/ProviderUserRoles");
         })->name("web-provider-user-roles");
 
+        Route::get("parameters", function () {
+            return Inertia::render("Admin/Parameters");
+        })->name("web-parameters");
+
         Route::get("sessions", function () {
             return Inertia::render("Admin/Sessions");
         })->name("web-sessions");
@@ -147,6 +152,14 @@ Route::prefix("admin")
 
             // audit
             Route::get("audits", [AuditController::class, "all"]);
+
+            // parameters
+            Route::get("parameters", [ParametersController::class, "all"]);
+            Route::post("parameters", [ParametersController::class, "create"]);
+            Route::get("parameters/{id}", [ParametersController::class, "find"])->whereNumber("id");
+            Route::put("parameters/{id}", [ParametersController::class, "update"])->whereNumber("id");
+            Route::delete("parameters/{id}", [ParametersController::class, "delete"])->whereNumber("id");
+            Route::patch("parameters/{id}/restore", [ParametersController::class, "restore"])->whereNumber("id");
         });
     });
 

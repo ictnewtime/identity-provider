@@ -45,6 +45,9 @@ class ProviderUserRoleController extends Controller
                 ->orWhereHas("provider", function ($q) use ($searchTerm) {
                     $q->where("domain", "like", $searchTerm);
                 })
+                ->orWhereHas("provider", function ($q) use ($searchTerm) {
+                    $q->where("name", "like", $searchTerm);
+                })
                 ->orWhereHas("role", function ($q) use ($searchTerm) {
                     $q->where("name", "like", $searchTerm);
                 });
