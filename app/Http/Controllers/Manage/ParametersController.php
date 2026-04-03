@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Manage;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RoleRequest;
+use App\Models\Parameter;
 use App\Models\ProviderUserRole;
 use Illuminate\Database\QueryException;
 // use App\Repositories\RoleRepository;
@@ -12,22 +13,15 @@ use App\Models\Role;
 use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
-class RoleController extends Controller
+class ParametersController extends Controller
 {
-    // protected $roleRepository;
-
-    // public function __construct(RoleRepository $roleRepository)
-    // {
-    //     $this->roleRepository = $roleRepository;
-    // }
-
     #[
         OA\Get(
-            path: "/api/v1/roles",
-            summary: "list of roles",
-            description: "Returns the entire list of roles",
-            operationId: "Role.all",
-            tags: ["Roles"],
+            path: "/api/v1/parameters",
+            summary: "list of parameters",
+            description: "Returns the entire list of parameters",
+            operationId: "Parameter.all",
+            tags: ["Parameters"],
             security: [["passport" => []]],
             responses: [
                 new OA\Response(
@@ -46,39 +40,29 @@ class RoleController extends Controller
     public function all(Request $request)
     {
         $show_deleted = $request->boolean("show_deleted");
-        $query = Role::with("provider");
+        $query = Parameter::query();
 
-        $provider_id = $request->input("provider_id");
+        $searchTerm = $request->input("searchTerm");
 
-        if ($provider_id) {
-            $query->whereHas("provider", function ($q) use ($provider_id) {
-                $q->where("id", $provider_id);
-            });
+        if ($searchTerm) {
+            $query->where("key", "like", "%" . $searchTerm . "%");
         }
 
-        if ($request->filled("q")) {
-            $searchTerm = "%" . $request->q . "%";
-            $query->where(function ($qBuilder) use ($searchTerm) {
-                $qBuilder->where("name", "like", $searchTerm)->orWhereHas("provider", function ($q) use ($searchTerm) {
-                    $q->where("domain", "like", $searchTerm);
-                });
-            });
-        }
         if ($show_deleted) {
             $query->onlyTrashed();
         }
 
-        $perPage = $request->input("per_page", 10);
+        $perPage = $request->input("per_page", 50);
         return $query->paginate($perPage);
     }
 
     #[
         OA\Post(
-            path: "/api/v1/roles",
-            summary: "Create a new role",
+            path: "/api/v1/parameters",
+            summary: "Create a new parameter",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "Role.create",
-            tags: ["Roles"],
+            operationId: "Parameter.create",
+            tags: ["Parameters"],
             security: [["passport" => ["manage-idp"]]],
             requestBody: new OA\RequestBody(
                 required: true,
@@ -88,16 +72,22 @@ class RoleController extends Controller
                         type: "object",
                         properties: [
                             new OA\Property(
-                                property: "name",
-                                description: "Role name",
+                                property: "key",
+                                description: "Parameter key",
                                 type: "string",
-                                example: "admin of this application/provider",
+                                example: "max_login_attempts",
                             ),
                             new OA\Property(
-                                property: "provider_id",
-                                description: "Provider id",
-                                type: "integer",
-                                example: "1",
+                                property: "value",
+                                description: "Parameter value",
+                                type: "string",
+                                example: "5",
+                            ),
+                            new OA\Property(
+                                property: "type",
+                                description: "Parameter type",
+                                type: "string",
+                                example: "integer",
                             ),
                         ],
                     ),
@@ -127,36 +117,36 @@ class RoleController extends Controller
             ],
         ),
     ]
-    public function create(RoleRequest $request)
+    public function create(Request $request)
     {
-        $data = $request->only("name", "provider_id");
-        $existingRole = Role::where("name", $data["name"])->where("provider_id", $data["provider_id"])->first();
-        if ($existingRole) {
-            return response()->json(["message" => "Role with this name already exists for this provider"], 422);
+        $data = $request->only("key", "value", "type");
+        $existingParameter = Parameter::where("key", $data["key"])->first();
+        if ($existingParameter) {
+            return response()->json(["message" => "Parameter with this key already exists"], 422);
         }
 
         try {
-            $role = Role::create($data);
+            $parameter = Parameter::create($data);
 
-            return response()->json($role, 201);
+            return response()->json($parameter, 201);
         } catch (QueryException $e) {
-            return response()->json(["message" => "Error on saving role"], 500);
+            return response()->json(["message" => "Error on saving parameter"], 500);
         }
     }
 
     #[
         OA\Get(
-            path: "/api/v1/roles/{id}",
-            summary: "Returns role by id",
-            description: "Returns role details by id",
-            operationId: "Role.find",
-            tags: ["Roles"],
+            path: "/api/v1/parameters/{id}",
+            summary: "Returns parameter by id",
+            description: "Returns parameter details by id",
+            operationId: "Parameter.find",
+            tags: ["Parameters"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Role id",
+                    description: "Parameter id",
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -182,26 +172,26 @@ class RoleController extends Controller
     ]
     public function find($id)
     {
-        $role = Role::find($id);
-        if (empty($role)) {
-            return response()->json(["message" => "Role not found"], 404);
+        $parameter = Parameter::find($id);
+        if (empty($parameter)) {
+            return response()->json(["message" => "Parameter not found"], 404);
         }
-        return response()->json($role);
+        return response()->json($parameter);
     }
 
     #[
         OA\Put(
-            path: "/api/v1/roles/{id}",
-            summary: "Update role by id",
+            path: "/api/v1/parameters/{id}",
+            summary: "Update parameter by id",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "Role.update",
-            tags: ["Roles"],
+            operationId: "Parameter.update",
+            tags: ["Parameters"],
             security: [["passport" => ["manage-idp"]]],
             parameters: [
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Role id",
+                    description: "Parameter id",
                     name: "id",
                     schema: new OA\Schema(type: "integer", minimum: 1),
                 ),
@@ -214,16 +204,22 @@ class RoleController extends Controller
                         type: "object",
                         properties: [
                             new OA\Property(
-                                property: "name",
-                                description: "Role name",
+                                property: "key",
+                                description: "Parameter key",
                                 type: "string",
-                                example: "admin of this application/provider",
+                                example: "max_login_attempts",
                             ),
                             new OA\Property(
-                                property: "provider_id",
-                                description: "Provider id",
-                                type: "integer",
-                                example: "1",
+                                property: "value",
+                                description: "Parameter value",
+                                type: "string",
+                                example: "5",
+                            ),
+                            new OA\Property(
+                                property: "type",
+                                description: "Parameter type",
+                                type: "string",
+                                example: "integer",
                             ),
                         ],
                     ),
@@ -253,37 +249,37 @@ class RoleController extends Controller
             ],
         ),
     ]
-    public function update(RoleRequest $request, $id)
+    public function update(Request $request, $id)
     {
-        $data = $request->only("name", "provider_id");
-        $role = Role::find($id);
+        $data = $request->only("key", "value", "type");
+        $parameter = Parameter::find($id);
 
-        if (empty($role)) {
-            return response()->json(["message" => "Role not found"], 404);
+        if (empty($parameter)) {
+            return response()->json(["message" => "Parameter not found"], 404);
         }
 
         try {
-            $role->update($data);
+            $parameter->update($data);
 
-            return response()->json($role, 200);
+            return response()->json($parameter, 200);
         } catch (QueryException $e) {
-            return response()->json(["message" => "Error on updating role"], 500);
+            return response()->json(["message" => "Error on updating parameter"], 500);
         }
     }
 
     #[
         OA\Delete(
-            path: "/api/v1/roles/{id}",
-            summary: "Remove role by id",
+            path: "/api/v1/parameters/{id}",
+            summary: "Remove parameter by id",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "Role.delete",
-            tags: ["Roles"],
+            operationId: "Parameter.delete",
+            tags: ["Parameters"],
             security: [["passport" => ["manage-idp"]]],
             parameters: [
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Role id",
+                    description: "Parameter id",
                     name: "id",
                     schema: new OA\Schema(type: "integer", minimum: 1),
                 ),
@@ -309,28 +305,19 @@ class RoleController extends Controller
     ]
     public function delete(int $id)
     {
-        $role = Role::find($id);
+        $parameter = Parameter::find($id);
 
-        if (empty($role)) {
+        if (empty($parameter)) {
             return response()->json(
                 [
-                    "message" => "Role id not found",
+                    "message" => "Parameter id not found",
                 ],
                 404,
             );
         }
 
-        $providerUserRole = ProviderUserRole::where("role_id", $role->id)->first();
-        if ($providerUserRole) {
-            return response()->json(
-                [
-                    "message" => __("role.error.is_in_use"),
-                ],
-                409,
-            );
-        }
         try {
-            $role->delete();
+            $parameter->delete();
         } catch (QueryException $e) {
             return response()->json(["message" => $e], 500);
         }
@@ -340,17 +327,17 @@ class RoleController extends Controller
 
     #[
         OA\Patch(
-            path: "/api/v1/roles/{id}/restore",
-            summary: "Restore role by id",
+            path: "/api/v1/parameters/{id}/restore",
+            summary: "Restore parameter by id",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "Role.restore",
-            tags: ["Roles"],
+            operationId: "Parameter.restore",
+            tags: ["Parameters"],
             security: [["passport" => ["manage-idp"]]],
             parameters: [
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Role id",
+                    description: "Parameter id",
                     name: "id",
                     schema: new OA\Schema(type: "integer", minimum: 1),
                 ),
@@ -376,16 +363,16 @@ class RoleController extends Controller
     ]
     public function restore($id)
     {
-        $role = Role::withTrashed()->find($id);
-        if (empty($role)) {
-            return response()->json(["message" => __("role.error.not_found")], 404);
+        $parameter = Parameter::withTrashed()->find($id);
+        if (empty($parameter)) {
+            return response()->json(["message" => __("parameter.error.not_found")], 404);
         }
         try {
-            $role->restore();
+            $parameter->restore();
         } catch (\Exception $e) {
-            Log::error("Error on restoring role: " . $e);
-            return response()->json(["message" => __("role.error.restoring")], 500);
+            Log::error("Error on restoring parameter: " . $e);
+            return response()->json(["message" => __("parameter.error.restoring")], 500);
         }
-        return response()->json($role, 200);
+        return response()->json($parameter, 200);
     }
 }

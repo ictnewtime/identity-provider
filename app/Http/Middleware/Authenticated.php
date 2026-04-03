@@ -63,7 +63,8 @@ class Authenticated
             // VERIFICA SCADENZA (exp)
             if (isset($payload["exp"])) {
                 $currentTime = time();
-                Log::debug(
+
+              Log::debug(
                     "Verifica scadenza (exp) -> Current: {$currentTime} (" .
                         date("Y-m-d H:i:s", $currentTime) .
                         ") | Token Exp: {$payload["exp"]} (" .
@@ -91,9 +92,8 @@ class Authenticated
                 return $this->forceLogoutAndRedirect($request, "Utente non trovato.");
             }
 
-            // Diciamo a Laravel chi è l'utente corrente per questa richiesta,
-            // così Auth::user() funzionerà nel resto del codice!
             Auth::login($user);
+
             Log::debug("Utente ID {$userId} autenticato in Laravel.");
 
             $sessionExists = Session::where("token", $tokenString)->exists();

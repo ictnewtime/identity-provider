@@ -52,7 +52,7 @@ class VerifyExternalToken
 
             // 4. Passiamo i dati puliti e sicuri al Controller!
             // Così il controller non deve più fidarsi dell'URL, ma legge i dati certificati dal JWT.
-            Log::info("Introspezione Token OK.");
+            // Log::info("Introspezione Token OK.");
             $request->attributes->set("jwt_user_id", $userId);
             $request->attributes->set("jwt_provider_id", $providerId);
         } catch (\Exception $e) {

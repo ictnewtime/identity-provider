@@ -55,7 +55,7 @@ class RedirectIfAuthenticated
         }
 
         // 4. BIVIO SSO: Seamless SSO verso App esterna
-        Log::info("Seamless SSO innescato! Rinnovo accesso automatico per Provider ID: {$providerId}");
+        // Log::info("Seamless SSO innescato! Rinnovo accesso automatico per Provider ID: {$providerId}");
 
         $ssoData = TokenProviderService::respondWithSsoRedirect($user, $providerId, $request, $redirectTo);
 
@@ -63,7 +63,7 @@ class RedirectIfAuthenticated
             return $this->handleSsoFailure($request, $providerId);
         }
 
-        Log::info("Seamless SSO Response: " . json_encode($ssoData));
+        // Log::info("Seamless SSO Response: " . json_encode($ssoData));
         Cookie::queue($ssoData["cookie"]);
 
         return redirect()->away($ssoData["url"])->withCookie($ssoData["cookie"]);
@@ -108,7 +108,7 @@ class RedirectIfAuthenticated
                 }
             }
         } catch (\Exception $e) {
-            Log::debug("JWT IdP non valido durante redirect SSO: " . $e->getMessage());
+            Log::error("JWT IdP non valido durante redirect SSO: " . $e->getMessage());
         }
 
         return null;
@@ -127,10 +127,15 @@ class RedirectIfAuthenticated
 
         $cookieName = "idp_token_" . config("idp.provider_id");
         $provider = Provider::find(config("idp.provider_id"));
-        Log::warning("Seamless SSO Fallito: provider-domain: " . $provider->domain);
-        $cookieIdp = Cookie::forget($cookieName, "/", $provider->domain);
 
-        return redirect()->route("sso.unauthorized")->withCookie($cookieIdp);
+        Log::warning("Seamless SSO Fallito: provider-domain: " . $provider->domain);
+
+        Cookie::queue(Cookie::forget($cookieName, "/"));
+        if ($provider && $provider->domain) {
+            Cookie::queue(Cookie::forget($cookieName, "/", $provider->domain));
+        }
+
+        return redirect()->route("sso.unauthorized");
     }
 
     /**
@@ -139,21 +144,23 @@ class RedirectIfAuthenticated
      */
     private function forceLogoutAndShowLogin(Request $request, string $cookieName, string $errorMessage)
     {
-        // 1. Distruggiamo la sessione Laravel
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // 2. Prepariamo la distruzione dei cookie IdP
         $provider_idp = Provider::find(config("idp.provider_id"));
-        $cookie1 = Cookie::forget($cookieName, "/", $provider_idp->domain);
-        $cookie2 = Cookie::forget("token", "/", $provider_idp->domain);
 
-        // 3. Ricarichiamo la pagina di login passandogli i parametri originali
+        Cookie::queue(Cookie::forget($cookieName, "/"));
+        Cookie::queue(Cookie::forget("token", "/"));
+
+        if ($provider_idp && $provider_idp->domain) {
+            Cookie::queue(Cookie::forget($cookieName, "/", $provider_idp->domain));
+            Cookie::queue(Cookie::forget("token", "/", $provider_idp->domain));
+        }
+
+        // Ricarichiamo la pagina di login
         return redirect()
             ->route("loginForm", $request->query())
-            ->withErrors(["login" => $errorMessage])
-            ->withCookie($cookie1)
-            ->withCookie($cookie2);
+            ->withErrors(["login" => $errorMessage]);
     }
 }

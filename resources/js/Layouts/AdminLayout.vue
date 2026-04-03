@@ -44,6 +44,11 @@ const items = computed(() => [
         icon: "pi pi-history",
         route: "/admin/audits",
     },
+    {
+        label: trans("admin.nav.parameters"),
+        icon: "pi pi-cog",
+        route: "/admin/parameters",
+    },
 ]);
 
 // Configurazione lingue
