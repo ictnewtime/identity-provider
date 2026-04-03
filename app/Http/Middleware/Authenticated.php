@@ -17,15 +17,19 @@ class Authenticated
 {
     public function handle($request, Closure $next)
     {
+        Log::info("=== START AUTHENTICATED MIDDLEWARE ===");
+
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
+
+        Log::debug("Atteso Provider ID: {$idpProviderId} | Nome Cookie: {$cookieName}");
 
         // Estrazione del token
         $fromCookie = $request->hasCookie($cookieName);
         $fromBearer = !empty($request->bearerToken());
         $tokenString = $request->cookie($cookieName) ?? $request->bearerToken();
 
-        Log::info(
+        Log::debug(
             "Ricerca Token -> Cookie: " . ($fromCookie ? "SI" : "NO") . " | Bearer: " . ($fromBearer ? "SI" : "NO"),
         );
 
@@ -45,15 +49,28 @@ class Authenticated
             $algo = config("jwt.algo", "HS256");
             $keys = config("jwt.keys", []);
 
+            Log::debug("Inizio decodifica token...");
+
             // Creiamo il provider specifico al volo per decodificare
             $customProvider = new Lcobucci($provider->secret_key, $algo, $keys);
 
             // Proviamo a decodificare. Se la firma o la sintassi sono errate, lancerà un'eccezione
             $payload = $customProvider->decode($tokenString);
 
+            // LOG DEL PAYLOAD DECODIFICATO
+            Log::debug("Token decodificato: " . json_encode($payload));
+
             // VERIFICA SCADENZA (exp)
             if (isset($payload["exp"])) {
                 $currentTime = time();
+
+              Log::debug(
+                    "Verifica scadenza (exp) -> Current: {$currentTime} (" .
+                        date("Y-m-d H:i:s", $currentTime) .
+                        ") | Token Exp: {$payload["exp"]} (" .
+                        date("Y-m-d H:i:s", $payload["exp"]) .
+                        ")",
+                );
 
                 if ($payload["exp"] < $currentTime) {
                     Log::warning("Fallimento: Il token è scaduto!");
@@ -76,6 +93,9 @@ class Authenticated
             }
 
             Auth::login($user);
+
+            Log::debug("Utente ID {$userId} autenticato in Laravel.");
+
             $sessionExists = Session::where("token", $tokenString)->exists();
 
             if (!$sessionExists) {
@@ -87,6 +107,8 @@ class Authenticated
                     'La tua sessione è stata terminata dall\'amministratore.',
                 );
             }
+
+            Log::info("=== END AUTHENTICATED MIDDLEWARE: Successo ===");
         } catch (TokenExpiredException $e) {
             Log::warning("Eccezione catturata: TokenExpiredException.");
             return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));
@@ -103,6 +125,11 @@ class Authenticated
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
         $provider = Provider::find($idpProviderId);
+
+        Log::debug(
+            "Esecuzione forceLogoutAndRedirect - Distruzione cookie per il dominio: " .
+                ($provider->domain ?? "null (locale)"),
+        );
 
         // 1. Accodiamo la distruzione dei cookie
         Cookie::queue(Cookie::forget($cookieName, "/", $provider->domain));
