@@ -247,7 +247,7 @@ onMounted(() => {
                             rounded
                             severity="warn"
                             class="mr-1 hover:!bg-orange-50"
-                            @click="editProvider(slotProps.data)"
+                            @click="editUser(slotProps.data)"
                             ><Icon
                                 icon="material-symbols:edit-outline"
                                 width="24"
