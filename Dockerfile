@@ -84,24 +84,15 @@ RUN mkdir -p /var/log/supervisor /var/run/supervisor /var/run/php-fpm && \
 
 
 RUN chown -R www-data:www-data storage
+RUN touch /var/www/storage/logs/laravel.log && chown www-data:www-data /var/www/storage/logs/laravel.log
 RUN npm run build
 
-# Create entrypoint script
-RUN echo '#!/bin/bash\n\
-echo "Attesa che MariaDB (mariadb:3306) sia raggiungibile..."\n\
-# Tenta di aprire una connessione TCP ogni secondo finché non risponde o passano 30 secondi\n\
-for i in {1..30}; do\n\
-  if timeout 1s bash -c "true < /dev/tcp/mariadb/3306" 2>/dev/null; then\n\
-    echo "MariaDB è ONLINE!"\n\
-    break\n\
-  fi\n\
-  echo "Database non ancora pronto... (tentativo $i)"\n\
-  sleep 2\n\
-done\n\
-\n\
-exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf\n\
-' > /entrypoint.sh && chmod +x /entrypoint.sh
+# 1. Copia il file entrypoint dal tuo PC al container
+COPY entrypoint.sh /entrypoint.sh
+# 2. Copia il config di Supervisor principale
+COPY docker/supervisor/supervisord.conf /etc/supervisord.conf
+# 3. Dai i permessi di esecuzione
+RUN chmod +x /entrypoint.sh
 
-
-EXPOSE 80
+EXPOSE 80 5173
 ENTRYPOINT ["/entrypoint.sh"]

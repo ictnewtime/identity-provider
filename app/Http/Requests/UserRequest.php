@@ -15,6 +15,13 @@ class UserRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation()
+    {
+        $this->merge([
+            "enabled" => filter_var($this->enabled, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true,
+        ]);
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -32,6 +39,7 @@ class UserRequest extends FormRequest
             "password" => $this->isMethod("post") ? "required|min:12|confirmed" : "sometimes|nullable|min:12|confirmed",
             "password_confirmation" => $this->isMethod("post") ? "required|min:12" : "sometimes|nullable|min:12",
             "password_expires_at" => "nullable|date",
+            "enabled" => "sometimes|boolean",
         ];
     }
 }
