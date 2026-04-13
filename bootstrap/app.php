@@ -55,8 +55,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ],
         );
 
-        // TODO debug locale . da rimuovere
-        // $middleware->web(append: [\App\Http\Middleware\SetLocale::class]);
+        $middleware->web(append: [SetLocale::class]);
 
         // 4. Alias (Nomi brevi per usare i middleware nelle rotte)
         $middleware->alias([

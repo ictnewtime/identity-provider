@@ -21,10 +21,12 @@ Route::get("/", function () {
 });
 
 // 2. Lingua
-Route::get("locale/{locale}", function ($locale) {
-    Session::put("locale", $locale);
+Route::get("lang/{locale}", function ($locale) {
+    $availableLocales = ["it", "en"];
+    $targetLocale = in_array($locale, $availableLocales) ? $locale : "it";
+    session(["locale" => $targetLocale]);
     return redirect()->back();
-});
+})->name("lang.switch");
 
 // 3. Autenticazione
 Route::middleware("guest")->group(function () {
