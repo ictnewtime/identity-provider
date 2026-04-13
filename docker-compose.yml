@@ -15,6 +15,7 @@ services:
     volumes:
       # Uncomment next line for development mode (will override permissions)
       - ./:/var/www
+      - ./docker/supervisor/vite.conf:/etc/supervisor/conf.d/vite.conf
       # - ./storage:/var/www/storage
     ports:
       - "8001:80"

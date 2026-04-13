@@ -21,6 +21,8 @@ php artisan db:seed --class=Database\\Seeders\\UsersSeeder
 
 // per generare le chiavi di passport
 php artisan passport:install --force
+// per generare un nuovo utente passport
+php artisan passport:client --personal
 # per leggere le chaivi di passport
 chown -R www-data:www-data storage
 php artisan storage:link

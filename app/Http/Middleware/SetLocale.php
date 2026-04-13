@@ -11,9 +11,11 @@ class SetLocale
 {
     public function handle(Request $request, Closure $next)
     {
-        // Se c'è una lingua in sessione, dilla a Laravel
         if (Session::has("locale")) {
             App::setLocale(Session::get("locale"));
+        } else {
+            $locale = $request->getPreferredLanguage(["it", "en"]) ?: "it";
+            App::setLocale($locale);
         }
 
         return $next($request);

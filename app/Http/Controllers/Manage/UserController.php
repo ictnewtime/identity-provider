@@ -203,31 +203,21 @@ class UserController extends Controller
     ]
     public function create(UserRequest $request)
     {
-        $credentials = $request->only([
-            "username",
-            "password",
-            "email",
-            "name",
-            "surname",
-            "enabled",
-            "password_expires_at",
-        ]);
+        $data = $request->only(["username", "password", "email", "name", "surname", "enabled", "password_expires_at"]);
 
-        if (array_key_exists("password_expires_at", $credentials)) {
-            $credentials["password_expires_at"] = $credentials["password_expires_at"]
-                ? Carbon::parse($credentials["password_expires_at"])
-                    ->setTimezone(config("app.timezone"))
-                    ->format("Y-m-d H:i:s")
-                : null;
+        $data["password"] = Hash::make($data["password"]);
+
+        $data["enabled"] = $request->boolean("enabled", true);
+        $data["is_verified"] = true;
+
+        if (!empty($data["password_expires_at"])) {
+            $data["password_expires_at"] = Carbon::parse($data["password_expires_at"])
+                ->setTimezone(config("app.timezone"))
+                ->format("Y-m-d H:i:s");
         }
 
         try {
-            $credentials["password"] = Hash::make($credentials["password"]);
-
-            $credentials["enabled"] = $request->input("enabled", true);
-            $credentials["is_verified"] = true;
-
-            $user = User::create($credentials);
+            $user = User::create($data);
 
             return response()->json($user, 200);
         } catch (\Exception $e) {
@@ -378,28 +368,39 @@ class UserController extends Controller
     ]
     public function update(UserRequest $request, $id)
     {
-        $credentials = $request->only("email", "username", "name", "surname", "enabled", "password_expires_at");
+        $user = User::find($id);
 
-        if (array_key_exists("password_expires_at", $credentials)) {
-            $credentials["password_expires_at"] = $credentials["password_expires_at"]
-                ? Carbon::parse($credentials["password_expires_at"])
+        if (empty($user)) {
+            return response()->json(["message" => "User not found"], 404);
+        }
+
+        // 1. Estrai i dati base
+        $data = $request->only("email", "username", "name", "surname", "password_expires_at");
+
+        // 2. Gestione Booleana (Risolve l'errore SQL)
+        if ($request->has("enabled")) {
+            $data["enabled"] = $request->boolean("enabled");
+        }
+
+        // 3. Gestione Data
+        if (array_key_exists("password_expires_at", $data)) {
+            $data["password_expires_at"] = $data["password_expires_at"]
+                ? Carbon::parse($data["password_expires_at"])
                     ->setTimezone(config("app.timezone"))
                     ->format("Y-m-d H:i:s")
                 : null;
         }
 
+        // 4. Gestione Password
         if ($request->filled("password")) {
-            $credentials["password"] = Hash::make($request->password);
-        }
-        $user = User::find($id);
-
-        if (empty($user)) {
-            return response()->json([], 404);
+            $data["password"] = Hash::make($request->password);
         }
 
         try {
-            $user->update($credentials);
+            $user->update($data);
+            return response()->json($user, 200);
         } catch (\Exception $e) {
+            Log::error("Errore aggiornamento utente ID $id: " . $e->getMessage());
             return response()->json(
                 [
                     "message" => "Error during updating user",
@@ -411,8 +412,6 @@ class UserController extends Controller
                 500,
             );
         }
-
-        return response()->json($user, 200);
     }
 
     #[
