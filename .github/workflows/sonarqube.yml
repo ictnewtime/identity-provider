@@ -38,3 +38,5 @@ jobs:
                 -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.repository }} \
                 -Dsonar.sources=. \
                 -Dsonar.host.url=$SONAR_HOST_URL \
+                -Dsonar.javascript.node.maxspace=2048 \
+                -X
