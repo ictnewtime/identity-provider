@@ -24,8 +24,8 @@ jobs:
 
           - name: SonarQube Scan
             env:
-              SONAR_TOKEN: ${{ inputs.SONAR_TOKEN }}
-              SONAR_HOST_URL: ${{ inputs.SONAR_HOST_URL }}
+              SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+              SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
             run: |
               # 1. Scarica lo scanner manualmente nella cartella corrente
               curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
