@@ -1,0 +1,33 @@
+name: Run Sonarqube
+run-name: Sonarqube scan for ${{ gitea.actor }}
+
+#on:
+#    push:#
+#       branches:
+#            - staging
+on:
+  workflow_dispatch
+jobs:
+    sonar-scan:
+        runs-on: self-hosted
+        environment: main
+        container:
+            image: dockerhub.newtimegroup.it/ci-runner:v1
+            credentials:
+                username: ${{ secrets.REGISTRY_USER }}
+                password: ${{ secrets.REGISTRY_PASS }}
+        steps:
+          - name: Checkout Code
+            uses: actions/checkout@v3
+            with:
+              fetch-depth: 0
+          - name: SonarQube Scan
+            id: sonar
+            uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/sonarqube@master
+            env:
+              SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
+              SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+            with:
+              args: >
+                -Dsonar.projectKey=${{ gitea.repository_owner }}_${{ gitea.repository }}
+                -Dsonar.sources=.
