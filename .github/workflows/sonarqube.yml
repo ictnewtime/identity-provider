@@ -24,7 +24,7 @@ jobs:
 
           - name: SonarQube Scan
             env:
-              SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+              SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
               SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
             run: |
               # 1. Scarica lo scanner manualmente nella cartella corrente
