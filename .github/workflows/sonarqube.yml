@@ -40,7 +40,7 @@ jobs:
                   -Dsonar.projectKey="$PROJ_KEY" \
                   -Dsonar.projectName="${{ gitea.repository }}" \
                   -Dsonar.sources=. \
-                  -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
+                  -Dsonar.host.url="${{ vars.SONAR_HOST_URL }}" \
                   -Dsonar.token="${{ secrets.SONARQUBE_TOKEN }}" \
                   -Dsonar.working.directory="./.scannerwork" \
                   -Dsonar.userHome="./.sonar" \
