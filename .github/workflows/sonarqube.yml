@@ -28,6 +28,7 @@ jobs:
             with:
               sonar_token: ${{ secrets.SONARQUBE_TOKEN }}
               sonar_host_url: ${{ vars.SONAR_HOST_URL }}
+              webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
               args: >
                 -Dsonar.projectKey=${{ gitea.repository_owner }}_${{ gitea.repository }}
                 -Dsonar.sources=.
