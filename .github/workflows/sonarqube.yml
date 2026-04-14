@@ -2,8 +2,8 @@ name: Run Sonarqube
 run-name: Sonarqube scan for ${{ gitea.actor }}
 
 #on:
-#    push:#
-#       branches:
+#    push:
+#        branches:
 #            - staging
 on:
   workflow_dispatch
@@ -23,11 +23,10 @@ jobs:
               fetch-depth: 0
           - name: SonarQube Scan
             id: sonar
-            uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/sonarqube@main
-            env:
-              SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
-              SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+            uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/sonarqube@master
             with:
+              sonar_token: ${{ secrets.SONARQUBE_TOKEN }}
+              sonar_host_url: ${{ vars.SONAR_HOST_URL }}
               args: >
                 -Dsonar.projectKey=${{ gitea.repository_owner }}_${{ gitea.repository }}
                 -Dsonar.sources=.
