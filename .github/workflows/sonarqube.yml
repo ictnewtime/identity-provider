@@ -23,7 +23,6 @@ jobs:
               fetch-depth: 0
 
           - name: SonarQube Scan
-            uses: https://github.com/sonarsource/sonarqube-scan-action@master
             env:
               SONAR_TOKEN: ${{ inputs.SONAR_TOKEN }}
               SONAR_HOST_URL: ${{ inputs.SONAR_HOST_URL }}
@@ -39,4 +38,3 @@ jobs:
                 -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.repository }} \
                 -Dsonar.sources=. \
                 -Dsonar.host.url=$SONAR_HOST_URL \
-                -Dsonar.login=$SONAR_TOKEN
