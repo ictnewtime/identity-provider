@@ -17,6 +17,12 @@ jobs:
                 username: ${{ secrets.REGISTRY_USER }}
                 password: ${{ secrets.REGISTRY_PASS }}
         steps:
+          - name: 🚀 Notifica Inizio
+            uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+            with:
+              webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+              event_type: "sonar_start"
+
           - name: Checkout Code
             uses: actions/checkout@v3
             with:
@@ -34,3 +40,10 @@ jobs:
                 -Dsonar.sources=.
                 -Dsonar.javascript.node.maxspace=2048
                 -X
+
+          - name: 🏁 Notifica Esito Finale
+            if: always()
+            uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+            with:
+              webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+              event_type: ${{ job.status == 'success' && 'sonar_success' || 'sonar_failure' }}
