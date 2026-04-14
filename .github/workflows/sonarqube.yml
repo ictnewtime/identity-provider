@@ -21,18 +21,22 @@ jobs:
             uses: actions/checkout@v3
             with:
               fetch-depth: 0
-          - name: Install dependencies
-            run: |
-              sudo apt-get update
-              sudo apt-get install -y unzip
+
           - name: SonarQube Scan
-            id: sonar
-            uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/sonarqube@main
-            with:
-              sonar_token: ${{ secrets.SONARQUBE_TOKEN }}
-              sonar_host_url: ${{ vars.SONAR_HOST_URL }}
-              args: >
-                -Dsonar.projectKey=${{ gitea.repository_owner }}_${{ gitea.repository }}
-                -Dsonar.sources=.
-                -Dsonar.javascript.node.maxspace=2048
-                -X
+            uses: https://github.com/sonarsource/sonarqube-scan-action@master
+            env:
+              SONAR_TOKEN: ${{ inputs.SONAR_TOKEN }}
+              SONAR_HOST_URL: ${{ inputs.SONAR_HOST_URL }}
+            run: |
+              # 1. Scarica lo scanner manualmente nella cartella corrente
+              curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+
+              # 2. Scompatta (usando l'unzip che abbiamo installato prima)
+              unzip -q sonar-scanner.zip
+
+              # 3. Esegui lo scanner puntando al binario appena scompattato
+              ./sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner \
+                -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.repository }} \
+                -Dsonar.sources=. \
+                -Dsonar.host.url=$SONAR_HOST_URL \
+                -Dsonar.login=$SONAR_TOKEN
