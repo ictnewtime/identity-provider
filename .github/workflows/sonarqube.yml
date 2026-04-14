@@ -23,7 +23,7 @@ jobs:
               fetch-depth: 0
           - name: SonarQube Scan
             id: sonar
-            uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/sonarqube@master
+            uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/sonarqube@main
             env:
               SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
               SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
