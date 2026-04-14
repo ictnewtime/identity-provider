@@ -25,9 +25,6 @@ jobs:
           - name: SonarQube Scan
             id: sonar
             uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/sonarqube@main
-            env:
-              SONAR_TOKEN: ${{ inputs.SONAR_TOKEN }}
-              SONAR_HOST_URL: ${{ inputs.SONAR_HOST_URL }}
             with:
               sonar_token: ${{ secrets.SONARQUBE_TOKEN }}
               sonar_host_url: ${{ vars.SONAR_HOST_URL }}
