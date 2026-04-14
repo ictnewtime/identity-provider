@@ -27,21 +27,21 @@ jobs:
               SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
               SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
             run: |
-              # 1. Download scanner
-              curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-              unzip -o sonar-scanner.zip
+                # 1. Download scanner
+                curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+                unzip -o sonar-scanner.zip
 
-              # 2. Setup variabili pulite per evitare errori di validazione
-              # Rimuoviamo caratteri strani dal nome del repo se presenti
-              PROJ_KEY=$(echo "${{ gitea.repository_owner }}_${{ gitea.repository }}" | sed 's/[^a-zA-Z0-9_.:-]//g')
+                # 2. Setup variabili pulite per evitare errori di validazione
+                # Rimuoviamo caratteri strani dal nome del repo se presenti
+                PROJ_KEY=$(echo "${{ gitea.repository_owner }}_${{ gitea.repository }}" | sed 's/[^a-zA-Z0-9_.:-]//g')
 
-              # 3. Esecuzione con puntamento esplicito alla cartella temporanea locale
-              ./sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner \
-                -Dsonar.projectKey="$PROJ_KEY" \
-                -Dsonar.projectName="${{ gitea.repository }}" \
-                -Dsonar.sources=. \
-                -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
-                -Dsonar.token="${{ secrets.SONAR_TOKEN }}" \
-                -Dsonar.working.directory="./.scannerwork" \
-                -Dsonar.userHome="./.sonar" \
-                -X
+                # 3. Esecuzione con puntamento esplicito alla cartella temporanea locale
+                ./sonar-scanner-5.0.1.3006-linux/bin/sonar-scanner \
+                  -Dsonar.projectKey="$PROJ_KEY" \
+                  -Dsonar.projectName="${{ gitea.repository }}" \
+                  -Dsonar.sources=. \
+                  -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
+                  -Dsonar.token="${{ secrets.SONARQUBE_TOKEN }}" \
+                  -Dsonar.working.directory="./.scannerwork" \
+                  -Dsonar.userHome="./.sonar" \
+                  -X
