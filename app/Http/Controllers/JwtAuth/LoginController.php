@@ -3,143 +3,122 @@
 namespace App\Http\Controllers\JwtAuth;
 
 use App\Events\LoginEvent;
-use App\Events\LogoutEvent;
 use Illuminate\Http\Request;
 use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
-use App\Services\TokenGeneratorService;
-use Tymon\JWTAuth\Exceptions\JWTException;
-use Symfony\Component\HttpFoundation\Cookie;
+use App\Models\Provider;
+use App\Models\Session;
+use App\Services\SessionService;
+use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cookie as FacadeCookie;
-use OpenApi\Attributes as OA;
+use Illuminate\Support\Facades\Cookie;
+use Inertia\Inertia;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class LoginController extends Controller
 {
     /**
      * Shows the login form or redirect the user to the application if he is authenticated.
      *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\Http\RedirectResponse|\Illuminate\View\View
+     * @return \Inertia\Response|\Illuminate\Http\RedirectResponse
      */
     public function showLoginForm()
     {
-        return view("auth.login");
+        // 2. Sostituisci view() con Inertia::render()
+        return Inertia::render("Auth/Login", [
+            // Qui in futuro potrai passare dati alla pagina Vue, ad esempio:
+            // 'status' => session('status'),
+        ]);
     }
 
-    /**
-     * Shows page for authenticated user.
-     *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
-     */
-    public function authenticated()
-    {
-        $user = Auth::user();
-        // TODO: verificare che il ruolo dia all' interno della applicazione,
-        // tramite controllo del provider
-        $is_role_admin = $user->hasRole(config("role.admin"));
-        if ($is_role_admin) {
-            return redirect()->route("admin.board");
-        }
-        return view("auth.logged");
-    }
-
-    #[
-        OA\Post(
-            path: "/v2/login",
-            summary: "generate a JWT token",
-            description: "Use to generate access JWT token for user auth",
-            operationId: "v2/login",
-            tags: ["JWT Auth"],
-            requestBody: new OA\RequestBody(
-                required: true,
-                content: new OA\MediaType(
-                    mediaType: "application/x-www-form-urlencoded",
-                    schema: new OA\Schema(
-                        type: "object",
-                        properties: [
-                            new OA\Property(property: "username", description: "Username", type: "string"),
-                            new OA\Property(
-                                property: "password",
-                                description: "User password",
-                                type: "string",
-                                format: "password",
-                            ),
-                        ],
-                    ),
-                ),
-            ),
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 404,
-                    description: "Authentication error",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
     public function login(LoginRequest $request)
     {
         $credentials = $request->only("username", "password");
-        // $token = $this->retrieveToken($credentials);
-        // $credentials["email"] = $credentials["username"];
-        // unset($credentials["username"]);
 
-        // auth()->attempt($credentials);
-        Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]]);
+        if (!Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]])) {
+            Log::warning("Check Credenziali. Login fallito per utente " . $credentials["username"]);
+            return back()->withErrors(["login" => __("auth.err-login")]);
+        }
 
         $user = Auth::user();
-        // if (!$user->is_verified) {
-        if (!$user) {
-            return $this->createResponse(403, __("auth.err-verification"));
-        }
-
-        $tokenService = new TokenGeneratorService();
-        $redirectUrl = $request->input("redirect");
-        try {
-            $token = $tokenService->generate($user, $redirectUrl);
-
-            if (!$token) {
-                // Caso: Credenziali OK, ma utente non autorizzato per quel Provider specifico
-                return $this->createResponse(403, "Utente non abilitato per il servizio richiesto.");
-            }
-        } catch (\Exception $e) {
-            Log::error($e->getMessage());
-            return $this->createResponse(500, __("auth.err-jwt"));
-        }
-        $userResource = UserResource::make($user);
         event(new LoginEvent($user, $request->ip()));
 
-        return response()
-            ->json([
-                "user" => $userResource,
-                "token" => $token,
-            ])
-            ->withCookie(new Cookie("token", $token, 0, "/", env("TOKEN_COOKIE_DOMAIN")));
+        $provider_id = $request->input("provider_id");
+
+        // 1. BLOCCO SCADENZA PASSWORD (PRIMA DI OGNI TOKEN)
+        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
+            Log::warning("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
+
+            // Salviamo in sessione dove voleva andare, così non perde la destinazione
+            if ($provider_id) {
+                $request->session()->put("pending_sso_provider_id", $provider_id);
+                $request->session()->put("pending_sso_redirect_to", $request->input("redirect_to"));
+            }
+
+            return redirect()->route("password.expired");
+        }
+
+        // 2A. BIVIO SSO: L'utente va verso un'app esterna (es. App2)
+        if ($provider_id) {
+            $ssoData = TokenProviderService::respondWithSsoRedirect(
+                $user,
+                $provider_id,
+                $request,
+                $request->input("redirect_to"),
+            );
+
+            if (!$ssoData) {
+                // UTENTE ESISTE MA NON È AUTORIZZATO PER QUESTA APP!
+                // Lo slogghiamo per non lasciargli sessioni pendenti e lo mandiamo alla pagina di blocco
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return redirect()->route("sso.unauthorized");
+            }
+
+            Cookie::queue($ssoData["cookie"]);
+            return Inertia::location($ssoData["url"]);
+        }
+
+        // 2B. BIVIO LOCALE: L'utente accede all'IdP (Pannello Admin)
+        if ($user->isAdmin()) {
+            $request->session()->regenerate();
+
+            $idpProviderId = config("idp.provider_id");
+            $tokenService = new TokenProviderService();
+            $sessionService = new SessionService();
+
+            $token = $sessionService->getValidProviderToken(
+                $user,
+                $idpProviderId,
+                $request->ip(),
+                $request->userAgent(),
+                $tokenService,
+            );
+
+            if (!$token) {
+                // Ha il ruolo Admin, ma per qualche motivo la generazione del token IdP è fallita
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return redirect()->route("sso.unauthorized");
+            }
+
+            Cookie::queue($tokenService->cookieCretion($token, $idpProviderId));
+            return redirect()->route("admin-home");
+        }
+
+        // 2C. UTENTE SENZA RUOLI O NON ADMIN CHE CERCA DI ACCEDERE DIRETTAMENTE ALL'IDP
+        // Distruggiamo tutto. Non merita nessun Grant Token.
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route("sso.unauthorized");
     }
 
-    #[
-        OA\Get(
-            path: "/v1/user",
-            summary: "retrieve user info in json format",
-            description: "Use to retrieve user info with roles",
-            operationId: "userByToken",
-            tags: ["JWT Auth"],
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
     public function userByToken()
     {
         $userResource = UserResource::make(Auth::user());
@@ -147,62 +126,86 @@ class LoginController extends Controller
         return response()->json($userResource);
     }
 
-    #[
-        OA\Get(
-            path: "/v1/logout",
-            summary: "Logout the user and delete his session",
-            description: "Logout the user and delete his session",
-            operationId: "logout",
-            tags: ["JWT Auth"],
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
-    public function logout(Request $request)
+    public function logout_web(Request $request)
     {
-        $user = Auth::user();
-        event(new LogoutEvent($user));
-        // auth()->logout(true);
-        Auth::logout();
-
-        $cookie = FacadeCookie::forget("token", "/", env("TOKEN_COOKIE_DOMAIN"));
-
-        if ($request->ajax() || $request->wantsJson()) {
-            return $this->createResponse(200, null, $cookie);
-        }
-
-        if ($request->input("redirect")) {
-            return redirect(
-                route("loginForm", [
-                    "redirect" => $request->input("redirect"),
-                ]),
-            )->withCookie($cookie);
-        }
-
-        return redirect("loginForm")->withCookie($cookie);
+        return $this->performLogout($request, route("loginForm"));
     }
 
-    private function createResponse(int $status = 200, string $message = null, $cookie = null)
+    /**
+     * Logout SSO (Il browser atterra qui dopo essere uscito da App2)
+     */
+    public function logout_sso(Request $request)
     {
-        if (empty($message)) {
-            $response = response()->json([], $status);
+        // Se App2 ci passa un URL di ritorno, lo usiamo, altrimenti andiamo al login
+        $redirectTo = $request->query("redirect_to", route("loginForm"));
+
+        return $this->performLogout($request, $redirectTo);
+    }
+
+    /**
+     * LOGICA CENTRALIZZATA: Pialla Database, Sessione Laravel e Cookie
+     */
+    private function performLogout(Request $request, $redirectUrl)
+    {
+        $idpProviderId = config("idp.provider_id");
+        $dynamicCookieName = "idp_token_" . $idpProviderId;
+        $provider = Provider::find(config("idp.provider_id"));
+        $cookieDomain = $provider->domain; // es. .miosito.it (o null per localhost)
+
+        // 1. RECUPERO USER ID (Da sessione o decodificando il cookie)
+        $userId = Auth::id();
+
+        if (!$userId && $request->cookie($dynamicCookieName)) {
+            $tokenString = $request->cookie($dynamicCookieName);
+            $parts = explode(".", $tokenString);
+            if (count($parts) === 3) {
+                $payload = json_decode(base64_decode(strtr($parts[1], "-_", "+/")), true);
+                $userId = $payload["sub"] ?? null;
+            }
         }
 
-        $response = response()->json(
-            [
-                "message" => $message,
-            ],
-            $status,
-        );
+        // 2. PULIZIA DATABASE (Single Logout Assoluto)
+        if ($userId) {
+            // Sostituisci il Bulk Delete con il fetch + delete sui singoli modelli
+            $sessions = Session::where("user_id", $userId)->get();
 
-        if ($cookie) {
-            return $response->withCookie($cookie);
+            foreach ($sessions as $session) {
+                $session->delete();
+            }
         }
+
+        // 3. PULIZIA SESSIONE WEB LARAVEL
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // 4. PREPARAZIONE DISTRUZIONE COOKIE (Con e senza dominio per sicurezza)
+        $cookiesToForget = [
+            Cookie::forget($dynamicCookieName, "/", $cookieDomain),
+            Cookie::forget("token", "/", $cookieDomain),
+            Cookie::forget("laravel_session", "/", $cookieDomain),
+            // Fallback per localhost
+            Cookie::forget($dynamicCookieName),
+            Cookie::forget("token"),
+        ];
+
+        // 5. RISPOSTA AL CLIENT
+        if (($request->ajax() || $request->wantsJson()) && !$request->header("X-Inertia")) {
+            $response = response()->json(["message" => "Logged out successfully"], 200);
+        } else {
+            $response = redirect()->away($redirectUrl);
+
+            // Se andiamo al login, aggiungiamo il messaggio di successo
+            if (str_contains($redirectUrl, route("loginForm"))) {
+                $response->withErrors(["login" => "Disconnessione completata con successo."]);
+            }
+        }
+
+        // Attacchiamo tutti i cookie "tossici" da distruggere alla risposta
+        foreach ($cookiesToForget as $cookie) {
+            $response->withCookie($cookie);
+        }
+
         return $response;
     }
 }

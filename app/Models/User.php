@@ -4,15 +4,20 @@ namespace App\Models;
 
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Tymon\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
-use App\Models\UserRole;
+use App\Models\Session;
+use App\Models\ProviderUserRole;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Log;
+use App\Traits\CustomAuditable;
 
 //, OAuthenticatable
-class User extends Authenticatable implements JWTSubject
+// implements JWTSubject
+class User extends Authenticatable
 {
+    use SoftDeletes;
+    use CustomAuditable;
     //HasApiTokens,
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -23,7 +28,16 @@ class User extends Authenticatable implements JWTSubject
      *
      * @var array
      */
-    protected $fillable = ["username", "password", "email", "name", "surname", "is_verified"];
+    protected $fillable = [
+        "username",
+        "password",
+        "email",
+        "name",
+        "surname",
+        "is_verified",
+        "enabled",
+        "password_expires_at",
+    ];
 
     /**
      * The attributes that should be hidden for arrays.
@@ -31,6 +45,11 @@ class User extends Authenticatable implements JWTSubject
      * @var array
      */
     protected $hidden = ["password", "remember_token"];
+
+    /**
+     * The attributes that should be hiddend for auditing.
+     */
+    protected $auditExclude = ["password"];
 
     public function roles()
     {
@@ -42,26 +61,6 @@ class User extends Authenticatable implements JWTSubject
             ->get();
 
         return $provider_user_roles;
-    }
-
-    /**
-     * Get the identifier that will be stored in the subject claim of the JWT.
-     *
-     * @return mixed
-     */
-    public function getJWTIdentifier()
-    {
-        return $this->getKey();
-    }
-
-    /**
-     * Return a key value array, containing any custom claims to be added to the JWT.
-     *
-     * @return array
-     */
-    public function getJWTCustomClaims()
-    {
-        return [];
     }
 
     /**
@@ -88,5 +87,79 @@ class User extends Authenticatable implements JWTSubject
             }
         }
         return false;
+    }
+
+    /**
+     * Restituisce la Query Builder per i ruoli di un determinato provider
+     */
+    public function providerRoles($providerId)
+    {
+        return ProviderUserRole::where("user_id", $this->id)->where("provider_id", $providerId);
+    }
+
+    /**
+     * Semplice check: l'utente ha almeno un ruolo per questo provider?
+     */
+    public function hasAccessToProvider($providerId): bool
+    {
+        // Logghiamo lo stato esatto della colonna enabled
+        $enabledStatus = isset($this->enabled) ? ($this->enabled ? "true" : "false") : "null";
+
+        if (isset($this->enabled) && !$this->enabled) {
+            Log::warning("Bloccato: L'utente è disabilitato (enabled = false).");
+            return false;
+        }
+
+        // Facciamo la query e logghiamo esattamente cosa trova nel database
+        $query = $this->providerRoles($providerId);
+        $rolesCount = $query->count();
+
+        if ($rolesCount === 0) {
+            // Se è 0, stampiamo anche la query SQL generata per capire se c'è qualche anomalia
+            Log::warning("Bloccato: Nessun ruolo trovato. Query eseguita: " . $query->toSql());
+        }
+
+        return $rolesCount > 0;
+    }
+
+    /**
+     * Verifica se l'utente è un Amministratore dell'IdP.
+     * * @return bool
+     */
+    public function isAdmin(): bool
+    {
+        // 1. Se l'utente è disabilitato globalmente, non può essere admin
+        if (isset($this->enabled) && !$this->enabled) {
+            return false;
+        }
+
+        // 2. Recuperiamo gli ID dalle configurazioni
+        $idpProviderId = config("idp.provider_id");
+        $adminRoleId = config("role.admin_id");
+
+        // 3. Verifica veloce e diretta a database (prestazioni massime)
+        return ProviderUserRole::where("user_id", $this->id)
+            ->where("provider_id", $idpProviderId)
+            ->where("role_id", $adminRoleId)
+            ->exists();
+    }
+
+    /**
+     * Bootstrap the model and its traits.
+     */
+    protected static function booted(): void
+    {
+        // 1. Intercettiamo l'aggiornamento dell'utente
+        static::updated(function ($user) {
+            if ($user->wasChanged("enabled,password")) {
+                Session::where("user_id", $user->id)->delete();
+            }
+        });
+
+        // 2. Intercettiamo l'eliminazione dell'utente
+        static::deleting(function ($user) {
+            // Prima che l'utente venga cancellato dal DB, radiamo al suolo le sue sessioni
+            Session::where("user_id", $user->id)->delete();
+        });
     }
 }

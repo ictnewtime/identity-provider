@@ -3,8 +3,11 @@ docker compose up --build
 ```php
 php artisan key:generate
 chown -R www-data:www-data storage
+composer install
 php artisan migrate
-php artisan db:seed
+// php artisan db:seed
+php artisan db:seed --class=Database\\Seeders\\RolesSeeder
+php artisan db:seed --class=Database\\Seeders\\UsersSeeder
 
 # per ri-gestire in develop le dipendenze (composer/vendor o node_mudules)
 // composer install
@@ -18,6 +21,8 @@ php artisan db:seed
 
 // per generare le chiavi di passport
 php artisan passport:install --force
+// per generare un nuovo utente passport
+php artisan passport:client --personal
 # per leggere le chaivi di passport
 chown -R www-data:www-data storage
 php artisan storage:link
@@ -30,7 +35,9 @@ php artisan config:cache
 php artisan route:cache
 php artisan config:clear
 php artisan cache:clear
+php artisan route:clear
 // php artisan config:show app
+composer dump-autoload
 php artisan optimize:clear
 ```
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ProviderUserRoleRequest;
 use App\Models\ProviderUserRole;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use OpenApi\Attributes as OA;
 
 class ProviderUserRoleController extends Controller
@@ -29,9 +30,33 @@ class ProviderUserRoleController extends Controller
             ],
         ),
     ]
-    public function all()
+    public function all(Request $request)
     {
-        return ProviderUserRole::all();
+        $show_deleted = $request->boolean("show_deleted");
+        $query = ProviderUserRole::with(["user:id,username", "provider:id,name", "role:id,name"]);
+
+        if ($request->filled("q")) {
+            $searchTerm = "%" . $request->q . "%";
+
+            $query
+                ->whereHas("user", function ($q) use ($searchTerm) {
+                    $q->where("username", "like", $searchTerm);
+                })
+                ->orWhereHas("provider", function ($q) use ($searchTerm) {
+                    $q->where("domain", "like", $searchTerm);
+                })
+                ->orWhereHas("provider", function ($q) use ($searchTerm) {
+                    $q->where("name", "like", $searchTerm);
+                })
+                ->orWhereHas("role", function ($q) use ($searchTerm) {
+                    $q->where("name", "like", $searchTerm);
+                });
+        }
+        if ($show_deleted) {
+            $query->onlyTrashed();
+        }
+        $perPage = $request->input("per_page", 10);
+        return $query->paginate($perPage);
     }
 
     #[
@@ -81,7 +106,7 @@ class ProviderUserRoleController extends Controller
 
         $providerUserRole = ProviderUserRole::create($data);
         if (empty($providerUserRole)) {
-            return response()->json(["message" => "Error creating the relation between provider user role"], 500);
+            return response()->json(["message" => __("admin.provider_user_roles.errors.creation")], 500);
         }
 
         return response()->json(["providerUserRole" => $providerUserRole], 201);
@@ -122,7 +147,6 @@ class ProviderUserRoleController extends Controller
         return response()->json(["providerUserRole" => $providerUserRole], 200);
     }
 
-    // update
     #[
         OA\Put(
             path: "/api/v1/provider-user-roles/{id}",
@@ -236,6 +260,189 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => "Provider user role deleted"], 204);
     }
 
+    #[
+        OA\Delete(path: "/api/v1/provider-user-roles/bulk-delete", summary: "Delete provider user roles by ids"),
+        OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: "application/x-www-form-urlencoded",
+                schema: new OA\Schema(
+                    type: "object",
+                    properties: [new OA\Property(property: "ids", type: "array", items: new OA\Items(type: "integer"))],
+                ),
+            ),
+        ),
+        OA\Response(
+            response: 204,
+            description: "Operation successful",
+            content: new OA\MediaType(mediaType: "application/json"),
+        ),
+        OA\Response(response: 404, description: "Not found", content: new OA\MediaType(mediaType: "application/json")),
+        OA\Response(
+            response: 422,
+            description: "Unprocessable Entity",
+            content: new OA\MediaType(mediaType: "application/json"),
+        ),
+        OA\Response(
+            response: 500,
+            description: "Internal Server Error",
+            content: new OA\MediaType(mediaType: "application/json"),
+        ),
+    ]
+    public function bulk_delete(Request $request)
+    {
+        // 1. Validiamo che 'ids' sia presente, sia un array, e contenga numeri
+        $request->validate([
+            "ids" => "required|array",
+            "ids.*" => "integer|exists:provider_user_roles,id",
+        ]);
+
+        // 2. Cancellazione massiva con un'unica query
+        try {
+            $rolesToDelete = ProviderUserRole::whereIn("id", $request->ids)->get();
+            foreach ($rolesToDelete as $role) {
+                $role->delete();
+            }
+        } catch (\Exception $e) {
+            return response()->json(["message" => __("provider_user_roles.bulk_delete_error")], 500);
+        }
+
+        return response()->json(["message" => __("provider_user_roles.bulk_delete_success")], 204);
+    }
+
+    #[
+        OA\Patch(path: "/api/v1/provider-user-roles/{id}/restore", summary: "Restore provider user role by id"),
+        OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: "application/x-www-form-urlencoded",
+                schema: new OA\Schema(
+                    type: "object",
+                    properties: [new OA\Property(property: "id", type: "integer", example: "1")],
+                ),
+            ),
+        ),
+        OA\Response(
+            response: 200,
+            description: "Operation successful",
+            content: new OA\MediaType(mediaType: "application/json"),
+        ),
+        OA\Response(
+            response: 422,
+            description: "Unprocessable Entity",
+            content: new OA\MediaType(mediaType: "application/json"),
+        ),
+        OA\Response(
+            response: 500,
+            description: "Internal Server Error",
+            content: new OA\MediaType(mediaType: "application/json"),
+        ),
+    ]
+    public function restore(Request $request)
+    {
+        $providerUserRole = ProviderUserRole::withTrashed()->find($request->id);
+        if (empty($providerUserRole)) {
+            return response()->json(["message" => __("provider_user_roles.not_found")], 404);
+        }
+        $providerUserRoleActive = ProviderUserRole::where("provider_id", $providerUserRole->provider_id)
+            ->where("user_id", $providerUserRole->user_id)
+            ->where("role_id", $providerUserRole->role_id)
+            ->first();
+        if (!empty($providerUserRoleActive)) {
+            return response()->json(["message" => __("provider_user_roles.conflict_unique")], 422);
+        }
+        $providerUserRole->restore();
+        return response()->json(["message" => __("provider_user_roles.restore_success")], 200);
+    }
+
+    #[
+        OA\Patch(path: "/api/v1/provider-user-roles/bulk-restore", summary: "Restore provider user role by id"),
+        OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: "application/x-www-form-urlencoded",
+                schema: new OA\Schema(
+                    type: "object",
+                    properties: [new OA\Property(property: "ids", type: "array", items: new OA\Items(type: "integer"))],
+                ),
+                example: [
+                    "ids" => [1, 2, 3],
+                ],
+            ),
+        ),
+        OA\Response(
+            response: 200,
+            description: "Operation successful",
+            content: new OA\MediaType(mediaType: "application/json"),
+        ),
+        OA\Response(
+            response: 422,
+            description: "Unprocessable Entity",
+            content: new OA\MediaType(mediaType: "application/json"),
+        ),
+        OA\Response(
+            response: 500,
+            description: "Internal Server Error",
+            content: new OA\MediaType(mediaType: "application/json"),
+        ),
+    ]
+    public function bulk_restore(Request $request)
+    {
+        // 1. Validazione
+        $validator = Validator::make($request->all(), [
+            "ids" => "required|array",
+            "ids.*" => "integer",
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(
+                [
+                    "message" => __("provider_user_roles.bulk_restore_error"),
+                    "errors" => $validator->errors(),
+                ],
+                422,
+            );
+        }
+
+        // 2. Recuperiamo i record che l'utente vuole ripristinare
+        $rolesToRestore = ProviderUserRole::withTrashed()->whereIn("id", $request->ids)->get();
+
+        if ($rolesToRestore->isEmpty()) {
+            return response()->json(["message" => __("provider_user_roles.not_found_multiple")], 404);
+        }
+
+        // 3. Controllo dei duplicati attivi con un'unica query efficiente
+        // Inizializziamo una query sui record ATTIVI (deleted_at IS NULL è automatico)
+        $duplicatesQuery = ProviderUserRole::query();
+
+        $duplicatesQuery->where(function ($query) use ($rolesToRestore) {
+            foreach ($rolesToRestore as $role) {
+                // Costruiamo una clausola (A AND B AND C) OR (D AND E AND F) ...
+                $query->orWhere(function ($q) use ($role) {
+                    $q->where("provider_id", $role->provider_id)
+                        ->where("user_id", $role->user_id)
+                        ->where("role_id", $role->role_id);
+                });
+            }
+        });
+
+        // Se la query trova anche solo un record, significa che c'è un conflitto
+        if ($duplicatesQuery->exists()) {
+            return response()->json(["message" => __("provider_user_roles.conflict_unique_multiple")], 422);
+        }
+
+        // 4. Se tutto è pulito, eseguiamo il ripristino
+        try {
+            foreach ($rolesToRestore as $role) {
+                $role->restore();
+            }
+        } catch (\Exception $e) {
+            return response()->json(["message" => $e->getMessage()], 500);
+        }
+
+        return response()->json(["message" => __("provider_user_roles.bulk_restore_success")], 200);
+    }
+
     public function hasRelation(Request $request)
     {
         // checkprovider_id or user_id or role_id possono essere null
@@ -253,7 +460,6 @@ class ProviderUserRoleController extends Controller
             $providerUserRole = ProviderUserRole::where("provider_id", $provider_id)
                 ->where("user_id", $user_id)
                 ->where("role_id", $role_id)
-                // get array
                 ->get();
 
             return response()->json(["data" => $providerUserRole], 200);

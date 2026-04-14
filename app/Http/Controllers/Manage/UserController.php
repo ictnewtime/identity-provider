@@ -2,48 +2,83 @@
 
 namespace App\Http\Controllers\Manage;
 
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use App\Http\Services\Mailer;
+// use App\Http\Services\Mailer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
-use App\Repositories\RepositoryInterface;
-use Illuminate\Support\Facades\Validator;
-use App\Repositories\UserRepositoryInterface;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Hash;
+// use App\Repositories\RepositoryInterface;
+// use App\Repositories\UserRepositoryInterface;
 use OpenApi\Attributes as OA;
 
 class UserController extends Controller
 {
-    protected $userRepository;
+    // protected $userRepository;
     protected $verificationTokenRepository;
-    protected $mailerService;
+    // protected $mailerService;
 
-    public function __construct(
-        UserRepositoryInterface $userRepository,
-        RepositoryInterface $verificationToken,
-        Mailer $mailerService,
-    ) {
-        $this->userRepository = $userRepository;
-        $this->verificationTokenRepository = $verificationToken;
-        $this->mailerService = $mailerService;
+    public function __construct()
+    {
+        // Mailer $mailerService,
+        // $this->userRepository = $userRepository;
+        // $this->verificationTokenRepository = $verificationToken;
+        // $this->mailerService = $mailerService;
     }
+    // UserRepositoryInterface $userRepository,
+    // RepositoryInterface $verificationToken,
 
     #[
         OA\Get(
             path: "/api/v1/users",
-            summary: "get all users",
-            description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
+            summary: "Get all users",
+            description: "Get all users with pagination. __*Security: Richiede token M2M Passport*__",
             operationId: "User.all",
-            tags: ["User management"],
+            tags: ["Users"],
             security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    name: "q",
+                    in: "query",
+                    required: false,
+                    description: "Termine di ricerca (nome o email)",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "sortField",
+                    in: "query",
+                    required: false,
+                    description: "Campo per ordinamento",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "sortOrder",
+                    in: "query",
+                    required: false,
+                    description: "Direzione (1 asc, -1 desc)",
+                    schema: new OA\Schema(type: "integer"),
+                ),
+                new OA\Parameter(
+                    name: "per_page",
+                    in: "query",
+                    required: false,
+                    description: "Elementi per pagina",
+                    schema: new OA\Schema(type: "integer", default: 10),
+                ),
+            ],
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Returns all users",
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 401,
+                    description: "Unauthorized",
                     content: new OA\MediaType(mediaType: "application/json"),
                 ),
             ],
@@ -51,25 +86,30 @@ class UserController extends Controller
     ]
     public function all(Request $request)
     {
-        $query = User::query();
+        $user_select_columns = ["id", "username", "email", "enabled"];
+        $show_deleted = $request->boolean("show_deleted");
+        if ($show_deleted) {
+            $user_select_columns[] = "deleted_at";
+        }
+        $query = User::select($user_select_columns);
 
-        // 1. Ricerca (Filter)
         if ($request->filled("q")) {
-            $query->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
+            $query->where(function ($q) use ($request) {
+                $q->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
+            });
         }
 
-        // 2. Ordinamento (OrderBy)
-        // PrimeVue invia sortField (stringa) e sortOrder (1 per ASC, -1 per DESC)
         if ($request->filled("sortField")) {
             $field = $request->sortField;
             $direction = $request->sortOrder == 1 ? "asc" : "desc";
             $query->orderBy($field, $direction);
         } else {
-            $query->orderBy("created_at", "desc");
+            $query->orderBy("created_at", "asc");
         }
-
-        // 3. Paginazione
-        $perPage = $request->get("per_page", 10);
+        if ($show_deleted) {
+            $query->onlyTrashed();
+        }
+        $perPage = $request->input("per_page", 10);
         $users = $query->paginate($perPage);
 
         return response()->json($users);
@@ -81,7 +121,7 @@ class UserController extends Controller
             summary: "create a new user",
             description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
             operationId: "User.create",
-            tags: ["User management"],
+            tags: ["Users"],
             security: [["passport" => []]],
             requestBody: new OA\RequestBody(
                 required: true,
@@ -126,6 +166,18 @@ class UserController extends Controller
                                 type: "string",
                                 example: "rossi",
                             ),
+                            new OA\Property(
+                                property: "enabled",
+                                description: "User enabled",
+                                type: "boolean",
+                                example: true,
+                            ),
+                            new OA\Property(
+                                property: "password_expires_at",
+                                description: "User password expires at, format: Y-m-d H:i:s. If null, means the user is at his first login, so the password must be changed.",
+                                type: "string",
+                                format: "date-time",
+                            ),
                         ],
                     ),
                 ),
@@ -151,31 +203,27 @@ class UserController extends Controller
     ]
     public function create(UserRequest $request)
     {
-        $credentials = $request->only("username", "password", "password_confirmation", "email", "name", "surname");
+        $data = $request->only(["username", "password", "email", "name", "surname", "enabled", "password_expires_at"]);
 
-        DB::beginTransaction();
+        $data["password"] = Hash::make($data["password"]);
 
-        try {
-            // unset password_confirmation
-            unset($credentials["password_confirmation"]);
-            $user = $this->userRepository->create($credentials);
-            // TODO: in un secondo momento gestisco la verifica degli utenti
-            // $verificationToken = $this->verificationTokenRepository->create([
-            //     "token" => Str::random(60),
-            //     "user_id" => $user->id,
-            // ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::info($e);
-            return response()->json(["message" => "Error during saving user"], 500);
+        $data["enabled"] = $request->boolean("enabled", true);
+        $data["is_verified"] = true;
+
+        if (!empty($data["password_expires_at"])) {
+            $data["password_expires_at"] = Carbon::parse($data["password_expires_at"])
+                ->setTimezone(config("app.timezone"))
+                ->format("Y-m-d H:i:s");
         }
 
-        DB::commit();
+        try {
+            $user = User::create($data);
 
-        // $body = view("mail.complete-registration", ["token" => $verificationToken->token, "user" => $user])->render();
-        // $this->mailerService->dispatchEmail($body, [$user->email], "Completa la registrazione");
-
-        return response()->json(["user" => $user], 200);
+            return response()->json($user, 200);
+        } catch (\Exception $e) {
+            Log::error("Errore creazione utente: " . $e->getMessage());
+            return response()->json(["message" => $e->getMessage()], 500);
+        }
     }
 
     #[
@@ -183,8 +231,8 @@ class UserController extends Controller
             path: "/api/v1/users/{id}",
             summary: "Returns user by id",
             description: "Returns user details by id",
-            operationId: "find",
-            tags: ["User management"],
+            operationId: "User.find",
+            tags: ["Users"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
@@ -216,32 +264,20 @@ class UserController extends Controller
     ]
     public function find($id)
     {
-        try {
-            $user = $this->userRepository->find($id);
-        } catch (\Exception $e) {
-            return response()->json([
-                "message" => "Error during finding user",
-                "error" => [
-                    "code" => 500,
-                    "message" => $e->getMessage(),
-                ],
-            ]);
-        }
+        $user = User::find($id);
         if (empty($user)) {
-            return response()->json(["message" => "User not found"], 404);
+            return response()->json(["message" => __("user.error.not_found")], 404);
         }
-
         return response()->json($user);
     }
 
-    // user update
     #[
         OA\Put(
             path: "/api/v1/users/{id}",
             summary: "Update user by id",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
             operationId: "User.update",
-            tags: ["User management"],
+            tags: ["Users"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
@@ -295,6 +331,18 @@ class UserController extends Controller
                                 type: "string",
                                 example: "Rossi",
                             ),
+                            new OA\Property(
+                                property: "enabled",
+                                description: "User enabled",
+                                type: "boolean",
+                                example: true,
+                            ),
+                            new OA\Property(
+                                property: "password_expires_at",
+                                description: "User password expires at, format: Y-m-d H:i:s.",
+                                type: "string",
+                                format: "date-time",
+                            ),
                         ],
                     ),
                 ),
@@ -320,40 +368,59 @@ class UserController extends Controller
     ]
     public function update(UserRequest $request, $id)
     {
-        $credentials = $request->only("email", "username", "password", "name", "surname");
+        $user = User::find($id);
 
-        $user = $this->userRepository->find($id);
         if (empty($user)) {
-            return response()->json([], 404);
+            return response()->json(["message" => "User not found"], 404);
         }
+
+        // 1. Estrai i dati base
+        $data = $request->only("email", "username", "name", "surname", "password_expires_at");
+
+        // 2. Gestione Booleana (Risolve l'errore SQL)
+        if ($request->has("enabled")) {
+            $data["enabled"] = $request->boolean("enabled");
+        }
+
+        // 3. Gestione Data
+        if (array_key_exists("password_expires_at", $data)) {
+            $data["password_expires_at"] = $data["password_expires_at"]
+                ? Carbon::parse($data["password_expires_at"])
+                    ->setTimezone(config("app.timezone"))
+                    ->format("Y-m-d H:i:s")
+                : null;
+        }
+
+        // 4. Gestione Password
+        if ($request->filled("password")) {
+            $data["password"] = Hash::make($request->password);
+        }
+
         try {
-            $user->update($credentials);
+            $user->update($data);
+            return response()->json($user, 200);
         } catch (\Exception $e) {
-            // errore 500
-            return response()->json([
-                "message" => "Error during updating user",
-                "error" => [
-                    "code" => 500,
-                    "message" => $e->getMessage(),
+            Log::error("Errore aggiornamento utente ID $id: " . $e->getMessage());
+            return response()->json(
+                [
+                    "message" => "Error during updating user",
+                    "error" => [
+                        "code" => 500,
+                        "message" => $e->getMessage(),
+                    ],
                 ],
-            ]);
+                500,
+            );
         }
-        return response()->json(
-            [
-                "user" => UserResource::make($user),
-            ],
-            200,
-        );
     }
 
-    // user delete
     #[
         OA\Delete(
             path: "/api/v1/users/{id}",
             summary: "Delete user by id",
             description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
             operationId: "User.delete",
-            tags: ["User management"],
+            tags: ["Users"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
@@ -385,7 +452,7 @@ class UserController extends Controller
     ]
     public function delete($id)
     {
-        $user = $this->userRepository->find($id);
+        $user = User::find($id);
         if (empty($user)) {
             return response()->json([], 404);
         }
@@ -393,15 +460,61 @@ class UserController extends Controller
         try {
             $user->delete();
         } catch (\Exception $e) {
-            // errore 500
-            return response()->json([
-                "message" => "Error during deleting user",
-                "error" => [
-                    "code" => 500,
-                    "message" => $e->getMessage(),
-                ],
-            ]);
+            Log::error($e->getMessage());
+            return response()->json(["message" => __("user.delete_error")], 500);
         }
         return response()->json([], 204);
+    }
+
+    #[
+        OA\Patch(
+            path: "/api/v1/users/{id}/restore",
+            summary: "Restore user by id",
+            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            operationId: "User.restore",
+            tags: ["Users"],
+            security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    in: "path",
+                    required: true,
+                    description: "User id",
+                    name: "id",
+                    schema: new OA\Schema(type: "string"),
+                ),
+            ],
+            responses: [
+                new OA\Response(
+                    response: 200,
+                    description: "Operation successful",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 404,
+                    description: "Not found",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
+                    response: 500,
+                    description: "Server error",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+            ],
+        ),
+    ]
+    public function restore($id)
+    {
+        $user = User::withTrashed()->find($id);
+        if (empty($user)) {
+            return response()->json([], 404);
+        }
+
+        try {
+            $user->restore();
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(["message" => __("user.restore_error")], 500);
+        }
+        return response()->json($user, 200);
     }
 }

@@ -3,9 +3,8 @@
 namespace App\Services;
 
 use App\Models\ProviderUserRole;
-use App\Models\Provider;
 use App\Models\User;
-use App\Models\Role;
+use Illuminate\Support\Facades\Log;
 
 class ProviderUserRoleService
 {
@@ -32,10 +31,13 @@ class ProviderUserRoleService
         }
         // create object
         $tokenBody = (object) [
-            "id" => $user->id,
-            "email" => $user->email,
-            "name" => $user->name,
-            "surname" => $user->surname,
+            "user" => [
+                "id" => $user->id,
+                "email" => $user->email,
+                "name" => $user->name,
+                "surname" => $user->surname,
+                "username" => $user->username,
+            ],
             "roles" => $providerUserRoles,
         ];
         return $tokenBody;

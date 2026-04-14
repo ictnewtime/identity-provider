@@ -13,298 +13,6 @@
         "version": "1.0.0"
     },
     "paths": {
-        "/v1/client-roles": {
-            "get": {
-                "tags": [
-                    "ClientRoles"
-                ],
-                "summary": "list of  client roles",
-                "description": "Returns the entire list of client roles",
-                "operationId": "ClientRole.all",
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "web": []
-                    }
-                ]
-            }
-        },
-        "/v2/login": {
-            "post": {
-                "tags": [
-                    "JWT Auth"
-                ],
-                "summary": "generate a JWT token",
-                "description": "Use to generate access JWT token for user auth",
-                "operationId": "v2/login",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "properties": {
-                                    "username": {
-                                        "description": "Username",
-                                        "type": "string"
-                                    },
-                                    "password": {
-                                        "description": "User password",
-                                        "type": "string",
-                                        "format": "password"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "404": {
-                        "description": "Authentication error",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/user": {
-            "get": {
-                "tags": [
-                    "JWT Auth"
-                ],
-                "summary": "retrieve user info in json format",
-                "description": "Use to retrieve user info with roles",
-                "operationId": "userByToken",
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/logout": {
-            "get": {
-                "tags": [
-                    "JWT Auth"
-                ],
-                "summary": "Logout the user and delete his session",
-                "description": "Logout the user and delete his session",
-                "operationId": "logout",
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/register": {
-            "post": {
-                "tags": [
-                    "JWT Auth"
-                ],
-                "summary": "register new user",
-                "description": "Use to create new user",
-                "operationId": "register",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "properties": {
-                                    "email": {
-                                        "description": "User e-mail",
-                                        "type": "string"
-                                    },
-                                    "password": {
-                                        "description": "User password",
-                                        "type": "string"
-                                    },
-                                    "password_confirmation": {
-                                        "description": "Confirm password",
-                                        "type": "string"
-                                    },
-                                    "name": {
-                                        "description": "User name",
-                                        "type": "string"
-                                    },
-                                    "surname": {
-                                        "description": "User surname",
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/complete-registration": {
-            "post": {
-                "tags": [
-                    "JWT Auth"
-                ],
-                "summary": "Active user",
-                "description": "Activate user using token received in the email",
-                "operationId": "VerificationController.verify",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "properties": {
-                                    "token": {
-                                        "description": "Token",
-                                        "type": "string"
-                                    },
-                                    "password": {
-                                        "description": "User password",
-                                        "type": "string",
-                                        "format": "password"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "204": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "422": {
-                        "description": "Invalid data",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "500": {
-                        "description": "General error",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/oauth-clients": {
-            "get": {
-                "tags": [
-                    "OauthClients"
-                ],
-                "summary": "list of oauth clients",
-                "description": "Returns the entire list of oauth clients",
-                "operationId": "OauthClients.all",
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            },
-            "post": {
-                "tags": [
-                    "OauthClients"
-                ],
-                "summary": "Create a new oauth client",
-                "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
-                "operationId": "OauthClientsController.create",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "properties": {
-                                    "name": {
-                                        "description": "Client name",
-                                        "type": "string",
-                                        "example": "Client name"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": [
-                            "manage-idp"
-                        ]
-                    }
-                ]
-            }
-        },
         "/api/v1/providers": {
             "get": {
                 "tags": [
@@ -340,25 +48,42 @@
                         "application/x-www-form-urlencoded": {
                             "schema": {
                                 "required": [
+                                    "name",
+                                    "url",
                                     "domain",
                                     "logoutUrl",
                                     "secret_key"
                                 ],
                                 "properties": {
-                                    "domain": {
-                                        "description": "Provider domain",
+                                    "name": {
+                                        "description": "Name of the provider",
                                         "type": "string",
-                                        "example": "portale.newtimegroup.it"
+                                        "example": "Example"
+                                    },
+                                    "url": {
+                                        "description": "URL of the provider",
+                                        "type": "string",
+                                        "example": "https://example.com"
+                                    },
+                                    "domain": {
+                                        "description": "Domain of the provider",
+                                        "type": "string",
+                                        "example": "example.com"
+                                    },
+                                    "protocol": {
+                                        "description": "Protocol of the provider",
+                                        "type": "string",
+                                        "example": "http"
                                     },
                                     "logoutUrl": {
-                                        "description": "URL for logout",
+                                        "description": "Logout URL of the provider",
                                         "type": "string",
-                                        "example": "https://portale.newtimegroup.it/logout/"
+                                        "example": "https://example.com/logout"
                                     },
                                     "secret_key": {
-                                        "description": "secret key for JWT token",
+                                        "description": "Signature key of the provider",
                                         "type": "string",
-                                        "example": "4sc8s28v4d8s"
+                                        "example": "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6"
                                     }
                                 },
                                 "type": "object"
@@ -398,7 +123,7 @@
                 "tags": [
                     "Providers"
                 ],
-                "summary": "Returns provider by id",
+                "summary": "Get provider by id",
                 "description": "Returns provider details by id",
                 "operationId": "Provider.find",
                 "parameters": [
@@ -426,7 +151,7 @@
                         }
                     },
                     "500": {
-                        "description": "Server error",
+                        "description": "Internal server error",
                         "content": {
                             "application/json": {}
                         }
@@ -462,15 +187,31 @@
                         "application/x-www-form-urlencoded": {
                             "schema": {
                                 "required": [
+                                    "name",
+                                    "url",
                                     "domain",
-                                    "logoutUrl",
-                                    "secret_key"
+                                    "logoutUrl"
                                 ],
                                 "properties": {
+                                    "name": {
+                                        "description": "Provider name",
+                                        "type": "string",
+                                        "example": "Portale Newtimegroup"
+                                    },
+                                    "url": {
+                                        "description": "Provider url",
+                                        "type": "string",
+                                        "example": "https://portale.newtimegroup.it"
+                                    },
                                     "domain": {
                                         "description": "Provider domain",
                                         "type": "string",
                                         "example": "portale.newtimegroup.it"
+                                    },
+                                    "protocol": {
+                                        "description": "Provider protocol",
+                                        "type": "string",
+                                        "example": "http"
                                     },
                                     "logoutUrl": {
                                         "description": "URL for logout",
@@ -478,9 +219,9 @@
                                         "example": "https://portale.newtimegroup.it/logout/"
                                     },
                                     "secret_key": {
-                                        "description": "secret key for JWT token",
+                                        "description": "Signature key for JWT token. Must be 32 characters long. Leave empty to not change it.",
                                         "type": "string",
-                                        "example": "123"
+                                        "example": "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6"
                                     }
                                 },
                                 "type": "object"
@@ -1057,14 +798,59 @@
         "/api/v1/users": {
             "get": {
                 "tags": [
-                    "User management"
+                    "Users"
                 ],
-                "summary": "get all users",
-                "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
+                "summary": "Get all users",
+                "description": "Get all users with pagination. __*Security: Richiede token M2M Passport*__",
                 "operationId": "User.all",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Termine di ricerca (nome o email)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sortField",
+                        "in": "query",
+                        "description": "Campo per ordinamento",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sortOrder",
+                        "in": "query",
+                        "description": "Direzione (1 asc, -1 desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Elementi per pagina",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Returns all users",
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "content": {
                             "application/json": {}
                         }
@@ -1078,7 +864,7 @@
             },
             "post": {
                 "tags": [
-                    "User management"
+                    "Users"
                 ],
                 "summary": "create a new user",
                 "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
@@ -1118,6 +904,16 @@
                                         "description": "User surname",
                                         "type": "string",
                                         "example": "rossi"
+                                    },
+                                    "enabled": {
+                                        "description": "User enabled",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "password_expires_at": {
+                                        "description": "User password expires at, format: Y-m-d H:i:s. If null, means the user is at his first login, so the password must be changed.",
+                                        "type": "string",
+                                        "format": "date-time"
                                     }
                                 },
                                 "type": "object"
@@ -1155,11 +951,11 @@
         "/api/v1/users/{id}": {
             "get": {
                 "tags": [
-                    "User management"
+                    "Users"
                 ],
                 "summary": "Returns user by id",
                 "description": "Returns user details by id",
-                "operationId": "find",
+                "operationId": "User.find",
                 "parameters": [
                     {
                         "name": "id",
@@ -1199,7 +995,7 @@
             },
             "put": {
                 "tags": [
-                    "User management"
+                    "Users"
                 ],
                 "summary": "Update user by id",
                 "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
@@ -1250,6 +1046,16 @@
                                         "description": "User surname",
                                         "type": "string",
                                         "example": "Rossi"
+                                    },
+                                    "enabled": {
+                                        "description": "User enabled",
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "password_expires_at": {
+                                        "description": "User password expires at, format: Y-m-d H:i:s.",
+                                        "type": "string",
+                                        "format": "date-time"
                                     }
                                 },
                                 "type": "object"
@@ -1285,7 +1091,7 @@
             },
             "delete": {
                 "tags": [
-                    "User management"
+                    "Users"
                 ],
                 "summary": "Delete user by id",
                 "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
@@ -1327,190 +1133,6 @@
                     }
                 ]
             }
-        },
-        "/v1/users/{id}/user-roles": {
-            "get": {
-                "tags": [
-                    "User-Role"
-                ],
-                "summary": "Retrieve role of user",
-                "description": "Retrieve role of user",
-                "operationId": "UserRole.retrieve-user",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "User id",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "404": {
-                        "description": "User not found",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            },
-            "post": {
-                "tags": [
-                    "User-Role"
-                ],
-                "summary": "Assigne role to user",
-                "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
-                "operationId": "UserRole.create",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "User id",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "array",
-                                "items": {
-                                    "properties": {
-                                        "role_id": {
-                                            "description": "Id of role",
-                                            "type": "integer",
-                                            "example": 1
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "204": {
-                        "description": "Operation successfull, user already has role passed",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "422": {
-                        "description": "Validation error",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "403": {
-                        "description": "Invalid scope or client role, Forbidden",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": []
-                    }
-                ]
-            }
-        },
-        "/v1/user-role/{id}": {
-            "delete": {
-                "tags": [
-                    "User-Role"
-                ],
-                "summary": "Remove role to user by user-role-id",
-                "description": "__*Security:*__ __*can be used only by clients with 'manager' role*__",
-                "operationId": "UserRole.delete",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "User-role id",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "minimum": 1
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Operation successful",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "404": {
-                        "description": "Not found",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "500": {
-                        "description": "Error on saving",
-                        "content": {
-                            "application/json": {}
-                        }
-                    },
-                    "403": {
-                        "description": "Invalid scope or client role, Forbidden",
-                        "content": {
-                            "application/json": {}
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "passport": [
-                            "manage-idp"
-                        ]
-                    }
-                ]
-            }
         }
     },
     "components": {
@@ -1520,7 +1142,7 @@
                 "description": "OAuth2 Client Credentials Flow",
                 "flows": {
                     "clientCredentials": {
-                        "tokenUrl": "http://localhost:8000/oauth/token",
+                        "tokenUrl": "/oauth/token",
                         "scopes": {}
                     }
                 }
@@ -1533,18 +1155,6 @@
             "description": "Handle roles operations"
         },
         {
-            "name": "ClientRoles",
-            "description": "ClientRoles"
-        },
-        {
-            "name": "JWT Auth",
-            "description": "JWT Auth"
-        },
-        {
-            "name": "OauthClients",
-            "description": "OauthClients"
-        },
-        {
             "name": "Providers",
             "description": "Providers"
         },
@@ -1553,12 +1163,8 @@
             "description": "Provider User Roles"
         },
         {
-            "name": "User management",
-            "description": "User management"
-        },
-        {
-            "name": "User-Role",
-            "description": "User-Role"
+            "name": "Users",
+            "description": "Users"
         }
     ]
 }

@@ -2,75 +2,31 @@
 
 namespace App\Providers;
 
-use App\Repositories\RoleRepository;
-use App\Repositories\UserRepository;
-use App\Repositories\ClientRepository;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
-use App\Repositories\ProviderRepository;
-use App\Repositories\UserRoleRepository;
-use App\Repositories\RepositoryInterface;
-use App\Listeners\LogoutProvidersListener;
-use App\Repositories\OauthClientsRepository;
-use App\Repositories\UserRepositoryInterface;
-use App\Http\Controllers\Manage\RoleController;
-use App\Http\Controllers\Manage\UserController;
-use App\Repositories\ClientRepositoryInterface;
-use App\Repositories\VerificationTokenRepository;
-use App\Http\Controllers\Manage\ProviderController;
-use App\Http\Controllers\Manage\UserRoleController;
-use App\Http\Controllers\Manage\OauthClientsController;
-use App\Http\Controllers\JwtAuth\VerificationController;
+use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Bootstrap any application services.
-     *
-     * @return void
+     * Register any application services.
      */
-    public function boot(): void
+    public function register(): void
     {
         //
-        // Passport::loadKeysFrom(__DIR__.'/../secrets/oauth');
     }
 
     /**
-     * Register any application services.
-     *
-     * @return void
+     * Bootstrap any application services.
      */
-    public function register()
+    public function boot(): void
     {
-        $this->app->when(LogoutProvidersListener::class)
-            ->needs(RepositoryInterface::class)
-            ->give(ProviderRepository::class);
+        // Se non siamo in locale, forza tutti i link generati da Laravel ad usare HTTPS
+        if (config("app.env") !== "local") {
+            URL::forceScheme("https");
+        }
 
-        $this->app->bind(UserRepositoryInterface::class, UserRepository::class);
-
-        $this->app->when(ProviderController::class)
-            ->needs(RepositoryInterface::class)
-            ->give(ProviderRepository::class);
-
-        $this->app->when(RoleController::class)
-            ->needs(RepositoryInterface::class)
-            ->give(RoleRepository::class);
-
-        $this->app->when(UserRoleController::class)
-            ->needs(RepositoryInterface::class)
-            ->give(UserRoleRepository::class);
-
-        $this->app->bind(ClientRepositoryInterface::class, ClientRepository::class);
-
-        $this->app->when(UserController::class)
-            ->needs(RepositoryInterface::class)
-            ->give(VerificationTokenRepository::class);
-
-        $this->app->when(VerificationController::class)
-            ->needs(RepositoryInterface::class)
-            ->give(VerificationTokenRepository::class);
-
-        $this->app->when(OauthClientsController::class)
-            ->needs(OauthClientsRepository::class)
-            ->give(OauthClientsRepository::class);
+        // Passport::clientUuids();
+        Passport::hashClientSecrets();
     }
 }

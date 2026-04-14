@@ -2,13 +2,13 @@
 - name: Build and Push Docker Image
   hosts: builder
   vars_files:
-    - vars/deploy.yml
+      - vars/deploy.yml
   roles:
-    - { role: builder }
+      - { role: builder }
 
 - name: Deploy on Production Server
-  hosts: prod
+  hosts: staging
   vars_files:
-    - vars/deploy.yml
+      - vars/deploy.yml
   roles:
-    - { role: project-deploy }
+      - { role: project-deploy }
