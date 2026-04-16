@@ -10,10 +10,8 @@ defineProps({
     roles: Array,
 });
 
-// Creiamo un riferimento per agganciarci al componente figlio
 const tableRef = ref(null);
 
-// Quando clicchiamo il bottone nel padre, diciamo al figlio di aprire la modale
 const handleNewRoleClick = () => {
     tableRef.value?.openCreateModal();
 };

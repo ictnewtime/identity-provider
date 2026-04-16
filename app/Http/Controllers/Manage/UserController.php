@@ -374,15 +374,12 @@ class UserController extends Controller
             return response()->json(["message" => "User not found"], 404);
         }
 
-        // 1. Estrai i dati base
         $data = $request->only("email", "username", "name", "surname", "password_expires_at");
 
-        // 2. Gestione Booleana (Risolve l'errore SQL)
         if ($request->has("enabled")) {
             $data["enabled"] = $request->boolean("enabled");
         }
 
-        // 3. Gestione Data
         if (array_key_exists("password_expires_at", $data)) {
             $data["password_expires_at"] = $data["password_expires_at"]
                 ? Carbon::parse($data["password_expires_at"])
@@ -391,7 +388,6 @@ class UserController extends Controller
                 : null;
         }
 
-        // 4. Gestione Password
         if ($request->filled("password")) {
             $data["password"] = Hash::make($request->password);
         }

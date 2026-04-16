@@ -45,13 +45,10 @@ class Authenticated
             $algo = config("jwt.algo", "HS256");
             $keys = config("jwt.keys", []);
 
-            // Creiamo il provider specifico al volo per decodificare
             $customProvider = new Lcobucci($provider->secret_key, $algo, $keys);
 
-            // Proviamo a decodificare. Se la firma o la sintassi sono errate, lancerà un'eccezione
             $payload = $customProvider->decode($tokenString);
 
-            // VERIFICA SCADENZA (exp)
             if (isset($payload["exp"])) {
                 $currentTime = time();
 
@@ -104,24 +101,19 @@ class Authenticated
         $cookieName = "idp_token_" . $idpProviderId;
         $provider = Provider::find($idpProviderId);
 
-        // 1. Accodiamo la distruzione dei cookie
         Cookie::queue(Cookie::forget($cookieName, "/", $provider->domain));
         Cookie::queue(Cookie::forget("token", "/", $provider->domain));
 
-        // 2. Se è una richiesta API pura o AJAX (non Inertia), rispondiamo subito con 401
-        // SENZA toccare la sessione web (evitando il crash)
         if ($request->expectsJson() && !$request->header("X-Inertia")) {
             return response()->json(["message" => $message], 401);
         }
 
-        // 3. Se siamo su una rotta WEB, la sessione esiste: procediamo a distruggerla
         if ($request->hasSession()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
         }
 
-        // 4. Reindirizziamo l'utente al login
         return redirect()
             ->route("loginForm")
             ->withErrors([

@@ -16,11 +16,9 @@ class CheckClientCredentials
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // 1. Recuperiamo i dati (Laravel controllerà sia l'URL ?id=... sia il body JSON/POST)
         $providerId = $request->input("id");
         $secretKey = $request->input("secret_key");
 
-        // 2. Se mancano i parametri, blocchiamo subito
         if (!$providerId || !$secretKey) {
             return response()->json(
                 [
@@ -31,7 +29,6 @@ class CheckClientCredentials
             );
         }
 
-        // 3. Cerchiamo il Provider nel database
         $provider = Provider::find($providerId);
 
         if (!$provider) {
@@ -41,11 +38,9 @@ class CheckClientCredentials
                     "message" => "Provider non trovato.",
                 ],
                 401,
-            ); // 401 = Unauthorized
+            );
         }
 
-        // 4. Confrontiamo la Secret Key
-        // Usiamo hash_equals invece di "==" per prevenire i "Timing Attacks" (attacchi crittografici)
         if (!hash_equals($provider->secret_key, $secretKey)) {
             return response()->json(
                 [
@@ -53,15 +48,11 @@ class CheckClientCredentials
                     "message" => "Secret Key non valida.",
                 ],
                 403,
-            ); // 403 = Forbidden
+            );
         }
 
-        // (Opzionale ma molto utile): Salviamo il provider verificato nella Request
-        // Così nel tuo Controller potrai fare: $request->attributes->get('provider')
-        // senza doverlo interrogare di nuovo dal database
         $request->attributes->add(["provider" => $provider]);
 
-        // 5. Tutto ok, facciamo passare la richiesta
         return $next($request);
     }
 }

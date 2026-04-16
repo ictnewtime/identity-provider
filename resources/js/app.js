@@ -52,10 +52,8 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) });
 
-        // 1. Usa il plugin di Inertia
         app.use(plugin);
 
-        // 2. Configura PrimeVue
         app.use(PrimeVue, {
             theme: {
                 preset: BrandPreset,
@@ -74,16 +72,10 @@ createInertiaApp({
             },
         });
 
-        // 3. Configura il ToastService
         app.use(ToastService);
-
         app.directive("tooltip", Tooltip);
-
-        // (Opzionale) Se hai un componente Notification che vuoi avere
-        // DAVVERO ovunque senza importarlo ogni volta, puoi registrarlo qui:
         app.component("notification", Notification);
 
-        // 4. Monta l'app sull'elemento radice fornito da Inertia
         app.mount(el);
     },
 });

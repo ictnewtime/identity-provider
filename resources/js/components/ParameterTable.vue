@@ -12,7 +12,6 @@ import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 
-// Assicurati di creare questo componente per il form
 import ParameterForm from "./ParameterForm.vue";
 import { Icon } from "@iconify/vue";
 import { formatDate } from "../utils/data";
