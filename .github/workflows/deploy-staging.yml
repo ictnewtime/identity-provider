@@ -51,7 +51,7 @@ jobs:
 
     ansible-deploy:
         runs-on: self-hosted
-        environment: main
+        environment: staging
         container:
             image: dockerhub.newtimegroup.it/ci-runner:v1
             credentials:
@@ -98,6 +98,7 @@ jobs:
                     --extra-vars "infisical_token=${{ secrets.INFISICAL_TOKEN }}" \
                     --extra-vars "infisical_project_id=${{ secrets.INFISICAL_PROJECT_ID }}" \
                     --extra-vars "infisical_env=staging" \
+                    --extra-vars "host_port=${{ vars.STAGING_PORT }}" \
                     --extra-vars "registry_user=${{ secrets.REGISTRY_USER }}" \
                     --extra-vars "registry_pass=${{ secrets.REGISTRY_PASS }}"
 
