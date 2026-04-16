@@ -18,7 +18,7 @@
       state: started
       restart_policy: always
       published_ports:
-          - "{{ internal_container_port }}:80"
+          - "{{ target_host_port }}:{{ internal_container_port }}"
       networks:
           - name: database-network
 

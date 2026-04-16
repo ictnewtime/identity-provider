@@ -1,15 +1,15 @@
-name: Deploy IDP to Stage
-run-name: Deploying ${{ gitea.actor }} push to Stage
+name: Deploy IDP to Production
+run-name: Deploying ${{ gitea.actor }} push to Production
 
 on:
     push:
         branches:
-            - staging
+            - main
 
 jobs:
     ansible-deploy:
         runs-on: self-hosted
-        environment: staging
+        environment: main
         container:
             image: dockerhub.newtimegroup.it/ci-runner:v1
             credentials:
@@ -23,7 +23,7 @@ jobs:
             - name: 🔑 Setup SSH
               uses: webfactory/ssh-agent@v0.8.0
               with:
-                  ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+                  ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
 
             - name: 📝 Create Inventory File
               run: |
@@ -49,7 +49,7 @@ jobs:
                     --extra-vars "docker_image_tag=$CLEAN_TAG" \
                     --extra-vars "infisical_token=${{ secrets.INFISICAL_TOKEN }}" \
                     --extra-vars "infisical_project_id=${{ secrets.INFISICAL_PROJECT_ID }}" \
-                    --extra-vars "infisical_env=staging" \
-                    --extra-vars "host_port=${{ vars.STAGING_PORT }}" \
+                    --extra-vars "infisical_env=prod" \
+                    --extra-vars "host_port=${{ vars.PRODUCTION_PORT }}" \
                     --extra-vars "registry_user=${{ secrets.REGISTRY_USER }}" \
                     --extra-vars "registry_pass=${{ secrets.REGISTRY_PASS }}"
