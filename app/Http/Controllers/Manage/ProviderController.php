@@ -354,7 +354,6 @@ class ProviderController extends Controller
                 return response()->json(["message" => "Provider not found"], 404);
             }
 
-            // Eliminiamo il record direttamente dal DB prima del Provider
             DB::table("oauth_clients")->where("id", $provider->id)->delete();
 
             $provider->delete();

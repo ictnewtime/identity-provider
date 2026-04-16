@@ -46,7 +46,6 @@ class LogExternal
         ];
 
         try {
-            // Bearer token must be added to header
             $response = Http::timeout(2)
                 ->withHeaders([
                     "Authorization" => $token,
@@ -57,7 +56,6 @@ class LogExternal
                 Log::error("LogExternal API Error: " . $response->body());
             }
         } catch (\Exception $e) {
-            // Se c'è un timeout o il server non esiste, logga in locale ma non blocca l'app
             Log::error("LogExternal eccezione di rete: " . $e->getMessage());
         }
     }

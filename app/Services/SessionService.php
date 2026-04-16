@@ -69,7 +69,7 @@ class SessionService
         $user_agent,
         TokenProviderService $tokenService,
     ) {
-        // 1. & 2. Controllo centralizzato: Abilitazione + Ruoli per il provider specifico
+        // Controllo centralizzato: Abilitazione + Ruoli per il provider specifico
         if (!$user->hasAccessToProvider($provider_id)) {
             Log::warning(
                 "Accesso negato: Utente ID {$user->id} disabilitato o senza ruoli per Provider {$provider_id}.",
@@ -77,7 +77,6 @@ class SessionService
             return null;
         }
 
-        // 3. Gestione Sessione Esistente
         $existingSession = Session::where("user_id", $user->id)->where("provider_id", $provider_id)->first();
 
         if ($existingSession) {
@@ -93,7 +92,7 @@ class SessionService
             }
         }
 
-        // 4. Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
+        // Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
         $token = $tokenService->tokenCretion($user, $provider_id);
 
         if (!$token) {
@@ -109,7 +108,7 @@ class SessionService
     }
 
     /**
-     * NUOVO: Verifica la sessione per la chiamata middleware dell'extension.
+     * Verifica la sessione per la chiamata middleware dell'extension.
      * Ritorna un array con status HTTP e l'eventuale nuovo token.
      */
     public function validateAndRefreshSession(
