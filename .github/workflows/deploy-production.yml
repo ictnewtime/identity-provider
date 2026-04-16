@@ -1,10 +1,7 @@
 name: Deploy IDP to Production
 run-name: Deploying ${{ gitea.actor }} push to Production
 
-on:
-    push:
-        branches:
-            - main
+on: workflow_dispatch
 
 jobs:
     ansible-deploy:
