@@ -46,4 +46,9 @@ class Provider extends Model
     {
         return $this->hasMany(ProviderUserRole::class, "provider_id", "id");
     }
+
+    public function roles()
+    {
+        return $this->hasMany(Role::class, "provider_id", "id");
+    }
 }

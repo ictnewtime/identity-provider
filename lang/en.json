@@ -51,6 +51,7 @@
     "common.warning": "Warning",
     "common.close": "Close",
     "common.logout": "Logout",
+    "common.restore": "Restore",
 
     "admin.nav.users": "Users",
     "admin.nav.roles": "Roles",
@@ -218,6 +219,8 @@
     "admin.providers.toast.invalid_url": "The URL format entered is invalid",
     "admin.providers.toast.restore_success": "Provider restored successfully",
     "admin.providers.toast.restore_error": "An error occurred while restoring the provider",
+    "admin.providers.not_found_for_delete": "Provider not found for delete",
+    "admin.providers.delete_error_active_roles": "Unable to delete this provider because there are active roles associated with it",
 
     "provider.not_found": "Provider not found",
     "provider.restore_error": "Server error",
