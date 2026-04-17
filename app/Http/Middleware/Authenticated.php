@@ -21,13 +21,7 @@ class Authenticated
         $cookieName = "idp_token_" . $idpProviderId;
 
         // Estrazione del token
-        $fromCookie = $request->hasCookie($cookieName);
-        $fromBearer = !empty($request->bearerToken());
         $tokenString = $request->cookie($cookieName) ?? $request->bearerToken();
-
-        // Log::info(
-        //     "Ricerca Token -> Cookie: " . ($fromCookie ? "SI" : "NO") . " | Bearer: " . ($fromBearer ? "SI" : "NO"),
-        // );
 
         if (empty($tokenString)) {
             Log::warning("Fallimento: Nessun token trovato nel cookie [{$cookieName}] o nell'header Bearer.");
