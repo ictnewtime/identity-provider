@@ -79,8 +79,6 @@ class Authenticated
                     'La tua sessione è stata terminata dall\'amministratore.',
                 );
             }
-
-            Log::info("=== END AUTHENTICATED MIDDLEWARE: Successo ===");
         } catch (TokenExpiredException $e) {
             Log::warning("Eccezione catturata: TokenExpiredException.");
             return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));
