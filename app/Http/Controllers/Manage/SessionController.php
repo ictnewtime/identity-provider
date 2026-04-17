@@ -81,15 +81,12 @@ class SessionController extends Controller
         }
 
         $validated = $request->validate([
-            "ip_address" => "nullable|ip",
             "user_agent" => "nullable|string",
         ]);
 
-        $ip_address = $validated["ip_address"];
         $user_agent = $validated["user_agent"];
 
         $result = $this->sessionService->validateAndRefreshSession(
-            $ip_address,
             $providerId,
             $userId,
             $user_agent,
