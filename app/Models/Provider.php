@@ -44,7 +44,11 @@ class Provider extends Model
 
     public function providerUserRoles()
     {
-        // Sostituisci ProviderUserRole::class col nome esatto del tuo modello, se diverso
         return $this->hasMany(ProviderUserRole::class, "provider_id", "id");
+    }
+
+    public function roles()
+    {
+        return $this->hasMany(Role::class, "provider_id", "id");
     }
 }

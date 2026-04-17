@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, computed, onMounted } from "vue";
 import { useToast } from "primevue/usetoast";
-import { trans } from "laravel-vue-i18n"; // Import per le traduzioni nello script
+import { trans } from "laravel-vue-i18n";
 
 import Select from "primevue/select";
 import Button from "primevue/button";

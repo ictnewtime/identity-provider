@@ -16,8 +16,6 @@ class Session extends Model
     public $incrementing = false;
     protected $keyType = "string";
 
-    // protected $auditableEvents = ["created", "deleted"];
-    // Se lo configuri così, traccia gli update, ma ignora questi due campi specifici:
     protected $auditExclude = ["last_activity", "expires_at"];
 
     protected $fillable = [

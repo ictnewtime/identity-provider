@@ -35,11 +35,9 @@ class ProviderUserRole extends Model
 
     protected static function booted(): void
     {
-        // 1. Intercettiamo Creazione e Aggiornamento
         static::saved(function ($providerUserRole) {
             $idpProviderId = config("idp.provider_id");
 
-            // Distruggiamo la sessione SOLO se il ruolo modificato NON appartiene all'IdP
             if ($providerUserRole->provider_id != $idpProviderId) {
                 Session::where("user_id", $providerUserRole->user_id)
                     ->where("provider_id", $providerUserRole->provider_id)
@@ -47,11 +45,9 @@ class ProviderUserRole extends Model
             }
         });
 
-        // 2. Intercettiamo l'Eliminazione
         static::deleted(function ($providerUserRole) {
             $idpProviderId = config("idp.provider_id");
 
-            // Distruggiamo la sessione SOLO se il ruolo eliminato NON appartiene all'IdP
             if ($providerUserRole->provider_id != $idpProviderId) {
                 Session::where("user_id", $providerUserRole->user_id)
                     ->where("provider_id", $providerUserRole->provider_id)

@@ -114,11 +114,14 @@ const deleteProvider = () => {
             emit("item-saved");
         })
         .catch((error) => {
-            console.error(error);
+            const errorMessage =
+                error.response && error.response.data && error.response.data.message
+                    ? error.response.data.message
+                    : trans("admin.providers.toast.delete_error");
             toast.add({
                 severity: "error",
                 summary: trans("common.error"),
-                detail: trans("admin.providers.toast.delete_error"),
+                detail: errorMessage,
                 life: 3000,
             });
             emit("item-error", error);

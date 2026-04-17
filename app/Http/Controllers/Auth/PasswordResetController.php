@@ -69,7 +69,6 @@ class PasswordResetController extends Controller
             "password_confirmation" => "required|min:12",
         ]);
 
-        // Check if the new password is the same as the old one
         $user = User::where("email", $request->email)->first();
 
         if ($user && Hash::check($request->password, $user->password)) {
@@ -78,7 +77,6 @@ class PasswordResetController extends Controller
             ]);
         }
 
-        // Reset password
         $status = Password::broker()->reset(
             $request->only("email", "password", "password_confirmation", "token"),
 
@@ -124,7 +122,6 @@ class PasswordResetController extends Controller
             ]);
         }
 
-        // AGGIORNAMENTO AVVENUTO
         $add_day = 90;
         try {
             $add_day = (int) Parameter::where("key", "password-force-reset-day")->first()->value;
@@ -140,21 +137,15 @@ class PasswordResetController extends Controller
             Log::error($e->getMessage());
         }
 
-        // 1. KILLER DELLE VECCHIE SESSIONI
-        // Eliminiamo dal database tutti i vecchi token JWT associati a questo utente
         Session::where("user_id", $user->id)->delete();
 
-        // Eliminiamo preventivamente i vecchi cookie (verranno sovrascritti o distrutti)
-        // $provider = Provider::find(config("idp.provider_id"));
         $cookieName = "idp_token_" . config("idp.provider_id");
         $cookie1 = Cookie::forget($cookieName);
         $cookie2 = Cookie::forget("token");
 
-        // 2. RIPRENDIAMO IL FLUSSO INTERROTTO
         $pendingProviderId = $request->session()->pull("pending_sso_provider_id");
         $pendingRedirectTo = $request->session()->pull("pending_sso_redirect_to");
 
-        // Caso A: L'utente stava per andare su un'app esterna (SSO)
         if ($pendingProviderId) {
             $ssoData = TokenProviderService::respondWithSsoRedirect(
                 $user,
@@ -164,9 +155,7 @@ class PasswordResetController extends Controller
             );
 
             if ($ssoData) {
-                // Genera e accoda il NUOVO cookie valido
                 Cookie::queue($ssoData["cookie"]);
-                // Usiamo Inertia location perché stiamo uscendo dal dominio dell'IdP
                 return Inertia::location($ssoData["url"]);
             }
         }
@@ -175,13 +164,11 @@ class PasswordResetController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // Caso B: L'utente stava accedendo localmente all'IdP come Admin
         if ($user->isAdmin()) {
             $request->session()->put("success", __("auth.password_reset_success"));
             return redirect()->route("loginForm")->withCookie($cookie1)->withCookie($cookie2);
         }
 
-        // Caso C: Qualcosa è andato storto (non è admin e non ha provider esterni autorizzati)
         return redirect()->route("sso.unauthorized");
     }
 }

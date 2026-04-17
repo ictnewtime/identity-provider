@@ -15,12 +15,12 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Manage\ParametersController;
 use Illuminate\Support\Facades\Log;
 
-// 1. Redirect Home -> Login
+// Redirect Home -> Login
 Route::get("/", function () {
     return redirect()->route("loginForm");
 });
 
-// 2. Lingua
+// Lingua
 Route::get("lang/{locale}", function ($locale) {
     $availableLocales = ["it", "en"];
     $targetLocale = in_array($locale, $availableLocales) ? $locale : "it";
@@ -28,7 +28,7 @@ Route::get("lang/{locale}", function ($locale) {
     return redirect()->back();
 })->name("lang.switch");
 
-// 3. Autenticazione
+// Autenticazione
 Route::middleware("guest")->group(function () {
     Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
     Route::get("login", function () {
@@ -44,25 +44,12 @@ Route::post("v2/login", [LoginController::class, "login"]);
 Route::post("logout", [LoginController::class, "logout_web"])->name("logout_web");
 Route::get("/sso/logout", [LoginController::class, "logout_sso"])->name("logout_sso");
 
-// Route::middleware("web.authenticated")
-//     ->get("authenticated", [LoginController::class, "authenticated"])
-//     ->name("authenticated");
-
-// Inertia: Pagina completamento registrazione
-// Route::get("complete-registration", function () {
-//     return Inertia::render("Auth/CompleteRegistration");
-// })->name("complete-registration");
-
 Route::middleware(["auth"])->group(function () {
-    // La rotta per mostrare la form (deve avere il nome che usiamo nel Middleware)
     Route::get("/password/expired", [PasswordResetController::class, "expired"])->name("password.expired");
 
-    // La rotta per salvare
     Route::post("/password/force-update", [PasswordResetController::class, "forceUpdate"])->name(
         "password.force-update",
     );
-
-    // ... tutte le tue altre rotte protette (dashboard, ecc) a cui applicherai anche il middleware CheckPasswordExpiration ...
 });
 
 /********* ADMIN ROUTES ************/
@@ -100,10 +87,6 @@ Route::prefix("admin")
         Route::get("audits", function () {
             return Inertia::render("Admin/Audits");
         })->name("web-audits");
-
-        // Route::get("oauth-clients", function () {
-        //     return Inertia::render("Admin/OauthClients");
-        // })->name("oauth-clients");
 
         Route::prefix("v1")->group(function () {
             // providers

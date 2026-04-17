@@ -87,11 +87,8 @@ RUN chown -R www-data:www-data storage
 RUN touch /var/www/storage/logs/laravel.log && chown www-data:www-data /var/www/storage/logs/laravel.log
 RUN npm run build
 
-# 1. Copia il file entrypoint dal tuo PC al container
 COPY entrypoint.sh /entrypoint.sh
-# 2. Copia il config di Supervisor principale
 COPY docker/supervisor/supervisord.conf /etc/supervisord.conf
-# 3. Dai i permessi di esecuzione
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 80 5173

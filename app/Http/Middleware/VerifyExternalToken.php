@@ -20,8 +20,6 @@ class VerifyExternalToken
         }
 
         try {
-            // 1. Dobbiamo "sbirciare" dentro il token per capire a quale provider appartiene
-            // prima di validare la firma. Usiamo base64_decode sul payload (la parte centrale del JWT)
             $parts = explode(".", $tokenString);
             if (count($parts) !== 3) {
                 throw new \Exception("Formato JWT non valido");
@@ -36,23 +34,17 @@ class VerifyExternalToken
                 return response()->json(["message" => "Token corrotto (claim mancanti)."], 401);
             }
 
-            // 2. Recuperiamo il Provider e la sua chiave segreta
             $provider = Provider::find($providerId);
             if (!$provider || empty($provider->secret_key)) {
                 Log::error("Provider non valido o chiave mancante.");
                 return response()->json(["message" => "Provider non valido o chiave mancante."], 401);
             }
 
-            // 3. Validiamo MATEMATICAMENTE il token (La vera sicurezza)
             $algo = config("jwt.algo", "HS256");
             $customProvider = new Lcobucci($provider->secret_key, $algo, []);
 
-            // Questo lancerà un'eccezione se la firma è falsa o manipolata
-            $validPayload = $customProvider->decode($tokenString);
+            $customProvider->decode($tokenString);
 
-            // 4. Passiamo i dati puliti e sicuri al Controller!
-            // Così il controller non deve più fidarsi dell'URL, ma legge i dati certificati dal JWT.
-            // Log::info("Introspezione Token OK.");
             $request->attributes->set("jwt_user_id", $userId);
             $request->attributes->set("jwt_provider_id", $providerId);
         } catch (\Exception $e) {

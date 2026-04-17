@@ -19,7 +19,7 @@ class CreateUser extends Command
         $email = $this->ask("Email");
         $name = $this->ask("Nome");
         $surname = $this->ask("Cognome");
-        $password = $this->secret("Password"); // secret() nasconde i caratteri digitati
+        $password = $this->secret("Password");
 
         $user = User::create([
             "username" => $username,
@@ -27,8 +27,8 @@ class CreateUser extends Command
             "name" => $name,
             "surname" => $surname,
             "password" => Hash::make($password),
-            "is_verified" => true, // O chiedi all'utente
-            "enabled" => true, // O chiedi all'utente
+            "is_verified" => true,
+            "enabled" => true,
         ]);
 
         $this->info("Utente {$user->username} creato con successo! (ID: {$user->id})");

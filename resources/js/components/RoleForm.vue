@@ -3,13 +3,11 @@ import { ref, watch, computed, onMounted } from "vue";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n";
 
-// Componenti PrimeVue
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
 import Button from "primevue/button";
 import Message from "primevue/message";
 
-// Props & Emits
 const props = defineProps({
     roleSelected: {
         type: Object,
@@ -20,7 +18,6 @@ const props = defineProps({
 const emit = defineEmits(["item-saved", "item-error"]);
 const toast = useToast();
 
-// Stato Form
 const loading = ref(false);
 const loadingProviders = ref(false);
 const providers = ref([]);
@@ -36,10 +33,8 @@ const errors = ref({
     provider_id: "",
 });
 
-// Computed
 const isEditMode = computed(() => !!props.roleSelected);
 
-// Metodi di utilità
 const resetForm = () => {
     form.value = {
         name: "",
@@ -52,7 +47,6 @@ const resetErrors = () => {
     Object.keys(errors.value).forEach((key) => (errors.value[key] = ""));
 };
 
-// Logica di validazione lato client
 const validate = () => {
     resetErrors();
     let isValid = true;
@@ -69,7 +63,6 @@ const validate = () => {
     return isValid;
 };
 
-// Carica la lista dei provider dal backend
 const loadProvidersList = async () => {
     loadingProviders.value = true;
     try {
@@ -91,7 +84,6 @@ const loadProvidersList = async () => {
     }
 };
 
-// Submit Form
 const submit = async () => {
     if (!validate()) return;
 
@@ -128,7 +120,6 @@ const submit = async () => {
         emit("item-error", error);
 
         if (error.response?.data?.errors) {
-            // Mappa gli errori di validazione del backend
             const backendErrors = error.response.data.errors;
             Object.keys(backendErrors).forEach((key) => {
                 if (errors.value[key] !== undefined) {
@@ -141,7 +132,6 @@ const submit = async () => {
     }
 };
 
-// Carica il ruolo da modificare
 const fetchRole = async (id) => {
     loading.value = true;
     try {
@@ -165,7 +155,6 @@ const fetchRole = async (id) => {
     }
 };
 
-// Watcher per riempire il form quando il padre ci passa un ruolo da modificare
 watch(
     () => props.roleSelected,
     (newVal) => {
@@ -179,7 +168,6 @@ watch(
     { immediate: true }
 );
 
-// Lifecycle
 onMounted(() => {
     loadProvidersList();
 });

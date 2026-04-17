@@ -69,7 +69,7 @@ class SessionService
         $user_agent,
         TokenProviderService $tokenService,
     ) {
-        // 1. & 2. Controllo centralizzato: Abilitazione + Ruoli per il provider specifico
+        // Controllo centralizzato: Abilitazione + Ruoli per il provider specifico
         if (!$user->hasAccessToProvider($provider_id)) {
             Log::warning(
                 "Accesso negato: Utente ID {$user->id} disabilitato o senza ruoli per Provider {$provider_id}.",
@@ -77,7 +77,6 @@ class SessionService
             return null;
         }
 
-        // 3. Gestione Sessione Esistente
         $existingSession = Session::where("user_id", $user->id)->where("provider_id", $provider_id)->first();
 
         if ($existingSession) {
@@ -93,7 +92,7 @@ class SessionService
             }
         }
 
-        // 4. Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
+        // Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
         $token = $tokenService->tokenCretion($user, $provider_id);
 
         if (!$token) {
@@ -109,7 +108,7 @@ class SessionService
     }
 
     /**
-     * NUOVO: Verifica la sessione per la chiamata middleware dell'extension.
+     * Verifica la sessione per la chiamata middleware dell'extension.
      * Ritorna un array con status HTTP e l'eventuale nuovo token.
      */
     public function validateAndRefreshSession(
@@ -124,9 +123,9 @@ class SessionService
             ->where("user_agent", $user_agent)
             ->first();
 
-        // 1. Sessione non trovata
+        // Se la sessione non esiste
         if (!$session) {
-            // Se non la trova, cerchiamo di capire se esiste ALMENO per l'utente
+            // Se non la trova, cerchiamo di capire se esiste una sessione per l'utente
             $anySession = Session::where("user_id", $clientId)->where("provider_id", $providerId)->first();
             if ($anySession) {
                 Log::warning("Sessione trovata ma lo USER AGENT non coincide!");
@@ -136,13 +135,13 @@ class SessionService
             return ["status" => 404];
         }
 
-        // 2. Sessione scaduta
+        // Se la sessione scaduta
         if ($session->expires_at && !$session->expires_at->isFuture()) {
-            $session->delete(); // Pulizia DB
+            $session->delete();
             return ["status" => 404];
         }
 
-        // 3. Valida: se lo User Agent è lo stesso, consideriamo la sessione valida
+        // Valida: se lo User Agent è lo stesso, consideriamo la sessione valida
         if ($session->user_agent === $user_agent) {
             // Se l'IP è cambiato, lo aggiorniamo silenziosamente senza cambiare token
             if ($session->ip_address !== $clientIp) {
@@ -155,13 +154,12 @@ class SessionService
             return ["status" => 200, "token" => null];
         }
 
-        // 4. Se cambia lo USER AGENT, allora è un cambio dispositivo/browser: qui sì che serve rigenerare o sloggare
-        $user = $session->user; // Assicurati di avere la relation belongsTo 'user' nel Model Session
-
+        // Se cambia lo USER AGENT, allora è un cambio dispositivo/browser: qui sì che serve rigenerare o sloggare
+        $user = $session->user;
         $newToken = $tokenService->tokenCretion($user, $providerId);
 
         if (!$newToken) {
-            return ["status" => 404]; // Se fallisce la creazione per qualche motivo
+            return ["status" => 404];
         }
 
         $ttlInSeconds = $tokenService->getTtlInSeconds();

@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Creiamo un Provider di default (es. il pannello di amministrazione stesso)
+        // Creiamo un Provider di default (es. il pannello di amministrazione stesso)
         $provider = Provider::create([
             "domain" => "localhost",
             "url" => "http://localhost:8000",
@@ -27,8 +27,8 @@ class DatabaseSeeder extends Seeder
             "name" => "IDP",
         ]);
 
-        // 2. Creiamo i Ruoli base legati al Provider
-        $adminRole = Role::create([
+        // Creiamo i Ruoli base legati al Provider
+        Role::create([
             "name" => "admin",
             "provider_id" => $provider->id,
         ]);

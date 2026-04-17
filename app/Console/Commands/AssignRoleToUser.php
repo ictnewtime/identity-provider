@@ -25,7 +25,6 @@ class AssignRoleToUser extends Command
 
         info("Assegnazione Ruolo a Utente...");
 
-        // 1. Cerca Utente (ricerca per username o email)
         $userId = search(
             label: 'Cerca l\'Utente (digita username o email)',
             options: fn(string $value) => strlen($value) > 0
@@ -40,7 +39,6 @@ class AssignRoleToUser extends Command
                     ->all(),
         );
 
-        // 2. Cerca Provider
         $providerId = search(
             label: "Cerca il Provider",
             options: fn(string $value) => strlen($value) > 0
@@ -50,13 +48,11 @@ class AssignRoleToUser extends Command
                 : Provider::limit(10)->pluck("name", "id")->all(),
         );
 
-        // 3. Controlliamo se esistono ruoli per quel provider prima di chiedere
         if (Role::where("provider_id", $providerId)->doesntExist()) {
             error("Questo provider non ha ancora ruoli associati. Creane prima uno!");
             return Command::FAILURE;
         }
 
-        // 4. Cerca Ruolo (filtrato SOLO per il provider scelto al punto 2)
         $roleId = search(
             label: "Cerca il Ruolo da assegnare",
             options: fn(string $value) => strlen($value) > 0
@@ -67,7 +63,6 @@ class AssignRoleToUser extends Command
                 : Role::where("provider_id", $providerId)->limit(10)->pluck("name", "id")->all(),
         );
 
-        // 5. Evitiamo duplicati
         $alreadyAssigned = ProviderUserRole::where([
             "user_id" => $userId,
             "provider_id" => $providerId,
@@ -79,7 +74,6 @@ class AssignRoleToUser extends Command
             return Command::FAILURE;
         }
 
-        // 6. Salvataggio
         ProviderUserRole::create([
             "user_id" => $userId,
             "provider_id" => $providerId,

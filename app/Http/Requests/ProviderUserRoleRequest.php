@@ -25,7 +25,7 @@ class ProviderUserRoleRequest extends FormRequest
             $rules["role_id"][] = Rule::unique("provider_user_roles", "role_id")->where(function ($query) {
                 return $query
                     ->where("user_id", $this->input("user_id"))
-                    ->where("provider_id", $this->input("provider_id")) // Ora controlliamo il provider qui
+                    ->where("provider_id", $this->input("provider_id"))
                     ->whereNull("deleted_at");
             });
         }
@@ -38,7 +38,7 @@ class ProviderUserRoleRequest extends FormRequest
                 ->where(function ($query) {
                     return $query
                         ->where("user_id", $this->input("user_id"))
-                        ->where("provider_id", $this->input("provider_id")) // Ora controlliamo il provider qui
+                        ->where("provider_id", $this->input("provider_id"))
                         ->whereNull("deleted_at");
                 })
                 ->ignore($id);
