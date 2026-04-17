@@ -4,49 +4,103 @@ run-name: Deploying ${{ gitea.actor }} push to Production
 on: workflow_dispatch
 
 jobs:
-    ansible-deploy:
-        runs-on: self-hosted
-        environment: main
-        container:
-            image: dockerhub.newtimegroup.it/ci-runner:v1
-            credentials:
-                username: ${{ secrets.REGISTRY_USER }}
-                password: ${{ secrets.REGISTRY_PASS }}
+  sonar-scan:
+    name: SonarQube Quality Gate
+    runs-on: self-hosted
+    environment: main
+    container:
+      image: dockerhub.newtimegroup.it/ci-runner:v1
+      credentials:
+        username: ${{ secrets.REGISTRY_USER }}
+        password: ${{ secrets.REGISTRY_PASS }}
+    steps:
+      - name: 🚀 Notifica Inizio Scan
+        uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          event_type: "sonar_start"
 
-        steps:
-            - name: 📡 Checkout repository
-              uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-            - name: 🔑 Setup SSH
-              uses: webfactory/ssh-agent@v0.8.0
-              with:
-                  ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+      - name: SonarQube Scan
+        id: sonar
+        uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/sonarqube@main
+        with:
+          sonar_token: ${{ secrets.SONARQUBE_TOKEN }}
+          sonar_host_url: ${{ vars.SONAR_HOST_URL }}
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          args: >
+            -Dsonar.projectKey=${{ gitea.repository_owner }}_${{ gitea.repository }}
+            -Dsonar.sources=.
+            -Dsonar.javascript.node.maxspace=2048
+            -Dsonar.qualitygate.wait=true
 
-            - name: 📝 Create Inventory File
-              run: |
-                  echo "[builder]" > inventory
-                  echo "localhost ansible_connection=local" >> inventory
-                  echo "" >> inventory
-                  echo "[staging]" >> inventory
-                  echo "${{ secrets.STAGING_HOST_IP }} ansible_user=${{ secrets.STAGING_SSH_USER }} ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory
+      - name: 🏁 Notifica Esito Scan
+        if: always()
+        uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          event_type: ${{ job.status == 'success' && 'sonar_success' || 'sonar_failure' }}
 
-            - name: 🚀 Run Ansible Playbook
-              run: |
-                  RAW_BRANCH="${{ gitea.ref_name }}"
+  ansible-deploy:
+    runs-on: self-hosted
+    environment: main
+    container:
+      image: dockerhub.newtimegroup.it/ci-runner:v1
+      credentials:
+        username: ${{ secrets.REGISTRY_USER }}
+        password: ${{ secrets.REGISTRY_PASS }}
 
-                  CLEAN_TAG=$(echo "$RAW_BRANCH" | sed 's/\//-/g')
+    steps:
+      - name: 🚀 Notifica Inizio
+        uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          event_type: "start"
 
-                  echo "🏷️  Docker Tag sarà: $CLEAN_TAG"
+      - name: 📡 Checkout repository
+        uses: actions/checkout@v3
 
-                  GIT_AUTH_URL="https://${{ gitea.actor }}:${{ secrets.GITHUB_TOKEN }}@gitea.newtimegroup.it/${{ gitea.repository }}.git"
+      - name: 🔑 Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
 
-                  ansible-playbook -i inventory ansible/deploy.playbook.yml \
-                    --extra-vars "git_repo_url=$GIT_AUTH_URL" \
-                    --extra-vars "git_branch=$CLEAN_TAG" \
-                    --extra-vars "docker_image_tag=$CLEAN_TAG" \
-                    --extra-vars "infisical_token=${{ secrets.INFISICAL_TOKEN }}" \
-                    --extra-vars "infisical_project_id=${{ secrets.INFISICAL_PROJECT_ID }}" \
-                    --extra-vars "infisical_env=prod" \
-                    --extra-vars "host_port=${{ vars.PRODUCTION_PORT }}" \
-                    --extra-vars "registry_user=${{ secrets.REGISTRY_USER }}" \
-                    --extra-vars "registry_pass=${{ secrets.REGISTRY_PASS }}"
+      - name: 📝 Create Inventory File
+        run: |
+          echo "[builder]" > inventory
+          echo "localhost ansible_connection=local" >> inventory
+          echo "" >> inventory
+          echo "[staging]" >> inventory
+          echo "${{ secrets.STAGING_HOST_IP }} ansible_user=${{ secrets.STAGING_SSH_USER }} ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory
+
+      - name: 🚀 Run Ansible Playbook
+        run: |
+          RAW_BRANCH="${{ gitea.ref_name }}"
+
+          CLEAN_TAG=$(echo "$RAW_BRANCH" | sed 's/\//-/g')
+
+          echo "🏷️  Docker Tag sarà: $CLEAN_TAG"
+
+          GIT_AUTH_URL="https://${{ gitea.actor }}:${{ secrets.GITHUB_TOKEN }}@gitea.newtimegroup.it/${{ gitea.repository }}.git"
+
+          ansible-playbook -i inventory ansible/deploy.playbook.yml \
+            --extra-vars "git_repo_url=$GIT_AUTH_URL" \
+            --extra-vars "git_branch=$CLEAN_TAG" \
+            --extra-vars "docker_image_tag=$CLEAN_TAG" \
+            --extra-vars "infisical_token=${{ secrets.INFISICAL_TOKEN }}" \
+            --extra-vars "infisical_project_id=${{ secrets.INFISICAL_PROJECT_ID }}" \
+            --extra-vars "infisical_env=prod" \
+            --extra-vars "host_port=${{ vars.PRODUCTION_PORT }}" \
+            --extra-vars "registry_user=${{ secrets.REGISTRY_USER }}" \
+            --extra-vars "registry_pass=${{ secrets.REGISTRY_PASS }}"
+
+      - name: 🏁 Notifica Esito Finale
+        if: always()
+        uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          event_type: ${{ job.status == 'success' && 'success' || 'failure' }}
