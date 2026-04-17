@@ -111,13 +111,8 @@ class SessionService
      * Verifica la sessione per la chiamata middleware dell'extension.
      * Ritorna un array con status HTTP e l'eventuale nuovo token.
      */
-    public function validateAndRefreshSession(
-        $clientIp,
-        $providerId,
-        $clientId,
-        $user_agent,
-        TokenProviderService $tokenService,
-    ) {
+    public function validateAndRefreshSession($providerId, $clientId, $user_agent, TokenProviderService $tokenService)
+    {
         $session = Session::where("user_id", $clientId)
             ->where("provider_id", $providerId)
             ->where("user_agent", $user_agent)
@@ -143,14 +138,8 @@ class SessionService
 
         // Valida: se lo User Agent è lo stesso, consideriamo la sessione valida
         if ($session->user_agent === $user_agent) {
-            // Se l'IP è cambiato, lo aggiorniamo silenziosamente senza cambiare token
-            if ($session->ip_address !== $clientIp) {
-                $session->ip_address = $clientIp;
-            }
-
             $session->last_activity = now();
             $session->save();
-
             return ["status" => 200, "token" => null];
         }
 
@@ -165,7 +154,6 @@ class SessionService
         $ttlInSeconds = $tokenService->getTtlInSeconds();
 
         $session->update([
-            "ip_address" => $clientIp,
             "user_agent" => $user_agent,
             "token" => $newToken,
             "expires_at" => now()->addSeconds($ttlInSeconds),

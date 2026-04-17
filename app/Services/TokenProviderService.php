@@ -34,17 +34,6 @@ class TokenProviderService
      */
     public function tokenCretion(User $user, ?string $redirectId = null)
     {
-
-        // --- INIZIO DEBUG STAGING ---
-        Log::info("=== START TOKEN CREATION DEBUG (Staging) ===");
-        Log::info("User ID: " . $user->id . " | Provider ID: " . $redirectId);
-
-        // Stampiamo i valori esatti con var_export per vedere se sono null, int(0) o stringhe vuote
-        Log::info("DEBUG TTL - \$this->ttlInSeconds is: " . var_export($this->ttlInSeconds, true));
-        Log::info("DEBUG TTL - env('JWT_TTL') is: " . var_export(env("JWT_TTL"), true));
-        Log::info("DEBUG TTL - config('jwt.ttl') is: " . var_export(config("jwt.ttl"), true));
-        // --- FINE DEBUG STAGING ---
-
         $ttlInMinutes = $this->ttlInSeconds / 60;
         // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
         JWTAuth::factory()->setTTL($ttlInMinutes);
