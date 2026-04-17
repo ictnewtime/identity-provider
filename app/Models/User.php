@@ -128,16 +128,13 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        // 1. Se l'utente è disabilitato globalmente, non può essere admin
         if (isset($this->enabled) && !$this->enabled) {
             return false;
         }
 
-        // 2. Recuperiamo gli ID dalle configurazioni
         $idpProviderId = config("idp.provider_id");
         $adminRoleId = config("role.admin_id");
 
-        // 3. Verifica veloce e diretta a database (prestazioni massime)
         return ProviderUserRole::where("user_id", $this->id)
             ->where("provider_id", $idpProviderId)
             ->where("role_id", $adminRoleId)
@@ -149,16 +146,14 @@ class User extends Authenticatable
      */
     protected static function booted(): void
     {
-        // 1. Intercettiamo l'aggiornamento dell'utente
         static::updated(function ($user) {
             if ($user->wasChanged("enabled,password")) {
                 Session::where("user_id", $user->id)->delete();
             }
         });
 
-        // 2. Intercettiamo l'eliminazione dell'utente
         static::deleting(function ($user) {
-            // Prima che l'utente venga cancellato dal DB, radiamo al suolo le sue sessioni
+            // Prima che l'utente venga cancellato dal DB, eliminiamole sue sessioni
             Session::where("user_id", $user->id)->delete();
         });
     }

@@ -66,17 +66,12 @@ class TokenProviderService
 
         try {
             if (empty($provider->secret_key)) {
-                // Errore, secret key empty
                 Log::error("Provider " . $provider->id . " has empty secret key.");
                 throw new \Exception("Provider misconfigured.");
             }
 
-            // --- DEBUG CALCOLO TEMPO ---
             $currentTime = time();
-            $fallbackTriggered = $this->ttlInSeconds === null || $this->ttlInSeconds === 0;
             $calculatedTtl = $this->ttlInSeconds ?? 3600;
-
-            // Definiamo i claims
             $expirationTime = $currentTime + $calculatedTtl;
 
             $payloadData = array_merge(
@@ -92,11 +87,9 @@ class TokenProviderService
                 ["payload" => $payload],
             );
 
-            /**
-             * Creazione di istanze "usa e getta" per firmare il token,
-             * con la secret key specifica del provider,
-             * senza toccare la configurazione globale.
-             */
+            // Creazione di istanze "usa e getta" per firmare il token,
+            // con la secret key specifica del provider,
+            // senza toccare la configurazione globale.
             $algo = config("jwt.algo", "HS256");
             $keys = config("jwt.keys", []);
 
@@ -175,7 +168,6 @@ class TokenProviderService
         $tokenService = new TokenProviderService();
         $sessionService = new SessionService();
 
-        // L'UNICA fonte di verità per l'abilitazione
         $token = $sessionService->getValidProviderToken(
             $user,
             $providerId,
@@ -185,7 +177,7 @@ class TokenProviderService
         );
 
         if (!$token) {
-            return null; // Segnale che l'utente non è autorizzato
+            return null; // L'utente non è autorizzato
         }
 
         $provider = Provider::find($providerId);

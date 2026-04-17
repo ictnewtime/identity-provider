@@ -31,14 +31,10 @@ const toast = useToast();
 const page = usePage();
 
 onMounted(() => {
-    // 1. Lettura parametri URL
     const urlParams = new URLSearchParams(window.location.search);
     form.provider_id = urlParams.get("provider_id");
     form.redirect_to = urlParams.get("redirect_to");
 
-    // 2. Lettura del messaggio flash di successo (inviato dal backend)
-    // Nota: dipende da come hai configurato HandleInertiaRequests.php.
-    // Di solito Inertia lo mappa sotto `page.props.flash.success` o `page.props.success`
     const successMessage = page.props.flash?.success || page.props.success;
     if (successMessage) {
         toast.add({

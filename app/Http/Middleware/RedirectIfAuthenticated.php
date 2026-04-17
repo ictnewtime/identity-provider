@@ -20,10 +20,9 @@ class RedirectIfAuthenticated
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
 
-        // 1. Risoluzione dell'Utente (Sessione standard o validazione JWT)
         $user = $this->resolveAuthenticatedUser($request, $guard, $idpProviderId, $cookieName);
 
-        // Se non è loggato in nessun modo, lo lasciamo passare verso la pagina richiesta (es. il Login)
+        // Se non è loggato , lo lasciamo passare verso la pagina richiesta
         if (!$user) {
             return $next($request);
         }
@@ -32,7 +31,7 @@ class RedirectIfAuthenticated
         $providerId = $request->input("provider_id");
         $redirectTo = $request->input("redirect_to");
 
-        // 2. CONTROLLO SICUREZZA: Scadenza Password
+        // check scadenza Password
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
             Log::info("Seamless SSO bloccato: Utente {$user->username} ha la password scaduta.");
 
@@ -44,7 +43,7 @@ class RedirectIfAuthenticated
             return redirect()->route("password.expired");
         }
 
-        // 3. BIVIO LOCALE: Accesso diretto all'IdP
+        // Check provider_id e autorizzazioni
         if (empty($providerId)) {
             if ($user->isAdmin()) {
                 return redirect()->route("admin-home");
@@ -54,9 +53,7 @@ class RedirectIfAuthenticated
             return $this->forceLogoutAndShowLogin($request, $cookieName, "Nessuna applicazione specificata.");
         }
 
-        // 4. BIVIO SSO: Seamless SSO verso App esterna
-        // Log::info("Seamless SSO innescato! Rinnovo accesso automatico per Provider ID: {$providerId}");
-
+        // Se l'utente è admin, lo mandiamo alla dashboard dell'IdP
         $ssoData = TokenProviderService::respondWithSsoRedirect($user, $providerId, $request, $redirectTo);
 
         if (!$ssoData) {
@@ -79,7 +76,6 @@ class RedirectIfAuthenticated
             return Auth::guard($guard)->user();
         }
 
-        // 2. Controllo Token JWT custom dell'IdP
         $tokenString = $request->cookie($cookieName) ?? $request->bearerToken();
         if (!$tokenString) {
             return null;

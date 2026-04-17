@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, computed } from "vue";
 import { useToast } from "primevue/usetoast";
-import { trans } from "laravel-vue-i18n"; // Import obbligatorio per usare le traduzioni nel setup
+import { trans } from "laravel-vue-i18n";
 
 import { Icon } from "@iconify/vue";
 import InputGroup from "primevue/inputgroup";

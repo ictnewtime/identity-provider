@@ -72,7 +72,6 @@ const onFilterChange = () => {
     }, 500);
 };
 
-// Funzione esposta al padre
 const openCreateModal = () => {
     roleSelected.value = null;
     displayModal.value = true;

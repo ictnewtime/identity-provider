@@ -21,8 +21,6 @@ export function usePassword(passwordRef, confirmPasswordRef) {
 
         let score = 0;
 
-        // --- FASE 1: CALCOLO DEI PUNTI BASE ---
-
         // Punti per lunghezza
         if (pwd.length >= 8) score += 1;
         if (pwd.length >= 12) score += 2;
@@ -41,35 +39,34 @@ export function usePassword(passwordRef, confirmPasswordRef) {
         // Punteggio massimo teorico di base
         score = Math.min(5, score);
 
-        // --- FASE 2: HARD CAPS (PENALITÀ ASSOLUTE) ---
         // Se si verifica una di queste condizioni, il punteggio MASSIMO non può superare 2 (Debole)
         let maxAllowedScore = 5;
 
-        // 1. Tre o più caratteri identici consecutivi (es. AAA, 111, !!!)
+        // Tre o più caratteri identici consecutivi (es. AAA, 111, !!!)
         if (/(.)\1{2,}/.test(pwd)) {
             maxAllowedScore = Math.min(maxAllowedScore, 2);
         }
 
-        // 2. Sequenze da tastiera, numeriche o parole ovvie (qwerty, 1234, admin...)
+        // Sequenze da tastiera, numeriche o parole ovvie (qwerty, 1234, admin...)
         const commonSequences =
             /(1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|qwer|wert|erty|asdf|sdfg|dfgh|zxcv|xcvb|pass|admin|login)/i;
         if (commonSequences.test(pwd)) {
             maxAllowedScore = Math.min(maxAllowedScore, 2);
         }
 
-        // 3. Sequenze alfabetiche ovvie (abcd, bcde...)
+        // Sequenze alfabetiche ovvie (abcd, bcde...)
         const alphaSequences =
             /(abcd|bcde|cdef|defg|efgh|fghi|ghij|hijk|ijkl|jklm|klmn|lmno|mnop|nopq|opqr|pqrs|qrst|rstu|stuv|tuvw|uvwx|vwxy|wxyz)/i;
         if (alphaSequences.test(pwd)) {
             maxAllowedScore = Math.min(maxAllowedScore, 2);
         }
 
-        // 4. Pattern ripetuti a blocchi (es. abcabcabc, 121212)
+        // Pattern ripetuti a blocchi (es. abcabcabc, 121212)
         if (/(.{2,})\1{2,}/.test(pwd)) {
             maxAllowedScore = Math.min(maxAllowedScore, 2);
         }
 
-        // 5. Monotonia: se un singolo carattere compone più del 30% dell'intera password
+        // Monotonia: se un singolo carattere compone più del 30% dell'intera password
         if (pwd.length >= 8) {
             const charCounts = {};
             let maxCharCount = 0;
@@ -84,10 +81,9 @@ export function usePassword(passwordRef, confirmPasswordRef) {
             }
         }
 
-        // Applica il limite rigido al punteggio
         score = Math.min(score, maxAllowedScore);
 
-        return Math.max(1, score); // Ritorna almeno 1 se ha digitato qualcosa
+        return Math.max(1, score);
     });
 
     // Colori e Testi

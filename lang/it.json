@@ -51,6 +51,7 @@
     "common.warning": "Attenzione",
     "common.close": "Chiudi",
     "common.logout": "Esci",
+    "common.restore": "Ripristina",
 
     "admin.nav.users": "Utenti",
     "admin.nav.roles": "Ruoli",
@@ -220,7 +221,9 @@
     "admin.providers.toast.detail_updated": "Il provider è stato aggiornato",
     "admin.providers.toast.invalid_url": "Il formato dell'URL inserito non è valido",
     "admin.providers.toast.restore_success": "Provider ripristinato con successo",
-    "admin.providers.toast.restore_error": "Siè verificato un errore durante la ripristina del provider",
+    "admin.providers.toast.restore_error": "Si è verificato un errore durante la ripristina del provider",
+    "admin.providers.not_found_for_delete": "Provider non trovato per l'eliminazione",
+    "admin.providers.delete_error_active_roles": "Non è possibile eliminare questo provider perché ci sono ruoli attivi associati ad esso",
 
     "provider.not_found": "Provider non trovato",
     "provider.restore_error": "Errore del server",

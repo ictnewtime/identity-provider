@@ -26,9 +26,7 @@ class LoginController extends Controller
      */
     public function showLoginForm()
     {
-        // 2. Sostituisci view() con Inertia::render()
         return Inertia::render("Auth/Login", [
-            // Qui in futuro potrai passare dati alla pagina Vue, ad esempio:
             // 'status' => session('status'),
         ]);
     }
@@ -47,11 +45,9 @@ class LoginController extends Controller
 
         $provider_id = $request->input("provider_id");
 
-        // 1. BLOCCO SCADENZA PASSWORD (PRIMA DI OGNI TOKEN)
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
             Log::warning("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
 
-            // Salviamo in sessione dove voleva andare, così non perde la destinazione
             if ($provider_id) {
                 $request->session()->put("pending_sso_provider_id", $provider_id);
                 $request->session()->put("pending_sso_redirect_to", $request->input("redirect_to"));
@@ -60,7 +56,6 @@ class LoginController extends Controller
             return redirect()->route("password.expired");
         }
 
-        // 2A. BIVIO SSO: L'utente va verso un'app esterna (es. App2)
         if ($provider_id) {
             $ssoData = TokenProviderService::respondWithSsoRedirect(
                 $user,
@@ -70,8 +65,7 @@ class LoginController extends Controller
             );
 
             if (!$ssoData) {
-                // UTENTE ESISTE MA NON È AUTORIZZATO PER QUESTA APP!
-                // Lo slogghiamo per non lasciargli sessioni pendenti e lo mandiamo alla pagina di blocco
+                // L'utente non ha ruoli validi per quel provider
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
@@ -82,7 +76,7 @@ class LoginController extends Controller
             return Inertia::location($ssoData["url"]);
         }
 
-        // 2B. BIVIO LOCALE: L'utente accede all'IdP (Pannello Admin)
+        // L'utente va verso l'home dell'IdP
         if ($user->isAdmin()) {
             $request->session()->regenerate();
 
@@ -90,16 +84,31 @@ class LoginController extends Controller
             $tokenService = new TokenProviderService();
             $sessionService = new SessionService();
 
+            $ip_address = $request->ip();
+            // Verifichia l' ambiente è local (dal file .env)
+            // e verifichia se l'IP è un indirizzo privato (172.x, 192.x, 10.x)
+            if (app()->environment("local")) {
+                $isPrivate = !filter_var(
+                    $ip_address,
+                    FILTER_VALIDATE_IP,
+                    FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
+                );
+                if ($isPrivate) {
+                    // Se l'IP è privato o locale, lo normalizziamo a 127.0.0.1
+                    // per mantenere coerenza nei log di sviluppo
+                    $ip_address = "127.0.0.1";
+                }
+            }
             $token = $sessionService->getValidProviderToken(
                 $user,
                 $idpProviderId,
-                $request->ip(),
+                $ip_address,
                 $request->userAgent(),
                 $tokenService,
             );
 
             if (!$token) {
-                // Ha il ruolo Admin, ma per qualche motivo la generazione del token IdP è fallita
+                // L'utente non ha ruoli validi per quel provider
                 Auth::logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();
@@ -110,8 +119,7 @@ class LoginController extends Controller
             return redirect()->route("admin-home");
         }
 
-        // 2C. UTENTE SENZA RUOLI O NON ADMIN CHE CERCA DI ACCEDERE DIRETTAMENTE ALL'IDP
-        // Distruggiamo tutto. Non merita nessun Grant Token.
+        // Utente normale, lo mandiamo alla home dell'IdP
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -142,9 +150,6 @@ class LoginController extends Controller
         return $this->performLogout($request, $redirectTo);
     }
 
-    /**
-     * LOGICA CENTRALIZZATA: Pialla Database, Sessione Laravel e Cookie
-     */
     private function performLogout(Request $request, $redirectUrl)
     {
         $idpProviderId = config("idp.provider_id");
@@ -152,7 +157,7 @@ class LoginController extends Controller
         $provider = Provider::find(config("idp.provider_id"));
         $cookieDomain = $provider->domain; // es. .miosito.it (o null per localhost)
 
-        // 1. RECUPERO USER ID (Da sessione o decodificando il cookie)
+        // Prima proviamo con Auth, poi con il cookie (per sicurezza)
         $userId = Auth::id();
 
         if (!$userId && $request->cookie($dynamicCookieName)) {
@@ -164,9 +169,7 @@ class LoginController extends Controller
             }
         }
 
-        // 2. PULIZIA DATABASE (Single Logout Assoluto)
         if ($userId) {
-            // Sostituisci il Bulk Delete con il fetch + delete sui singoli modelli
             $sessions = Session::where("user_id", $userId)->get();
 
             foreach ($sessions as $session) {
@@ -174,12 +177,10 @@ class LoginController extends Controller
             }
         }
 
-        // 3. PULIZIA SESSIONE WEB LARAVEL
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // 4. PREPARAZIONE DISTRUZIONE COOKIE (Con e senza dominio per sicurezza)
         $cookiesToForget = [
             Cookie::forget($dynamicCookieName, "/", $cookieDomain),
             Cookie::forget("token", "/", $cookieDomain),
@@ -189,19 +190,17 @@ class LoginController extends Controller
             Cookie::forget("token"),
         ];
 
-        // 5. RISPOSTA AL CLIENT
         if (($request->ajax() || $request->wantsJson()) && !$request->header("X-Inertia")) {
             $response = response()->json(["message" => "Logged out successfully"], 200);
         } else {
             $response = redirect()->away($redirectUrl);
 
-            // Se andiamo al login, aggiungiamo il messaggio di successo
             if (str_contains($redirectUrl, route("loginForm"))) {
                 $response->withErrors(["login" => "Disconnessione completata con successo."]);
             }
         }
 
-        // Attacchiamo tutti i cookie "tossici" da distruggere alla risposta
+        // Aggiungo i cookie alla risposta
         foreach ($cookiesToForget as $cookie) {
             $response->withCookie($cookie);
         }

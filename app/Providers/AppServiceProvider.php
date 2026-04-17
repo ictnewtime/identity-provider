@@ -26,7 +26,6 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme("https");
         }
 
-        // Passport::clientUuids();
         Passport::hashClientSecrets();
     }
 }

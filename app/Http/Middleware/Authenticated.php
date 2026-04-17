@@ -25,13 +25,7 @@ class Authenticated
         Log::debug("Atteso Provider ID: {$idpProviderId} | Nome Cookie: {$cookieName}");
 
         // Estrazione del token
-        $fromCookie = $request->hasCookie($cookieName);
-        $fromBearer = !empty($request->bearerToken());
         $tokenString = $request->cookie($cookieName) ?? $request->bearerToken();
-
-        Log::debug(
-            "Ricerca Token -> Cookie: " . ($fromCookie ? "SI" : "NO") . " | Bearer: " . ($fromBearer ? "SI" : "NO"),
-        );
 
         if (empty($tokenString)) {
             Log::warning("Fallimento: Nessun token trovato nel cookie [{$cookieName}] o nell'header Bearer.");
@@ -49,18 +43,10 @@ class Authenticated
             $algo = config("jwt.algo", "HS256");
             $keys = config("jwt.keys", []);
 
-            Log::debug("Inizio decodifica token...");
-
-            // Creiamo il provider specifico al volo per decodificare
             $customProvider = new Lcobucci($provider->secret_key, $algo, $keys);
 
-            // Proviamo a decodificare. Se la firma o la sintassi sono errate, lancerà un'eccezione
             $payload = $customProvider->decode($tokenString);
 
-            // LOG DEL PAYLOAD DECODIFICATO
-            Log::debug("Token decodificato: " . json_encode($payload));
-
-            // VERIFICA SCADENZA (exp)
             if (isset($payload["exp"])) {
                 $currentTime = time();
 
@@ -126,29 +112,19 @@ class Authenticated
         $cookieName = "idp_token_" . $idpProviderId;
         $provider = Provider::find($idpProviderId);
 
-        Log::debug(
-            "Esecuzione forceLogoutAndRedirect - Distruzione cookie per il dominio: " .
-                ($provider->domain ?? "null (locale)"),
-        );
-
-        // 1. Accodiamo la distruzione dei cookie
         Cookie::queue(Cookie::forget($cookieName, "/", $provider->domain));
         Cookie::queue(Cookie::forget("token", "/", $provider->domain));
 
-        // 2. Se è una richiesta API pura o AJAX (non Inertia), rispondiamo subito con 401
-        // SENZA toccare la sessione web (evitando il crash)
         if ($request->expectsJson() && !$request->header("X-Inertia")) {
             return response()->json(["message" => $message], 401);
         }
 
-        // 3. Se siamo su una rotta WEB, la sessione esiste: procediamo a distruggerla
         if ($request->hasSession()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
         }
 
-        // 4. Reindirizziamo l'utente al login
         return redirect()
             ->route("loginForm")
             ->withErrors([
