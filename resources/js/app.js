@@ -52,10 +52,8 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         const app = createApp({ render: () => h(App, props) });
 
-        // 1. Usa il plugin di Inertia
         app.use(plugin);
 
-        // 2. Configura PrimeVue
         app.use(PrimeVue, {
             theme: {
                 preset: BrandPreset,
@@ -70,20 +68,21 @@ createInertiaApp({
         app.use(i18nVue, {
             resolve: async (lang) => {
                 const langs = import.meta.glob("../../lang/*.json");
-                return await langs[`../../lang/${lang}.json`]();
+                const path = `../../lang/${lang}.json`;
+
+                if (langs[path]) {
+                    return await langs[path]();
+                }
+
+                console.warn(`Traduzione non trovata per: ${lang}. Caricamento fallback...`);
+                return await langs["../../lang/it.json"]();
             },
         });
 
-        // 3. Configura il ToastService
         app.use(ToastService);
-
         app.directive("tooltip", Tooltip);
-
-        // (Opzionale) Se hai un componente Notification che vuoi avere
-        // DAVVERO ovunque senza importarlo ogni volta, puoi registrarlo qui:
         app.component("notification", Notification);
 
-        // 4. Monta l'app sull'elemento radice fornito da Inertia
         app.mount(el);
     },
 });

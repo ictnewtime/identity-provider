@@ -8,17 +8,17 @@
 
 - name: Stop e Rimozione vecchio container di identity-provider (se esiste)
   community.docker.docker_container:
-      name: "{{ identity_provider_container_name }}"
+      name: "{{ identity_provider_container_name }}-{{ docker_image_tag }}"
       state: absent
 
 - name: Avvio nuovo container di identity-provider (Docker Run)
   community.docker.docker_container:
-      name: "{{ identity_provider_container_name }}"
+      name: "{{ identity_provider_container_name }}-{{ docker_image_tag }}"
       image: "{{ registry_url }}/{{ identity_provider_path }}:{{ image_tag }}"
       state: started
       restart_policy: always
       published_ports:
-          - "{{ internal_container_port }}:80"
+          - "{{ target_host_port }}:{{ internal_container_port }}"
       networks:
           - name: database-network
 

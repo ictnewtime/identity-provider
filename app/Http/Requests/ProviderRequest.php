@@ -22,7 +22,6 @@ class ProviderRequest extends FormRequest
      */
     public function rules(): array
     {
-        // 1. Recuperiamo l'ID dalla rotta (sarà null se siamo in POST/Create)
         $providerId = $this->route("id");
 
         return [

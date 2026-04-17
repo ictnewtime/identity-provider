@@ -9,8 +9,8 @@ use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use App\Models\Session;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cookie;
+use App\Models\User;
+use Illuminate\Http\JsonResponse as HttpJsonResponse;
 
 class SessionController extends Controller
 {
@@ -54,25 +54,22 @@ class SessionController extends Controller
     /**
      * Controlla lo stato di una sessione (Chiamata dall'IdP Extension M2M)
      */
-    public function check(Request $request): \Illuminate\Http\JsonResponse
+    public function check(Request $request): HttpJsonResponse
     {
-        // 1. Recuperiamo i dati ultra-sicuri che il middleware ha estratto dal JWT
         $providerId = $request->attributes->get("jwt_provider_id");
         $userId = $request->attributes->get("jwt_user_id");
 
-        // Se mancano, c'è un problema grave col middleware
         if (!$providerId || !$userId) {
             return response()->json(["valid" => false, "message" => "JWT Claims missing"], 401);
         }
 
-        // --- 2. CONTROLLO SICUREZZA: SCADENZA PASSWORD ---
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
 
         if (!$user) {
             return response()->json(["valid" => false, "message" => "User not found"], 404);
         }
 
-        // Se la password è scaduta o deve essere forzata, uccidiamo la sessione esterna
+        // Se la password è scaduta o deve essere forzata, terminiamo la sessione esterna
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
             return response()->json(
                 [
@@ -83,18 +80,13 @@ class SessionController extends Controller
             );
         }
 
-        // 3. Validiamo solo i dati ambientali che arrivano dalla GET di App2
         $validated = $request->validate([
-            "ip_address" => "nullable|ip",
             "user_agent" => "nullable|string",
         ]);
 
-        $ip_address = $validated["ip_address"] ?? $request->ip();
-        $user_agent = $validated["user_agent"] ?? $request->userAgent();
+        $user_agent = $validated["user_agent"];
 
-        // 4. Logica di Business
         $result = $this->sessionService->validateAndRefreshSession(
-            $ip_address,
             $providerId,
             $userId,
             $user_agent,
@@ -132,12 +124,9 @@ class SessionController extends Controller
 
         $userId = $request->input("user_id");
 
-        // 1. Recuperiamo tutte le sessioni prima di cancellarle
         $sessions = Session::where("user_id", $userId)->get();
         $deletedCount = $sessions->count();
 
-        // 2. Le eliminiamo ciclando sui modelli
-        // In questo modo, il Trait CustomAuditable intercetterà l'evento 'deleted' per ciascuna.
         foreach ($sessions as $session) {
             $session->delete();
         }

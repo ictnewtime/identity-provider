@@ -17,7 +17,6 @@ use App\Http\Middleware\ProviderClientCredentials;
 use App\Http\Middleware\VerifyExternalToken;
 use App\Http\Middleware\CheckPasswordExpiration;
 
-// Middleware Core / Passport
 use Illuminate\Cookie\Middleware\EncryptCookies as CoreEncryptCookies;
 use Illuminate\Http\Request;
 use Laravel\Passport\Http\Middleware\CheckScopes;
@@ -29,35 +28,18 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__ . "/../routes/api.php",
         commands: __DIR__ . "/../routes/console.php",
         health: "/up",
-        // ------------------------------------------------------
-        // then: function () {
-        //     Route::middleware("web")
-        //         // ->prefix('idp')
-        //         ->group(base_path("routes/idp.php"));
-        //     // Route::group(base_path('routes/idp.php'));
-        //     // idp: __DIR__.'/../routes/idp.php',
-        // },
-        // ------------------------------------------------------
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // 1. Esclusioni CSRF
+        $middleware->trustProxies(at: "*");
         $middleware->validateCsrfTokens(
             except: ["/v2/login", "api/*", "admin/v1/*", "logout", "password/force-update"],
         );
 
-        // 2. Sostituzione Middleware di Base (Il modo corretto in Laravel 11)
         $middleware->replace(CoreEncryptCookies::class, CustomEncryptCookies::class);
-        // 3. Middleware aggiunti al gruppo "web"
-        $middleware->web(
-            append: [
-                SetLocale::class, // TODO: debug locale. Da rimuovere
-                HandleInertiaRequests::class,
-            ],
-        );
+        $middleware->web(append: [SetLocale::class, HandleInertiaRequests::class]);
 
         $middleware->web(append: [SetLocale::class]);
 
-        // 4. Alias (Nomi brevi per usare i middleware nelle rotte)
         $middleware->alias([
             // Autenticazione & Ruoli
             "guest" => RedirectIfAuthenticated::class,
@@ -77,7 +59,7 @@ return Application::configure(basePath: dirname(__DIR__))
             "scope" => CheckForAnyScope::class,
         ]);
         $middleware->web(append: [HandleInertiaRequests::class]);
-        // CATTURIAMO I PARAMETRI SSO PRIMA DEL REDIRECT DI DEFAULT!
+        // Ottenere parametri sso
         $middleware->redirectUsersTo(function (\Illuminate\Http\Request $request) {
             // Se l'utente è già loggato e arriva con una richiesta per un'app esterna
             if ($request->has("provider_id")) {

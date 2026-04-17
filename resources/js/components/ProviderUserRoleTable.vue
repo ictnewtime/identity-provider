@@ -77,7 +77,6 @@ const openCreateModal = () => {
     displayModal.value = true;
 };
 
-// Esponiamo la funzione al componente padre
 defineExpose({
     openCreateModal,
 });
@@ -107,18 +106,15 @@ const toggleShowRecordsDeleted = () => {
     loadRecords(1);
 };
 
-// --- FUNZIONI CORE (Gestiscono le chiamate API con array di ID) ---
-
 const deleteProviderUserRoles = (ids) => {
     if (!ids || ids.length === 0) return;
 
-    // Assicurati che il backend abbia una rotta che accetti { ids: [...] } nel payload
     window.axios
         .delete("/admin/v1/provider-user-roles/bulk-delete", { data: { ids } })
         .then(() => {
             displayDeleteModal.value = false;
             itemSelected.value = null;
-            selectedProviderUserRoles.value = []; // Svuota la selezione della tabella
+            selectedProviderUserRoles.value = [];
             loadRecords(pagination.value.current_page);
             toast.add({
                 severity: "success",
@@ -169,8 +165,6 @@ const restoreProviderUserRoles = (ids) => {
             emit("item-error", error);
         });
 };
-
-// FUNZIONI COLLEGATE AI BOTTONI / MODALI DELL'UI
 
 const deleteSelectedProviderUserRoles = () => {
     const rawData = getSelectedProviderUserRoles();

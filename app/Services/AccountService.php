@@ -77,7 +77,6 @@ class AccountService implements IAccountService
             $userVerification = VerificationCode::where("verification_code", $verificationCode)->first();
 
             if (empty($userVerification)) {
-                // Usiamo le chiavi di traduzione invece delle stringhe fisse
                 throw new \Exception(__("auth.verification.errors.invalid_code"));
             }
 
@@ -103,8 +102,6 @@ class AccountService implements IAccountService
 
             Log::error("Errore verifica utente: " . $e->getMessage());
 
-            // Passiamo il messaggio tradotto all'eccezione custom
-            // Il controller che chiama questo metodo potrà prendere il messaggio e mandarlo a Inertia
             throw new SqlException($e->getMessage());
         }
     }

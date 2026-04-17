@@ -351,10 +351,13 @@ class ProviderController extends Controller
             $provider = Provider::find($id);
 
             if (empty($provider)) {
-                return response()->json(["message" => "Provider not found"], 404);
+                return response()->json(["message" => __("admin.providers.not_found_for_delete")], 404);
+            }
+            // se esistono dei ruoli associati al provider che sono ancora attivi, non permettere l'eliminazione
+            if ($provider->roles()->whereNull("deleted_at")->exists()) {
+                return response()->json(["message" => __("admin.providers.delete_error_active_roles")], 400);
             }
 
-            // Eliminiamo il record direttamente dal DB prima del Provider
             DB::table("oauth_clients")->where("id", $provider->id)->delete();
 
             $provider->delete();

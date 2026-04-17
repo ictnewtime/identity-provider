@@ -9,40 +9,29 @@ use OwenIt\Auditing\Models\Audit;
 
 class AuditController extends Controller
 {
-    /**
-     * 1. Restituisce solo la struttura della pagina Vue
-     */
     public function index()
     {
         return Inertia::render("Admin/Audits");
     }
 
-    /**
-     * 2. Restituisce i dati JSON paginati per il componente AuditTable (Axios)
-     */
     public function all(Request $request)
     {
-        // 1. Carichiamo la relazione polimorfica (non possiamo filtrare le colonne qui
-        // perché User e Client hanno colonne diverse)
         $query = Audit::with("user");
 
-        // 2. Ricerca
         if ($request->filled("q")) {
             $searchTerm = "%" . $request->q . "%";
 
-            // Usiamo una closure per raggruppare gli OR, evitando di rompere la query
             $query->where(function ($qBuilder) use ($searchTerm) {
                 $qBuilder
                     ->where("ip_address", "like", $searchTerm)
                     ->orWhere("event", "like", $searchTerm)
                     ->orWhere("auditable_type", "like", $searchTerm)
 
-                    // LA MAGIA POLIMORFICA:
                     ->orWhereHasMorph("user", [\App\Models\User::class, \Laravel\Passport\Client::class], function (
                         $q,
                         $type,
                     ) use ($searchTerm) {
-                        // Se la riga appartiene a un umano, cerca per username
+                        // Se la riga appartiene a web, cerca per username
                         if ($type === \App\Models\User::class) {
                             $q->where("username", "like", $searchTerm);
                         }

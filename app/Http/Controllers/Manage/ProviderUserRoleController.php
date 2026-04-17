@@ -291,13 +291,11 @@ class ProviderUserRoleController extends Controller
     ]
     public function bulk_delete(Request $request)
     {
-        // 1. Validiamo che 'ids' sia presente, sia un array, e contenga numeri
         $request->validate([
             "ids" => "required|array",
             "ids.*" => "integer|exists:provider_user_roles,id",
         ]);
 
-        // 2. Cancellazione massiva con un'unica query
         try {
             $rolesToDelete = ProviderUserRole::whereIn("id", $request->ids)->get();
             foreach ($rolesToDelete as $role) {
@@ -388,7 +386,6 @@ class ProviderUserRoleController extends Controller
     ]
     public function bulk_restore(Request $request)
     {
-        // 1. Validazione
         $validator = Validator::make($request->all(), [
             "ids" => "required|array",
             "ids.*" => "integer",
@@ -404,20 +401,17 @@ class ProviderUserRoleController extends Controller
             );
         }
 
-        // 2. Recuperiamo i record che l'utente vuole ripristinare
         $rolesToRestore = ProviderUserRole::withTrashed()->whereIn("id", $request->ids)->get();
 
         if ($rolesToRestore->isEmpty()) {
             return response()->json(["message" => __("provider_user_roles.not_found_multiple")], 404);
         }
 
-        // 3. Controllo dei duplicati attivi con un'unica query efficiente
-        // Inizializziamo una query sui record ATTIVI (deleted_at IS NULL è automatico)
+        // Controlliamo che non ci siano duplicati
         $duplicatesQuery = ProviderUserRole::query();
 
         $duplicatesQuery->where(function ($query) use ($rolesToRestore) {
             foreach ($rolesToRestore as $role) {
-                // Costruiamo una clausola (A AND B AND C) OR (D AND E AND F) ...
                 $query->orWhere(function ($q) use ($role) {
                     $q->where("provider_id", $role->provider_id)
                         ->where("user_id", $role->user_id)
@@ -426,12 +420,10 @@ class ProviderUserRoleController extends Controller
             }
         });
 
-        // Se la query trova anche solo un record, significa che c'è un conflitto
         if ($duplicatesQuery->exists()) {
             return response()->json(["message" => __("provider_user_roles.conflict_unique_multiple")], 422);
         }
 
-        // 4. Se tutto è pulito, eseguiamo il ripristino
         try {
             foreach ($rolesToRestore as $role) {
                 $role->restore();

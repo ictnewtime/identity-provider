@@ -9,7 +9,6 @@ defineProps({
     audits: Array,
 });
 
-// Creiamo un riferimento per agganciarci al componente figlio
 const tableRef = ref(null);
 </script>
 
