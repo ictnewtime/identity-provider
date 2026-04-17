@@ -96,7 +96,9 @@ trait CustomAuditable
             if ($userType == Client::class) {
             } else {
                 $session = Session::where("user_id", $userId)->where("provider_id", $providerId)->first();
-                $ip_address = $session ? $session["ip_address"] : null;
+                if ($session) {
+                    $ip_address = $session->ip_address;
+                }
             }
 
             DB::table("audits")->insert([
