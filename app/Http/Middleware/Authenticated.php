@@ -17,8 +17,12 @@ class Authenticated
 {
     public function handle($request, Closure $next)
     {
+        Log::info("=== START AUTHENTICATED MIDDLEWARE ===");
+
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
+
+        Log::debug("Atteso Provider ID: {$idpProviderId} | Nome Cookie: {$cookieName}");
 
         // Estrazione del token
         $tokenString = $request->cookie($cookieName) ?? $request->bearerToken();
@@ -46,6 +50,14 @@ class Authenticated
             if (isset($payload["exp"])) {
                 $currentTime = time();
 
+              Log::debug(
+                    "Verifica scadenza (exp) -> Current: {$currentTime} (" .
+                        date("Y-m-d H:i:s", $currentTime) .
+                        ") | Token Exp: {$payload["exp"]} (" .
+                        date("Y-m-d H:i:s", $payload["exp"]) .
+                        ")",
+                );
+
                 if ($payload["exp"] < $currentTime) {
                     Log::warning("Fallimento: Il token è scaduto!");
                     throw new TokenExpiredException("Token has expired");
@@ -67,6 +79,9 @@ class Authenticated
             }
 
             Auth::login($user);
+
+            Log::debug("Utente ID {$userId} autenticato in Laravel.");
+
             $sessionExists = Session::where("token", $tokenString)->exists();
 
             if (!$sessionExists) {
@@ -78,6 +93,8 @@ class Authenticated
                     'La tua sessione è stata terminata dall\'amministratore.',
                 );
             }
+
+            Log::info("=== END AUTHENTICATED MIDDLEWARE: Successo ===");
         } catch (TokenExpiredException $e) {
             Log::warning("Eccezione catturata: TokenExpiredException.");
             return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));

@@ -1,12 +1,54 @@
-name: Deploy IDP to Stage
-run-name: Deploying ${{ gitea.actor }} push to Stage
+name: Pipeline Quality & Deploy Staging
+run-name: "Quality + Deploy for ${{ gitea.actor }} on staging"
 
 on:
     push:
         branches:
             - staging
+    workflow_dispatch: # Mantiene la possibilità di avvio manuale
 
 jobs:
+    sonar-scan:
+      name: SonarQube Quality Gate
+      runs-on: self-hosted
+      environment: main
+      container:
+        image: dockerhub.newtimegroup.it/ci-runner:v1
+        credentials:
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASS }}
+      steps:
+        - name: 🚀 Notifica Inizio Scan
+          uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+          with:
+            webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+            event_type: "sonar_start"
+
+        - name: Checkout Code
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
+
+        - name: SonarQube Scan
+          id: sonar
+          uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/sonarqube@main
+          with:
+            sonar_token: ${{ secrets.SONARQUBE_TOKEN }}
+            sonar_host_url: ${{ vars.SONAR_HOST_URL }}
+            webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+            args: >
+              -Dsonar.projectKey=${{ gitea.repository_owner }}_${{ gitea.repository }}
+              -Dsonar.sources=.
+              -Dsonar.javascript.node.maxspace=2048
+              -Dsonar.qualitygate.wait=true
+
+        - name: 🏁 Notifica Esito Scan
+          if: always()
+          uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+          with:
+            webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+            event_type: ${{ job.status == 'success' && 'sonar_success' || 'sonar_failure' }}
+
     ansible-deploy:
         runs-on: self-hosted
         environment: staging
@@ -17,6 +59,12 @@ jobs:
                 password: ${{ secrets.REGISTRY_PASS }}
 
         steps:
+            - name: 🚀 Notifica Inizio
+              uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+              with:
+                webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+                event_type: "start"
+
             - name: 📡 Checkout repository
               uses: actions/checkout@v3
 
@@ -53,3 +101,10 @@ jobs:
                     --extra-vars "host_port=${{ vars.STAGING_PORT }}" \
                     --extra-vars "registry_user=${{ secrets.REGISTRY_USER }}" \
                     --extra-vars "registry_pass=${{ secrets.REGISTRY_PASS }}"
+
+            - name: 🏁 Notifica Esito Finale
+              if: always()
+              uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/discord-notifier@main
+              with:
+                webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+                event_type: ${{ job.status == 'success' && 'success' || 'failure' }}
