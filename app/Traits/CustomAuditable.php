@@ -2,9 +2,12 @@
 
 namespace App\Traits;
 
+use App\Models\Session;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Laravel\Passport\Client;
 
 trait CustomAuditable
 {
@@ -31,14 +34,14 @@ trait CustomAuditable
             }
 
             $action = $originalAction;
-            $isSoftDeletable = in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive($model));
+            $isSoftDeletable = in_array(SoftDeletes::class, class_uses_recursive($model));
 
             $dirty = $model->getDirty();
             if (empty($dirty) && method_exists($model, "getChanges")) {
                 $dirty = $model->getChanges();
             }
             $changedFields = array_keys($dirty);
-
+            // gestione della soft delete
             if ($isSoftDeletable) {
                 if ($originalAction === "updated") {
                     if (in_array("deleted_at", $changedFields)) {
@@ -53,18 +56,23 @@ trait CustomAuditable
                 }
             }
 
-            if ($action === "updated" && $model instanceof \App\Models\Session) {
+            if ($action === "updated" && $model instanceof Session) {
                 $ignoredFields = ["last_activity", "updated_at", "expires_at"];
                 if (empty(array_diff($changedFields, $ignoredFields))) {
                     return;
                 }
             }
 
+            // Ottengo l' userId dalla sessione Laravel
             $userId = Auth::id();
             $userType = $userId ? get_class(Auth::user()) : null;
 
-            $clientId = request()->attributes->get("provider_id") ?? request()->attributes->get("oauth_client_id");
-
+            // Ottengo il clientId da Passport
+            $providerId = request()->attributes->get("provider_id");
+            $clientId = $providerId ?? request()->attributes->get("oauth_client_id");
+            if ($userId && !$providerId) {
+                $providerId = config("idp.provider_id");
+            }
             if (!$clientId && request()->bearerToken()) {
                 $token = request()->bearerToken();
                 $parts = explode(".", $token);
@@ -75,13 +83,21 @@ trait CustomAuditable
                 }
             }
 
+            // Se abbiamo un clientId ma nessun userId, usaiamo l' userType Passport
             if ($clientId && !$userId) {
                 $userId = $clientId;
-                $userType = \Laravel\Passport\Client::class;
+                $userType = Client::class;
             }
 
             $oldValues = $originalAction !== "created" ? json_encode($model->getOriginal()) : json_encode([]);
             $newValues = $originalAction !== "deleted" ? json_encode($dirty) : json_encode([]);
+
+            $ip_address = request()->ip();
+            if ($userType == Client::class) {
+            } else {
+                $session = Session::where("user_id", $userId)->where("provider_id", $providerId)->first();
+                $ip_address = $session ? $session["ip_address"] : null;
+            }
 
             DB::table("audits")->insert([
                 "user_type" => $userType,
@@ -92,7 +108,7 @@ trait CustomAuditable
                 "old_values" => $oldValues,
                 "new_values" => $newValues,
                 "url" => request()->fullUrl(),
-                "ip_address" => request()->ip(),
+                "ip_address" => $ip_address,
                 "user_agent" => request()->userAgent(),
                 "tags" => null,
                 "created_at" => now(),

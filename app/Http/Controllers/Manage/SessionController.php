@@ -9,8 +9,8 @@ use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use App\Models\Session;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cookie;
+use App\Models\User;
+use Illuminate\Http\JsonResponse as HttpJsonResponse;
 
 class SessionController extends Controller
 {
@@ -54,7 +54,7 @@ class SessionController extends Controller
     /**
      * Controlla lo stato di una sessione (Chiamata dall'IdP Extension M2M)
      */
-    public function check(Request $request): \Illuminate\Http\JsonResponse
+    public function check(Request $request): HttpJsonResponse
     {
         $providerId = $request->attributes->get("jwt_provider_id");
         $userId = $request->attributes->get("jwt_user_id");
@@ -63,7 +63,7 @@ class SessionController extends Controller
             return response()->json(["valid" => false, "message" => "JWT Claims missing"], 401);
         }
 
-        $user = \App\Models\User::find($userId);
+        $user = User::find($userId);
 
         if (!$user) {
             return response()->json(["valid" => false, "message" => "User not found"], 404);
@@ -85,8 +85,8 @@ class SessionController extends Controller
             "user_agent" => "nullable|string",
         ]);
 
-        $ip_address = $validated["ip_address"] ?? $request->ip();
-        $user_agent = $validated["user_agent"] ?? $request->userAgent();
+        $ip_address = $validated["ip_address"];
+        $user_agent = $validated["user_agent"];
 
         $result = $this->sessionService->validateAndRefreshSession(
             $ip_address,

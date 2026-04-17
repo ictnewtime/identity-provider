@@ -84,10 +84,25 @@ class LoginController extends Controller
             $tokenService = new TokenProviderService();
             $sessionService = new SessionService();
 
+            $ip_address = $request->ip();
+            // Verifichia l' ambiente è local (dal file .env)
+            // e verifichia se l'IP è un indirizzo privato (172.x, 192.x, 10.x)
+            if (app()->environment("local")) {
+                $isPrivate = !filter_var(
+                    $ip_address,
+                    FILTER_VALIDATE_IP,
+                    FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE,
+                );
+                if ($isPrivate) {
+                    // Se l'IP è privato o locale, lo normalizziamo a 127.0.0.1
+                    // per mantenere coerenza nei log di sviluppo
+                    $ip_address = "127.0.0.1";
+                }
+            }
             $token = $sessionService->getValidProviderToken(
                 $user,
                 $idpProviderId,
-                $request->ip(),
+                $ip_address,
                 $request->userAgent(),
                 $tokenService,
             );
