@@ -115,12 +115,12 @@ class SessionService
     {
         $session = Session::where("user_id", $clientId)->where("provider_id", $providerId)->first();
 
-        // Se la sessione non esiste
+        // Se la sessione non esiste, ritorniamo 404
         if (!$session) {
             return ["status" => 404];
         }
 
-        // Se la sessione è scaduta
+        // Se la sessione è scaduta la eliminiamo e ritorniamo 404
         if ($session->expires_at && !$session->expires_at->isFuture()) {
             $session->delete();
             return ["status" => 404];
