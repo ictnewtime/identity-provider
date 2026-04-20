@@ -351,6 +351,9 @@
     "auth.hide_password": "Nascondi password",
     "auth.show_password": "Mostra password",
     "auth.update_password_btn": "Salva nuova password",
+    "auth.token_missing": "Token di autorizzazione mancante",
+    "auth.token_invalid": "Token di autorizzazione non valido",
+    "auth.provider_invalid": "Provider non valido",
 
     "admin.parameters.title": "Gestione Parametri di Sistema",
     "admin.parameters.new_parameter": "Crea Nuovo Parametro",

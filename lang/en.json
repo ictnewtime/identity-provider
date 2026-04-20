@@ -349,6 +349,9 @@
     "auth.hide_password": "Hide password",
     "auth.show_password": "Show password",
     "auth.update_password_btn": "Save New Password",
+    "auth.token_missing": "Authorization token missing",
+    "auth.token_invalid": "Authorization token invalid",
+    "auth.provider_invalid": "Invalid provider",
 
     "admin.parameters.title": "System Parameters Management",
     "admin.parameters.new_parameter": "New Parameter",
