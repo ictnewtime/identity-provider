@@ -15,8 +15,8 @@ class VerifyExternalToken
         $tokenString = $request->bearerToken();
 
         if (empty($tokenString)) {
-            Log::error("Token di introspezione mancante.");
-            return response()->json(["message" => "Token di introspezione mancante."], 401);
+            Log::error("Token di autorizzazione mancante.");
+            return response()->json(["message" => __("auth.token_missing")], 401);
         }
 
         try {
@@ -31,13 +31,13 @@ class VerifyExternalToken
 
             if (!$providerId || !$userId) {
                 Log::error("Token corrotto (claim mancanti).");
-                return response()->json(["message" => "Token corrotto (claim mancanti)."], 401);
+                return response()->json(["message" => __("auth.token_invalid")], 401);
             }
 
             $provider = Provider::find($providerId);
             if (!$provider || empty($provider->secret_key)) {
                 Log::error("Provider non valido o chiave mancante.");
-                return response()->json(["message" => "Provider non valido o chiave mancante."], 401);
+                return response()->json(["message" => __("auth.provider_invalid")], 401);
             }
 
             $algo = config("jwt.algo", "HS256");
@@ -48,8 +48,11 @@ class VerifyExternalToken
             $request->attributes->set("jwt_user_id", $userId);
             $request->attributes->set("jwt_provider_id", $providerId);
         } catch (\Exception $e) {
-            Log::warning("Introspezione Token fallita: " . $e->getMessage());
-            return response()->json(["message" => "Firma token non valida o token scaduto."], 401);
+            Log::warning(
+                "Verifica Token di autorizzazione fallita (Firma token non valida o token scaduto): " .
+                    $e->getMessage(),
+            );
+            return response()->json(["message" => __("auth.token_invalid")], 401);
         }
 
         return $next($request);

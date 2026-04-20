@@ -82,22 +82,19 @@ class SessionController extends Controller
 
         $validated = $request->validate([
             "user_agent" => "nullable|string",
+            "is_api" => "nullable|boolean",
         ]);
 
-        $user_agent = $validated["user_agent"];
+        $user_agent = $validated["user_agent"] ?? null;
+        $isApi = $validated["is_api"] ?? false;
 
-        $result = $this->sessionService->validateAndRefreshSession(
-            $providerId,
-            $userId,
-            $user_agent,
-            $this->tokenService,
-        );
+        $result = $this->sessionService->validateSession($providerId, $userId, $user_agent, $isApi);
 
         if ($result["status"] === 404) {
             return response()->json(
                 [
                     "valid" => false,
-                    "message" => "Session expired, not found, or access revoked.",
+                    "message" => "Session expired.",
                 ],
                 404,
             );

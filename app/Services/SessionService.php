@@ -111,56 +111,39 @@ class SessionService
      * Verifica la sessione per la chiamata middleware dell'extension.
      * Ritorna un array con status HTTP e l'eventuale nuovo token.
      */
-    public function validateAndRefreshSession($providerId, $clientId, $user_agent, TokenProviderService $tokenService)
+    public function validateSession($providerId, $clientId, $user_agent, bool $isApi)
     {
-        $session = Session::where("user_id", $clientId)
-            ->where("provider_id", $providerId)
-            ->where("user_agent", $user_agent)
-            ->first();
+        $session = Session::where("user_id", $clientId)->where("provider_id", $providerId)->first();
 
         // Se la sessione non esiste
         if (!$session) {
-            // Se non la trova, cerchiamo di capire se esiste una sessione per l'utente
-            $anySession = Session::where("user_id", $clientId)->where("provider_id", $providerId)->first();
-            if ($anySession) {
-                Log::warning("Sessione trovata ma lo USER AGENT non coincide!");
-                Log::warning("DB UA: " . $anySession->user_agent);
-                Log::warning("REQ UA: " . $user_agent);
-            }
             return ["status" => 404];
         }
 
-        // Se la sessione scaduta
+        // Se la sessione è scaduta
         if ($session->expires_at && !$session->expires_at->isFuture()) {
             $session->delete();
             return ["status" => 404];
         }
 
-        // Valida: se lo User Agent è lo stesso, consideriamo la sessione valida
-        if ($session->user_agent === $user_agent) {
+        // Valida: se lo User Agent è lo stesso oppure facciamo un check con l'API
+        // consideriamo la sessione valida
+        if ($isApi || empty($user_agent) || $session->user_agent === $user_agent) {
             $session->last_activity = now();
             $session->save();
             return ["status" => 200, "token" => null];
         }
 
-        // Se cambia lo USER AGENT, allora è un cambio dispositivo/browser: qui sì che serve rigenerare o sloggare
-        $user = $session->user;
-        $newToken = $tokenService->tokenCretion($user, $providerId);
-
-        if (!$newToken) {
+        // Se cambia lo USER AGENT, allora è un cambio dispositivo/browser e termino la sessione
+        if ($session->user_agent !== $user_agent) {
+            Log::info(
+                "Rilevato cambio User Agent sul Provider ID {$providerId} con User ID {$clientId}. Termino la sessione.",
+            );
+            $session->delete();
             return ["status" => 404];
         }
 
-        $ttlInSeconds = $tokenService->getTtlInSeconds();
-
-        $session->update([
-            "user_agent" => $user_agent,
-            "token" => $newToken,
-            "expires_at" => now()->addSeconds($ttlInSeconds),
-            "last_activity" => now(),
-        ]);
-
-        return ["status" => 200, "token" => $newToken];
+        return ["status" => 404];
     }
 
     public function destroySession($userId, $providerId): bool
