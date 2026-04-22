@@ -35,7 +35,11 @@ return Application::configure(basePath: dirname(__DIR__))
             except: ["/v2/login", "api/*", "admin/v1/*", "logout", "password/force-update"],
         );
 
-        $middleware->replace(CoreEncryptCookies::class, CustomEncryptCookies::class);
+        $middleware->web(
+            replace: [
+                CoreEncryptCookies::class => CustomEncryptCookies::class,
+            ],
+        );
         $middleware->web(append: [SetLocale::class, HandleInertiaRequests::class]);
 
         $middleware->web(append: [SetLocale::class]);

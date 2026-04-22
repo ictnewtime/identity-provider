@@ -33,7 +33,7 @@ class RedirectIfAuthenticated
 
         // check scadenza Password
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
-            Log::info("Seamless SSO bloccato: Utente {$user->username} ha la password scaduta.");
+            Log::warning("Seamless SSO bloccato: Utente {$user->username} ha la password scaduta.");
 
             if ($providerId) {
                 $request->session()->put("pending_sso_provider_id", $providerId);

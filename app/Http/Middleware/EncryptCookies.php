@@ -18,7 +18,6 @@ class EncryptCookies extends Middleware
         try {
             $providerIds = Provider::pluck("id");
             foreach ($providerIds as $id) {
-                Log::info("idp_token_ . $id");
                 $this->except[] = "idp_token_" . $id;
             }
         } catch (\Exception $e) {
