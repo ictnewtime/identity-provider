@@ -136,7 +136,7 @@ class SessionService
 
         // Se cambia lo USER AGENT, allora è un cambio dispositivo/browser e termino la sessione
         if ($session->user_agent !== $user_agent) {
-            Log::info(
+            Log::warning(
                 "Rilevato cambio User Agent sul Provider ID {$providerId} con User ID {$clientId}. Termino la sessione.",
             );
             $session->delete();
