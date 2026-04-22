@@ -72,7 +72,11 @@ class LoginController extends Controller
                 return redirect()->route("sso.unauthorized");
             }
 
-            Cookie::queue($ssoData["cookie"]);
+            $parsedTargetHost = parse_url($ssoData["url"], PHP_URL_HOST);
+            $isLocalhostTarget = TokenProviderService::checkLocalHost($parsedTargetHost);
+            if (!$isLocalhostTarget) {
+                Cookie::queue($ssoData["cookie"]);
+            }
             return Inertia::location($ssoData["url"]);
         }
 
