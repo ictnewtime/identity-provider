@@ -53,15 +53,18 @@ class RedirectIfAuthenticated
             return $this->forceLogoutAndShowLogin($request, $cookieName, "Nessuna applicazione specificata.");
         }
 
-        // Se l'utente è admin, lo mandiamo alla dashboard dell'IdP
+        // Ottengo i parametri per la redirezione, come token e redirect_url
         $ssoData = TokenProviderService::respondWithSsoRedirect($user, $providerId, $request, $redirectTo);
 
         if (!$ssoData) {
             return $this->handleSsoFailure($request, $providerId);
         }
 
-        // Log::info("Seamless SSO Response: " . json_encode($ssoData));
-        Cookie::queue($ssoData["cookie"]);
+        $parsedTargetHost = parse_url($ssoData["url"], PHP_URL_HOST);
+        $isLocalhostTarget = TokenProviderService::checkLocalHost($parsedTargetHost);
+        if (!$isLocalhostTarget) {
+            Cookie::queue($ssoData["cookie"]);
+        }
 
         return redirect()->away($ssoData["url"])->withCookie($ssoData["cookie"]);
     }

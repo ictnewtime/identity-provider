@@ -124,6 +124,23 @@ class TokenProviderService
         return $cookie;
     }
 
+    public static function checkLocalHost($host): bool
+    {
+        $valid_hosts = ["localhost", "127.0.0.1", "::1"];
+        $valid_partial_hosts = ["192.168."];
+        foreach ($valid_hosts as $valid_host) {
+            if (str_contains($host, $valid_host)) {
+                return true;
+            }
+        }
+        foreach ($valid_partial_hosts as $valid_host) {
+            if (str_contains($host, $valid_host)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Accoda il token all'URL se l'host di destinazione è un ambiente locale.
      * Necessario per aggirare i blocchi dei cookie cross-domain in sviluppo.
@@ -134,21 +151,16 @@ class TokenProviderService
      */
     public function appendTokenIfLocalUrl(string $redirect_url, string $token): string
     {
+        $tokenService = new TokenProviderService();
         $host = parse_url($redirect_url, PHP_URL_HOST);
-
-        if (in_array($host, ["localhost", "127.0.0.1"]) || str_contains($host, "192.168.")) {
+        // in_array($host, ["localhost", "127.0.0.1"]) || str_contains($host, "192.168.")
+        // $tokenService->checkLocalHost($host);
+        if ($tokenService->checkLocalHost($host)) {
             $separator = parse_url($redirect_url, PHP_URL_QUERY) ? "&" : "?";
             return $redirect_url . $separator . "token=" . urlencode($token);
         }
 
         return $redirect_url;
-    }
-
-    public function appendTokenToUrl(string $redirect_url, string $token): string
-    {
-        // Accoda sempre il token in query string, che sia localhost o produzione
-        $separator = parse_url($redirect_url, PHP_URL_QUERY) ? "&" : "?";
-        return $redirect_url . $separator . "token=" . urlencode($token);
     }
 
     // Esempio di funzione unificata da mettere in un Service o in un Trait
@@ -179,12 +191,12 @@ class TokenProviderService
         // Gestione sicura del redirect_to
         if ($redirectToParam) {
             $parsedHost = parse_url($redirectToParam, PHP_URL_HOST);
-            if ($parsedHost === $provider->domain || in_array($parsedHost, ["localhost", "127.0.0.1"])) {
+            if (str_ends_with($parsedHost, $provider->domain) || $tokenService->checkLocalHost($parsedHost)) {
                 $redirectUrl = $redirectToParam;
             }
         }
 
-        $finalUrl = $tokenService->appendTokenToUrl($redirectUrl, $token);
+        $finalUrl = $tokenService->appendTokenIfLocalUrl($redirectUrl, $token);
         $cookie = $tokenService->cookieCretion($token, $providerId);
 
         return [

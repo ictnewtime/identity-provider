@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Sistema i permessi all'avvio (fondamentale per i volumi locali)
+# Sistema i permessi all'avvio
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
@@ -15,5 +15,4 @@ for i in {1..30}; do
   sleep 2
 done
 
-# Avvia Supervisor puntando al file principale
 exec /usr/bin/supervisord -n -c /etc/supervisord.conf
