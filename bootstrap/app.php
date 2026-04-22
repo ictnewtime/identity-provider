@@ -11,12 +11,11 @@ use App\Http\Middleware\Authenticated;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
-use App\Http\Middleware\EncryptCookies as CustomEncryptCookies;
 // use App\Http\Middleware\CheckClientCredentials;
 use App\Http\Middleware\ProviderClientCredentials;
 use App\Http\Middleware\VerifyExternalToken;
 use App\Http\Middleware\CheckPasswordExpiration;
-
+use App\Http\Middleware\EncryptCookies as CustomEncryptCookies;
 use Illuminate\Cookie\Middleware\EncryptCookies as CoreEncryptCookies;
 use Illuminate\Http\Request;
 use Laravel\Passport\Http\Middleware\CheckScopes;
@@ -31,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: "*");
+
         $middleware->validateCsrfTokens(
             except: ["/v2/login", "api/*", "admin/v1/*", "logout", "password/force-update"],
         );
