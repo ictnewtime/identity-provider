@@ -7,6 +7,7 @@ use App\Http\Requests\ProviderUserRoleRequest;
 use App\Models\ProviderUserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 
 class ProviderUserRoleController extends Controller
@@ -38,19 +39,21 @@ class ProviderUserRoleController extends Controller
         if ($request->filled("q")) {
             $searchTerm = "%" . $request->q . "%";
 
-            $query
-                ->whereHas("user", function ($q) use ($searchTerm) {
-                    $q->where("username", "like", $searchTerm);
-                })
-                ->orWhereHas("provider", function ($q) use ($searchTerm) {
-                    $q->where("domain", "like", $searchTerm);
-                })
-                ->orWhereHas("provider", function ($q) use ($searchTerm) {
-                    $q->where("name", "like", $searchTerm);
-                })
-                ->orWhereHas("role", function ($q) use ($searchTerm) {
-                    $q->where("name", "like", $searchTerm);
-                });
+            $query->where(function ($mainQuery) use ($searchTerm) {
+                $mainQuery
+                    ->whereHas("user", function ($q) use ($searchTerm) {
+                        $q->where("username", "like", $searchTerm);
+                    })
+                    ->orWhereHas("provider", function ($q) use ($searchTerm) {
+                        $q->where("domain", "like", $searchTerm);
+                    })
+                    ->orWhereHas("provider", function ($q) use ($searchTerm) {
+                        $q->where("name", "like", $searchTerm);
+                    })
+                    ->orWhereHas("role", function ($q) use ($searchTerm) {
+                        $q->where("name", "like", $searchTerm);
+                    });
+            });
         }
         if ($show_deleted) {
             $query->onlyTrashed();
@@ -297,11 +300,14 @@ class ProviderUserRoleController extends Controller
         ]);
 
         try {
+            DB::beginTransaction();
             $rolesToDelete = ProviderUserRole::whereIn("id", $request->ids)->get();
             foreach ($rolesToDelete as $role) {
                 $role->delete();
             }
+            DB::commit();
         } catch (\Exception $e) {
+            DB::rollback();
             return response()->json(["message" => __("provider_user_roles.bulk_delete_error")], 500);
         }
 
@@ -425,10 +431,13 @@ class ProviderUserRoleController extends Controller
         }
 
         try {
+            DB::beginTransaction();
             foreach ($rolesToRestore as $role) {
                 $role->restore();
             }
+            DB::commit();
         } catch (\Exception $e) {
+            DB::rollback();
             return response()->json(["message" => $e->getMessage()], 500);
         }
 

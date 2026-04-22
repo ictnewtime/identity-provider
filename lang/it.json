@@ -84,7 +84,7 @@
     "admin.users.toast.delete_success": "Utente eliminato correttamente",
     "admin.users.toast.delete_error": "Si è verificato un errore durante l'eliminazione dell'utente",
 
-    "admin.users.delete.prompt": "Sei sicuro di voler eliminare l'utente ",
+    "admin.users.delete.prompt": "Sei sicuro di voler eliminare ",
 
     "admin.users.form.username_label": "Username",
     "admin.users.form.email_label": "Email",
@@ -114,7 +114,12 @@
 
     "user.error.not_found": "Utente non trovato",
     "user.delete_error": "Errore durante l'eliminazione dell'utente",
-    "user.restore_error": "Errore durante la ripristina dell'utente",
+    "user.restore_error": "Errore durante la ripristinazione dell'utente",
+    "user.bulk_delete_error": "Errore cancellazione utenti",
+    "user.bulk_delete_success": "Utenti cancellati con successo",
+    "users.bulk_restore_error": "Errore durante la ripristinazione degli utenti",
+    "users.not_found_multiple": "Errore durante il ripristino degli utenti. IDs non corrispondenti.",
+    "users.bulk_restore_success": "Utenti ripristinati con successo",
 
     "admin.roles.title": "Gestione Ruoli",
     "admin.roles.new_role": "Nuovo Ruolo",
@@ -186,7 +191,7 @@
     "admin.providers.table.hide_deleted_tooltip": "Nascondi Provider Eliminati",
     "admin.providers.restore.title": "Ripristina Provider",
     "admin.providers.restore.prompt": "Sei sicuro di voler ripristinare definitivamente il provider ",
-    "admin.users.restore.prompt": "Sei sicuro di voler ripristinare definitivamente l'utente ",
+    "admin.users.restore.prompt": "Sei sicuro di voler ripristinare definitivamente ",
 
     "admin.providers.form.title_create": "Nuovo Provider",
     "admin.providers.form.title_edit": "Modifica Provider",
@@ -278,15 +283,15 @@
     "admin.provider_user_roles.table.show_deleted_tooltip": "Mostra associazioni cancellate",
     "admin.provider_user_roles.table.deleted_at": "Data Eliminazione",
 
-    "provider_user_roles.bulk_delete_error": "Error deleting provider user roles",
-    "provider_user_roles.bulk_delete_success": "Provider user roles deleted successfully",
+    "provider_user_roles.bulk_delete_error": "Errore cancellazioni provider-user-roles",
+    "provider_user_roles.bulk_delete_success": "Relazioni dei provider-user-roles cancellati con successo",
 
     "provider_user_roles.not_found": "Relazione Provider-user-role non trovata",
     "provider_user_roles.conflict_unique": "C'è già una relazione attiva per Provider-user-role",
     "provider_user_roles.restore_success": "Relazione Provider-user-role ripristinata",
 
-    "provider_user_roles.bulk_restore_error": "Entità non processabile",
-    "provider_user_roles.not_found_multiple": "Relazioni Provider-user-role non trovate",
+    "provider_user_roles.bulk_restore_error": "Errore nel restore delle relazioni provider-user-roles",
+    "provider_user_roles.not_found_multiple": "Ruoli utente del provider non trovati",
     "provider_user_roles.conflict_unique_multiple": "C'è gia' una relazione attiva per una o piu' relazioni selezionate",
     "provider_user_roles.bulk_restore_success": "Relazioni Provider-user-role ripristinate correttamente",
 
@@ -361,7 +366,7 @@
     "admin.parameters.toast.delete_success": "Parametro eliminato correttamente",
     "admin.parameters.toast.delete_error": "Si è verificato un errore durante l'eliminazione del parametro",
     "admin.parameters.toast.restore_success": "Parametro ripristinato con successo",
-    "admin.parameters.toast.restore_error": "Siè verificato un errore durante la ripristina del parametro",
+    "admin.parameters.toast.restore_error": "Siè verificato un errore durante la ripristinazione del parametro",
     "admin.parameters.table.title": "Parametri",
     "admin.parameters.table.hide_deleted_tooltip": "Nascondi Parametri Eliminati",
     "admin.parameters.table.show_deleted_tooltip": "Mostra Parametri Eliminati",

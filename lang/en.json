@@ -115,6 +115,11 @@
     "user.error.not_found": "User not found",
     "user.delete_error": "Error during deleting user",
     "user.restore_error": "Error during restoring user",
+    "user.bulk_delete_error": "Error deleting users",
+    "user.bulk_delete_success": "Users deleted successfully",
+    "users.bulk_restore_error": "Error on restore users",
+    "users.not_found_multiple": "Error on restore users. Mismatch on ids",
+    "users.bulk_restore_success": "Users restore successfully",
 
     "admin.roles.title": "Role Management",
     "admin.roles.new_role": "New Role",
@@ -282,8 +287,8 @@
     "provider_user_roles.conflict_unique": "There is already an active Provider-user-role",
     "provider_user_roles.restore_success": "Provider user role restored",
 
-    "provider_user_roles.bulk_restore_error": "Unprocessable Entity",
-    "provider_user_roles.not_found_multiple": "Provider user roles not found",
+    "provider_user_roles.bulk_restore_error": "Erron on restore of provider-user-roles relations",
+    "provider_user_roles.not_found_multiple": "Roles for the provider not found",
     "provider_user_roles.conflict_unique_multiple": "There is already an active Provider-user-role for one or more selected items",
     "provider_user_roles.bulk_restore_success": "Provider user roles restored successfully",
 

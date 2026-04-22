@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n";
 
@@ -23,10 +23,10 @@ const filter = ref("");
 const loading = ref(false);
 const pagination = ref({ data: [], total: 0, per_page: 10 });
 const displayModal = ref(false);
-const userSelected = ref(null);
 const displayDeleteModal = ref(false);
 const displayRestoreModal = ref(false);
-const userToDelete = ref(null);
+const itemSelected = ref(null);
+const selectedUsers = ref();
 let searchTimeout = null;
 const tableComponent = reactive({
     showUsersDeleted: false,
@@ -72,7 +72,7 @@ const onFilterChange = () => {
 };
 
 const openCreateModal = () => {
-    userSelected.value = null;
+    itemSelected.value = null;
     displayModal.value = true;
 };
 
@@ -80,28 +80,75 @@ defineExpose({
     openCreateModal,
 });
 
+const getSelectedUsers = () => {
+    let rawData = [];
+    try {
+        rawData = JSON.parse(JSON.stringify(selectedUsers.value));
+    } catch (error) {
+        console.error(error);
+    }
+    return rawData;
+};
+
 const onUserSaved = () => {
     displayModal.value = false;
     loadUsers();
 };
 
 const editUser = (user) => {
-    userSelected.value = user;
+    itemSelected.value = user;
     displayModal.value = true;
 };
 
-const confirmDelete = (user) => {
-    userToDelete.value = user;
+const confirmDelete = (item) => {
+    itemSelected.value = item;
+    itemSelected.value = {
+        ids: [item.id],
+        body: "l' utente: " + item.username,
+    };
+    displayDeleteModal.value = true;
+};
+const confirmRestore = (item) => {
+    itemSelected.value = item;
+    itemSelected.value = {
+        ids: [item.id],
+        body: "l' utente: " + item.username,
+    };
+    displayRestoreModal.value = true;
+};
+
+const confirmRestoreSelectedUsers = () => {
+    const rawData = getSelectedUsers();
+    const ids = rawData.map((item) => item.id);
+    itemSelected.value = {
+        ids: ids,
+        body: "gli utenti con ids: " + ids.join(","),
+    };
+    displayRestoreModal.value = true;
+};
+const confirmDeleteSelectedUsers = () => {
+    const rawData = getSelectedUsers();
+    const ids = rawData.map((item) => item.id);
+    itemSelected.value = ids;
+    itemSelected.value = {
+        ids: ids,
+        body: "gli utenti con ids: " + ids.join(","),
+    };
+
+    console.log(itemSelected.value.body);
+    console.log(itemSelected.value.ids);
     displayDeleteModal.value = true;
 };
 
-const deleteUser = () => {
-    if (!userToDelete.value) return;
+const deleteUsers = (ids) => {
+    console.log("deleteUsers ids", ids);
+    if (!ids || ids.length === 0) return;
     window.axios
-        .delete(`/admin/v1/users/${userToDelete.value.id}`)
+        .delete("/admin/v1/users/bulk-delete", { data: { ids } })
         .then(() => {
             displayDeleteModal.value = false;
-            userToDelete.value = null;
+            itemSelected.value = null;
+            selectedUsers.value = [];
             loadUsers(pagination.value.current_page);
             toast.add({
                 severity: "success",
@@ -112,6 +159,7 @@ const deleteUser = () => {
             emit("item-saved");
         })
         .catch((error) => {
+            console.error(error);
             toast.add({
                 severity: "error",
                 summary: trans("common.error"),
@@ -122,17 +170,15 @@ const deleteUser = () => {
         });
 };
 
-const confirmRestore = (user) => {
-    userSelected.value = user;
-    displayRestoreModal.value = true;
-};
-const restoreUser = () => {
-    if (!userSelected.value) return;
+const restoreUsers = (ids) => {
+    if (!ids || ids.length === 0) return;
+
     window.axios
-        .patch(`/admin/v1/users/${userSelected.value.id}/restore`)
+        .patch("/admin/v1/users/bulk-restore", { ids })
         .then(() => {
             displayRestoreModal.value = false;
-            userSelected.value = null;
+            itemSelected.value = null;
+            selectedUsers.value = [];
             loadUsers(pagination.value.current_page);
             toast.add({
                 severity: "success",
@@ -143,6 +189,7 @@ const restoreUser = () => {
             emit("item-saved");
         })
         .catch((error) => {
+            console.error(error);
             toast.add({
                 severity: "error",
                 summary: trans("common.error"),
@@ -153,26 +200,71 @@ const restoreUser = () => {
         });
 };
 
+const deleteSelectedUsers = () => {
+    const rawData = getSelectedUsers();
+    const ids = rawData.map((item) => item.id);
+    deleteUsers(ids);
+};
+
+const restoreSelectedUsers = () => {
+    const rawData = getSelectedUsers();
+    const ids = rawData.map((item) => item.id);
+    restoreUsers(ids);
+};
+
 const toggleShowUsersDeleted = () => {
     tableComponent.showUsersDeleted = !tableComponent.showUsersDeleted;
+    selectedUsers.value = [];
     loadUsers(1);
 };
 
 onMounted(() => {
     loadUsers();
 });
+
+const hasSelectedUsers = computed(() => {
+    return selectedUsers.value && selectedUsers.value.length > 0;
+});
 </script>
 
 <template>
     <div>
         <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
-            <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
+            <DataTable
+                :value="pagination.data"
+                :loading="loading"
+                responsiveLayout="scroll"
+                stripedRows
+                size="small"
+                v-model:selection="selectedUsers"
+            >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
                             {{ $t("admin.users.table.title") }}
                         </h3>
                         <div class="flex gap-4">
+                            <Button
+                                v-if="hasSelectedUsers && !tableComponent.showUsersDeleted"
+                                variant="text"
+                                severity="danger"
+                                @click="confirmDeleteSelectedUsers"
+                                v-tooltip.top="$t('admin.users.table.delete_selected_tooltip')"
+                                ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
+                            </Button>
+                            <Button
+                                v-if="hasSelectedUsers && tableComponent.showUsersDeleted"
+                                variant="text"
+                                severity="warn"
+                                @click="confirmRestoreSelectedUsers"
+                                v-tooltip.top="$t('admin.users.table.restore_selected_tooltip')"
+                                ><Icon
+                                    icon="material-symbols:restore-from-trash-outline-rounded"
+                                    width="24"
+                                    height="24"
+                                    class="text-orange-500"
+                                />
+                            </Button>
                             <Button
                                 variant="text"
                                 severity="danger"
@@ -202,6 +294,8 @@ onMounted(() => {
                         </div>
                     </div>
                 </template>
+
+                <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
                 <Column field="username" :header="$t('admin.users.table.username')">
                     <template #body="slotProps">
@@ -304,12 +398,12 @@ onMounted(() => {
 
         <Dialog
             v-model:visible="displayModal"
-            :header="userSelected ? $t('admin.users.form.title_edit') : $t('admin.users.form.title_create')"
+            :header="itemSelected ? $t('admin.users.form.title_edit') : $t('admin.users.form.title_create')"
             :style="{ width: '60vw', maxWidth: '800px' }"
             modal
             :draggable="false"
         >
-            <UserForm :userSelected="userSelected" @item-saved="onUserSaved" />
+            <UserForm :itemSelected="itemSelected" @item-saved="onUserSaved" />
         </Dialog>
 
         <Dialog
@@ -321,9 +415,9 @@ onMounted(() => {
         >
             <div class="flex items-center gap-4 pt-2">
                 <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
-                <span v-if="userToDelete" class="text-surface-700">
+                <span v-if="itemSelected" class="text-surface-700">
                     {{ $t("admin.users.delete.prompt") }}
-                    <b class="text-surface-900">{{ userToDelete.username }}</b
+                    <b class="text-surface-900">{{ itemSelected.body }}</b
                     >?
                 </span>
             </div>
@@ -333,7 +427,7 @@ onMounted(() => {
                     :label="$t('common.delete')"
                     icon="pi pi-check"
                     severity="danger"
-                    @click="deleteUser"
+                    @click="deleteUsers(itemSelected.ids)"
                     autofocus
                 />
             </template>
@@ -347,9 +441,9 @@ onMounted(() => {
         >
             <div class="flex items-center gap-4 pt-2">
                 <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
-                <span v-if="userSelected" class="text-surface-700">
+                <span v-if="itemSelected" class="text-surface-700">
                     {{ $t("admin.users.restore.prompt") }}
-                    <b class="text-surface-900">{{ userSelected.username }}</b
+                    <b class="text-surface-900">{{ itemSelected.body }}</b
                     >?
                 </span>
             </div>
@@ -359,7 +453,7 @@ onMounted(() => {
                     :label="$t('common.restore')"
                     icon="pi pi-check"
                     severity="danger"
-                    @click="restoreUser([userSelected.id])"
+                    @click="restoreUsers(itemSelected.ids)"
                     autofocus
                 />
             </template>

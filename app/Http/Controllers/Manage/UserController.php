@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
+use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -512,5 +513,64 @@ class UserController extends Controller
             return response()->json(["message" => __("user.restore_error")], 500);
         }
         return response()->json($user, 200);
+    }
+
+    public function bulk_delete(Request $request)
+    {
+        $request->validate([
+            "ids" => "required|array",
+            "ids.*" => "integer|exists:users,id",
+        ]);
+
+        try {
+            DB::beginTransaction();
+            $usersToDelete = User::whereIn("id", $request->ids)->get();
+            foreach ($usersToDelete as $user) {
+                $user->delete();
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(["message" => __("user.bulk_delete_error")], 500);
+        }
+
+        return response()->json(["message" => __("user.bulk_delete_success")], 204);
+    }
+
+    public function bulk_restore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            "ids" => "required|array",
+            "ids.*" => "integer",
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(
+                [
+                    "message" => __("users.bulk_restore_error"),
+                    "errors" => $validator->errors(),
+                ],
+                422,
+            );
+        }
+
+        $usersToRestore = User::withTrashed()->whereIn("id", $request->ids)->get();
+
+        if ($usersToRestore->isEmpty()) {
+            return response()->json(["message" => __("users.not_found_multiple")], 404);
+        }
+
+        try {
+            DB::beginTransaction();
+            foreach ($usersToRestore as $user) {
+                $user->restore();
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(["message" => $e->getMessage()], 500);
+        }
+
+        return response()->json(["message" => __("users.bulk_restore_success")], 200);
     }
 }
