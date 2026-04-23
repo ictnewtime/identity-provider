@@ -22,7 +22,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["item-saved", "item-error"]);
+const emit = defineEmits(["user-success", "user-error"]);
 const toast = useToast();
 
 const loading = ref(false);
@@ -163,7 +163,7 @@ const fetchUser = async (id) => {
             detail: trans("admin.users.toast.load_user_error"),
             life: 3000,
         });
-        emit("item-error", err);
+        emit("user-error", err);
     } finally {
         loading.value = false;
     }
@@ -177,12 +177,17 @@ const submit = async () => {
     const url = isEditMode.value ? `/admin/v1/users/${form.value.id}` : "/admin/v1/users";
     const method = isEditMode.value ? "put" : "post";
 
+    let date = form.value.password_expires_at;
+    const passwordExpiresAt = date
+        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+        : null;
+
     const payload = {
         username: form.value.username,
         email: form.value.email,
         name: form.value.name,
         surname: form.value.surname,
-        password_expires_at: form.value.password_expires_at,
+        password_expires_at: passwordExpiresAt,
         enabled: form.value.enabled,
     };
 
@@ -201,7 +206,7 @@ const submit = async () => {
                 : trans("admin.users.toast.detail_created"),
             life: 3000,
         });
-        emit("item-saved");
+        emit("user-success");
         resetForm();
     } catch (error) {
         toast.add({
@@ -210,7 +215,7 @@ const submit = async () => {
             detail: trans("admin.users.toast.submit_error"),
             life: 3000,
         });
-        emit("item-error", error);
+        emit("user-error", error);
 
         if (error.response?.data?.errors) {
             const backendErrors = error.response.data.errors;
@@ -482,7 +487,6 @@ watch(
                         id="password_expires_at"
                         v-model="form.password_expires_at"
                         :invalid="!!errors.password_expires_at"
-                        :showTime="true"
                         :showIcon="true"
                         dateFormat="dd/mm/yy"
                     />

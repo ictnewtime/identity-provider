@@ -48,11 +48,6 @@ RUN COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader -
 # Install npm dependencies and compile assets
 RUN npm install
 
-# create passport keys if they don't exist
-RUN if [ ! -f /var/www/storage/oauth-private.key ] || [ ! -f /var/www/storage/oauth-public.key ]; then \
-        php artisan passport:keys --force; \
-    fi
-
 # Change ownership and permissions
 RUN chmod -R 755 /var/www && \
     chmod -R 755 /var/www/public
@@ -82,8 +77,8 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN mkdir -p /var/log/supervisor /var/run/supervisor /var/run/php-fpm && \
     chmod 755 /var/run/supervisor
 
-
 RUN chown -R www-data:www-data storage
+RUN php artisan storage:link
 RUN touch /var/www/storage/logs/laravel.log && chown www-data:www-data /var/www/storage/logs/laravel.log
 RUN npm run build
 

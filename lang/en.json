@@ -1,4 +1,5 @@
 {
+    "validation.current_password": "Incorrect password",
     "auth.err-login": "Invalid credentials",
     "auth.verification.errors.invalid_code": "The verification code is invalid or has already been used.",
     "auth.verification.errors.user_not_found": "Unable to find the user associated with this code.",
@@ -62,6 +63,7 @@
     "admin.nav.parameters": "Parameters",
 
     "admin.users.title": "User Management",
+    "admin.users.handle_role_relations": "Handle User Roles",
     "admin.users.new_user": "New User",
 
     "admin.users.table.title": "User List",
@@ -84,7 +86,10 @@
     "admin.users.toast.delete_success": "User successfully deleted",
     "admin.users.toast.delete_error": "An error occurred while deleting the user",
 
-    "admin.users.delete.prompt": "Are you sure you want to delete the user ",
+    "admin.users.delete.user_title": "Delete User",
+    "admin.users.delete.users_title": "Delete Users",
+    "admin.users.delete.prompt_user": "Are you sure you want to delete the user ",
+    "admin.users.delete.prompt_users": "Are you sure you want to delete the selected users with ids: ",
 
     "admin.users.form.username_label": "Username",
     "admin.users.form.email_label": "Email",
@@ -188,7 +193,10 @@
     "admin.providers.table.hide_deleted_tooltip": "Hide Deleted Providers",
     "admin.providers.restore.title": "Restore Provider",
     "admin.providers.restore.prompt": "Are you sure you want to restore the provider ",
-    "admin.users.restore.prompt": "Are you sure you want to restore the user ",
+    "admin.users.restore.user_title": "Restore User",
+    "admin.users.restore.users_title": "Restore Users",
+    "admin.users.restore.prompt_user": "Are you sure you want to restore the user ",
+    "admin.users.restore.prompt_users": "Are you sure you want to restore the users with the following ids: ",
 
     "admin.providers.form.title_create": "New Provider",
     "admin.providers.form.title_edit": "Edit Provider",
@@ -274,7 +282,8 @@
     "admin.provider_user_roles.toast.delete_success": "Association successfully deleted",
     "admin.provider_user_roles.toast.delete_error": "An error occurred while deleting the association",
 
-    "admin.provider_user_roles.delete.prompt": "Are you sure you want to remove the association for the user ",
+    "admin.provider_user_roles.delete.prompt_user": "Are you sure you want to remove the association between: ",
+    "admin.provider_user_roles.delete.prompt_users": "Are you sure you want to remove the association with ids: ",
     "admin.provider_user_roles.errors.unique_role": "This user already has this role for the provider selected.",
     "admin.provider_user_roles.errors.creation": "An error occurred while creating the association",
     "admin.provider_user_roles.table.show_deleted_tooltip": "Show deleted associations",

@@ -1,4 +1,5 @@
 {
+    "validation.current_password": "Password errata",
     "auth.err-login": "Credenziali non valide",
     "auth.verification.errors.invalid_code": "Il codice di verifica non è valido o è già stato utilizzato.",
     "auth.verification.errors.user_not_found": "Impossibile trovare l'utente associato a questo codice.",
@@ -62,6 +63,7 @@
     "admin.nav.parameters": "Parametri",
 
     "admin.users.title": "Gestione Utenti",
+    "admin.users.handle_role_relations": "Gestisci Ruoli",
     "admin.users.new_user": "Nuovo Utente",
 
     "admin.users.table.title": "Lista Utenti",
@@ -84,7 +86,10 @@
     "admin.users.toast.delete_success": "Utente eliminato correttamente",
     "admin.users.toast.delete_error": "Si è verificato un errore durante l'eliminazione dell'utente",
 
-    "admin.users.delete.prompt": "Sei sicuro di voler eliminare ",
+    "admin.users.delete.user_title": "Elimina Utente",
+    "admin.users.delete.users_title": "Elimina Utenti",
+    "admin.users.delete.prompt_user": "Sei sicuro di voler eliminare l'utente",
+    "admin.users.delete.prompt_users": "Sei sicuro di voler eliminare gli utenti con id: ",
 
     "admin.users.form.username_label": "Username",
     "admin.users.form.email_label": "Email",
@@ -191,7 +196,10 @@
     "admin.providers.table.hide_deleted_tooltip": "Nascondi Provider Eliminati",
     "admin.providers.restore.title": "Ripristina Provider",
     "admin.providers.restore.prompt": "Sei sicuro di voler ripristinare definitivamente il provider ",
-    "admin.users.restore.prompt": "Sei sicuro di voler ripristinare definitivamente ",
+    "admin.users.restore.user_title": "Ripristina Utente",
+    "admin.users.restore.users_title": "Ripristina Utenti",
+    "admin.users.restore.prompt_user": "Sei sicuro di voler ripristinare l'utente",
+    "admin.users.restore.prompt_users": "Sei sicuro di voler ripristinare gli utenti selezionati con id: ",
 
     "admin.providers.form.title_create": "Nuovo Provider",
     "admin.providers.form.title_edit": "Modifica Provider",
@@ -277,7 +285,8 @@
     "admin.provider_user_roles.toast.delete_success": "Associazione eliminata correttamente",
     "admin.provider_user_roles.toast.delete_error": "Si è verificato un errore durante l'eliminazione",
 
-    "admin.provider_user_roles.delete.prompt": "Sei sicuro di voler rimuovere l'associazione per l'utente ",
+    "admin.provider_user_roles.delete.prompt_user": "Sei sicuro di voler rimuovere l'associazione tra: ",
+    "admin.provider_user_roles.delete.prompt_users": "Sei sicuro di voler rimuovere le associazione selezione",
     "admin.provider_user_roles.errors.unique_role": "Questo utente possiede già questo ruolo per il provider selezionato.",
     "admin.provider_user_roles.errors.creation": "Si è verificato un errore durante la creazione.",
     "admin.provider_user_roles.table.show_deleted_tooltip": "Mostra associazioni cancellate",

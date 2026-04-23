@@ -15,6 +15,9 @@ const tableRef = ref(null);
 const handleNewUserClick = () => {
     tableRef.value?.openCreateModal();
 };
+const handleHandleRoleClick = () => {
+    tableRef.value?.openAddRoleModal();
+};
 </script>
 
 <template>
@@ -24,7 +27,20 @@ const handleNewUserClick = () => {
                 {{ $t("admin.users.title") }}
             </h1>
         </div>
-        <Button :label="$t('admin.users.new_user')" icon="pi pi-plus" @click="handleNewUserClick" class="shadow-sm" />
+        <div class="flex gap-2">
+            <Button
+                :label="$t('admin.users.handle_role_relations')"
+                icon="pi pi-plus"
+                @click="handleHandleRoleClick"
+                class="shadow-sm"
+            />
+            <Button
+                :label="$t('admin.users.new_user')"
+                icon="pi pi-plus"
+                @click="handleNewUserClick"
+                class="shadow-sm"
+            />
+        </div>
     </div>
 
     <UserTable ref="tableRef" :users="users" />

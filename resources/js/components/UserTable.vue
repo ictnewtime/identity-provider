@@ -14,17 +14,25 @@ import IconField from "primevue/iconfield";
 import InputIcon from "primevue/inputicon";
 import UserForm from "./UserForm.vue";
 import { Icon } from "@iconify/vue";
+import DeleteUserDialog from "./user/DeleteUserDialog.vue";
+import DeleteUsersDialog from "./user/DeleteUsersDialog.vue";
+import RestoreUserDialog from "./user/RestoreUserDialog.vue";
+import RestoreUsersDialog from "./user/RestoreUsersDialog.vue";
+import AddRolesDialog from "./user/AddRolesDialog.vue";
 import { formatDate } from "../utils/data";
 
-const emit = defineEmits(["item-saved", "item-error"]);
+const emit = defineEmits(["user-success", "user-error"]);
 const toast = useToast();
 
 const filter = ref("");
 const loading = ref(false);
 const pagination = ref({ data: [], total: 0, per_page: 10 });
-const displayModal = ref(false);
-const displayDeleteModal = ref(false);
-const displayRestoreModal = ref(false);
+const displayUserModal = ref(false);
+const displayDeleteUserModal = ref(false);
+const displayDeleteUsersModal = ref(false);
+const displayRestoreUserModal = ref(false);
+const displayRestoreUsersModal = ref(false);
+const displayAddRoleModal = ref(false);
 const itemSelected = ref(null);
 const selectedUsers = ref();
 let searchTimeout = null;
@@ -53,7 +61,7 @@ const loadUsers = (page = 1) => {
                 detail: trans("admin.users.toast.load_error"),
                 life: 3000,
             });
-            emit("item-error", err);
+            emit("user-error", err);
         })
         .finally(() => {
             loading.value = false;
@@ -73,11 +81,19 @@ const onFilterChange = () => {
 
 const openCreateModal = () => {
     itemSelected.value = null;
-    displayModal.value = true;
+    displayUserModal.value = true;
+};
+
+const openAddRoleModal = () => {
+    displayAddRoleModal.value = true;
+    const rawData = getSelectedUsers();
+    const ids = rawData.map((item) => item.id);
+    itemSelected.value = { ids: ids };
 };
 
 defineExpose({
     openCreateModal,
+    openAddRoleModal,
 });
 
 const getSelectedUsers = () => {
@@ -91,113 +107,41 @@ const getSelectedUsers = () => {
 };
 
 const onUserSaved = () => {
-    displayModal.value = false;
+    displayUserModal.value = false;
     loadUsers();
 };
 
 const editUser = (user) => {
     itemSelected.value = user;
-    displayModal.value = true;
+    displayUserModal.value = true;
 };
 
 const confirmDelete = (item) => {
     itemSelected.value = item;
-    itemSelected.value = {
-        ids: [item.id],
-        body: "l' utente: " + item.username,
-    };
-    displayDeleteModal.value = true;
+    displayDeleteUserModal.value = true;
 };
 const confirmRestore = (item) => {
     itemSelected.value = item;
-    itemSelected.value = {
-        ids: [item.id],
-        body: "l' utente: " + item.username,
-    };
-    displayRestoreModal.value = true;
+    displayRestoreUserModal.value = true;
 };
 
 const confirmRestoreSelectedUsers = () => {
     const rawData = getSelectedUsers();
     const ids = rawData.map((item) => item.id);
-    itemSelected.value = {
-        ids: ids,
-        body: "gli utenti con ids: " + ids.join(","),
-    };
-    displayRestoreModal.value = true;
+    itemSelected.value = { ids: ids };
+    displayRestoreUsersModal.value = true;
 };
 const confirmDeleteSelectedUsers = () => {
     const rawData = getSelectedUsers();
     const ids = rawData.map((item) => item.id);
-    itemSelected.value = ids;
-    itemSelected.value = {
-        ids: ids,
-        body: "gli utenti con ids: " + ids.join(","),
-    };
-
-    console.log(itemSelected.value.body);
-    console.log(itemSelected.value.ids);
-    displayDeleteModal.value = true;
+    itemSelected.value = { ids: ids };
+    displayDeleteUsersModal.value = true;
 };
 
-const deleteUsers = (ids) => {
-    console.log("deleteUsers ids", ids);
-    if (!ids || ids.length === 0) return;
-    window.axios
-        .delete("/admin/v1/users/bulk-delete", { data: { ids } })
-        .then(() => {
-            displayDeleteModal.value = false;
-            itemSelected.value = null;
-            selectedUsers.value = [];
-            loadUsers(pagination.value.current_page);
-            toast.add({
-                severity: "success",
-                summary: trans("common.success"),
-                detail: trans("admin.users.toast.delete_success"),
-                life: 3000,
-            });
-            emit("item-saved");
-        })
-        .catch((error) => {
-            console.error(error);
-            toast.add({
-                severity: "error",
-                summary: trans("common.error"),
-                detail: trans("admin.users.toast.delete_error"),
-                life: 3000,
-            });
-            emit("item-error", error);
-        });
-};
-
-const restoreUsers = (ids) => {
-    if (!ids || ids.length === 0) return;
-
-    window.axios
-        .patch("/admin/v1/users/bulk-restore", { ids })
-        .then(() => {
-            displayRestoreModal.value = false;
-            itemSelected.value = null;
-            selectedUsers.value = [];
-            loadUsers(pagination.value.current_page);
-            toast.add({
-                severity: "success",
-                summary: trans("common.success"),
-                detail: trans("admin.users.toast.restore_success"),
-                life: 3000,
-            });
-            emit("item-saved");
-        })
-        .catch((error) => {
-            console.error(error);
-            toast.add({
-                severity: "error",
-                summary: trans("common.error"),
-                detail: trans("admin.users.toast.restore_error"),
-                life: 3000,
-            });
-            emit("item-error", error);
-        });
+const onModalSuccess = () => {
+    itemSelected.value = null;
+    selectedUsers.value = [];
+    loadUsers(pagination.value.current_page);
 };
 
 const deleteSelectedUsers = () => {
@@ -340,7 +284,7 @@ const hasSelectedUsers = computed(() => {
                             text
                             rounded
                             severity="warn"
-                            class="mr-1 hover:!bg-orange-50"
+                            class="mr-1 hover:bg-orange-50!"
                             @click="editUser(slotProps.data)"
                             ><Icon
                                 icon="material-symbols:edit-outline"
@@ -355,7 +299,7 @@ const hasSelectedUsers = computed(() => {
                                 text
                                 rounded
                                 severity="success"
-                                class="mr-1 hover:!bg-green-50"
+                                class="mr-1 hover:bg-green-50!"
                                 @click="confirmRestore(slotProps.data)"
                                 ><Icon
                                     icon="material-symbols:restore-from-trash-outline-rounded"
@@ -371,7 +315,7 @@ const hasSelectedUsers = computed(() => {
                                 text
                                 rounded
                                 severity="danger"
-                                class="hover:!bg-red-50"
+                                class="hover:bg-red-50!"
                                 @click="confirmDelete(slotProps.data)"
                                 ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
                             </Button>
@@ -397,66 +341,39 @@ const hasSelectedUsers = computed(() => {
         </div>
 
         <Dialog
-            v-model:visible="displayModal"
+            v-model:visible="displayUserModal"
             :header="itemSelected ? $t('admin.users.form.title_edit') : $t('admin.users.form.title_create')"
             :style="{ width: '60vw', maxWidth: '800px' }"
             modal
             :draggable="false"
         >
-            <UserForm :itemSelected="itemSelected" @item-saved="onUserSaved" />
+            <UserForm :userSelected="itemSelected" @user-success="onUserSaved" />
         </Dialog>
 
-        <Dialog
-            v-model:visible="displayDeleteModal"
-            :header="$t('common.confirm_delete_title')"
-            :style="{ width: '450px' }"
-            modal
-            :draggable="false"
-        >
-            <div class="flex items-center gap-4 pt-2">
-                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
-                <span v-if="itemSelected" class="text-surface-700">
-                    {{ $t("admin.users.delete.prompt") }}
-                    <b class="text-surface-900">{{ itemSelected.body }}</b
-                    >?
-                </span>
-            </div>
-            <template #footer>
-                <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="displayDeleteModal = false" />
-                <Button
-                    :label="$t('common.delete')"
-                    icon="pi pi-check"
-                    severity="danger"
-                    @click="deleteUsers(itemSelected.ids)"
-                    autofocus
-                />
-            </template>
-        </Dialog>
-        <Dialog
-            v-model:visible="displayRestoreModal"
-            :header="$t('admin.users.restore.title')"
-            :style="{ width: '450px' }"
-            modal
-            :draggable="false"
-        >
-            <div class="flex items-center gap-4 pt-2">
-                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
-                <span v-if="itemSelected" class="text-surface-700">
-                    {{ $t("admin.users.restore.prompt") }}
-                    <b class="text-surface-900">{{ itemSelected.body }}</b
-                    >?
-                </span>
-            </div>
-            <template #footer>
-                <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="displayRestoreModal = false" />
-                <Button
-                    :label="$t('common.restore')"
-                    icon="pi pi-check"
-                    severity="danger"
-                    @click="restoreUsers(itemSelected.ids)"
-                    autofocus
-                />
-            </template>
-        </Dialog>
+        <DeleteUserDialog
+            v-model:visible="displayDeleteUserModal"
+            :itemSelected="itemSelected"
+            @user-success="onModalSuccess"
+        />
+        <DeleteUsersDialog
+            v-model:visible="displayDeleteUsersModal"
+            :itemSelected="itemSelected"
+            @user-success="onModalSuccess"
+        />
+        <RestoreUserDialog
+            v-model:visible="displayRestoreUserModal"
+            :itemSelected="itemSelected"
+            @user-success="onModalSuccess"
+        />
+        <RestoreUsersDialog
+            v-model:visible="displayRestoreUsersModal"
+            :itemSelected="itemSelected"
+            @user-success="onModalSuccess"
+        />
+        <AddRolesDialog
+            v-model:visible="displayAddRoleModal"
+            :itemSelected="itemSelected"
+            @user-success="onModalSuccess"
+        />
     </div>
 </template>
