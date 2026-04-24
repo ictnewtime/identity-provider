@@ -195,6 +195,7 @@
     "admin.roles.form.error.logout_url.invalid": "L'URL di logout non è valido",
     "admin.roles.restore.prompt": "Sei sicuro di voler ripristinare definitivamente il ruolo ",
     "admin.roles.btn_add_roles": "Aggiungi Ruoli",
+    "admin.roles.items_selected": "{0} elementi selezionati",
 
     "role.error.not_found": "Ruolo non trovato",
     "role.error.restoring": "Errore durante il ripristino del ruolo",

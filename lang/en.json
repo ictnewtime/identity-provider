@@ -195,6 +195,7 @@
     "admin.roles.form.error.logout_url.invalid": "The logout URL is invalid",
     "admin.roles.restore.prompt": "Are you sure you want to restore the role ",
     "admin.roles.btn_add_roles": "Add Roles",
+    "admin.roles.items_selected": "{0} roles selected",
 
     "role.error.not_found": "Role not found",
     "role.error.restoring": "Error on restoring role",
