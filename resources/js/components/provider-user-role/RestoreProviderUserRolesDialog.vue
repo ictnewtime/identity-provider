@@ -46,7 +46,7 @@ const restoreProviderUserRoles = (ids) => {
     <Dialog
         :visible="props.visible"
         @update:visible="$emit('update:visible', $event)"
-        :header="$t('common.confirm_restore_title')"
+        :header="$t('admin.provider_user_roles.restore.title')"
         :style="{ width: '450px' }"
         modal
         :draggable="false"
@@ -55,7 +55,7 @@ const restoreProviderUserRoles = (ids) => {
             <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
             <span v-if="itemSelected" class="text-surface-700">
                 {{ $t("admin.provider_user_roles.restore.prompt_user") }}
-                <b class="text-surface-900">{{ itemSelected.ids.join(",") }}</b
+                <b class="text-surface-900">{{ itemSelected.ids.sort().join(",") }}</b
                 >?
             </span>
         </div>

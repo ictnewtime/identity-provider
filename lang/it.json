@@ -1,4 +1,14 @@
 {
+    "primevue.date_format": "dd/mm/yy",
+    "primevue.first_day_of_week": "1",
+    "primevue.day_names": "Domenica,Lunedì,Martedì,Mercoledì,Giovedì,Venerdì,Sabato",
+    "primevue.day_names_short": "Dom,Lun,Mar,Mer,Gio,Ven,Sab",
+    "primevue.day_names_min": "Do,Lu,Ma,Me,Gi,Ve,Sa",
+    "primevue.month_names": "Gennaio,Febbraio,Marzo,Aprile,Maggio,Giugno,Luglio,Agosto,Settembre,Ottobre,Novembre,Dicembre",
+    "primevue.month_names_short": "Gen,Feb,Mar,Apr,Mag,Giu,Lug,Ago,Set,Ott,Nov,Dic",
+    "primevue.today": "Oggi",
+    "primevue.clear": "Svuota",
+
     "validation.current_password": "Password errata",
     "auth.err-login": "Credenziali non valide",
     "auth.verification.errors.invalid_code": "Il codice di verifica non è valido o è già stato utilizzato.",
@@ -53,6 +63,8 @@
     "common.close": "Chiudi",
     "common.logout": "Esci",
     "common.restore": "Ripristina",
+    "common.loading": "Caricamento...",
+    "common.no_records_found": "Nessun record trovato",
 
     "admin.nav.users": "Utenti",
     "admin.nav.roles": "Ruoli",
@@ -63,7 +75,7 @@
     "admin.nav.parameters": "Parametri",
 
     "admin.users.title": "Gestione Utenti",
-    "admin.users.handle_role_relations": "Gestisci Ruoli",
+    "admin.users.add_role_relations": "Associa Ruoli",
     "admin.users.new_user": "Nuovo Utente",
 
     "admin.users.table.title": "Lista Utenti",
@@ -78,6 +90,12 @@
     "admin.users.table.empty": "Nessun utente trovato nel sistema.",
     "admin.users.table.deleted_at": "Data Eliminazione",
     "admin.users.table.show_deleted_tooltip": "Visualizza Utenti Eliminati",
+    "admin.users.table.delete_selected_tooltip": "Elimina Utenti Selezionati",
+    "admin.users.table.restore_selected_tooltip": "Ripristina Utenti Selezionati",
+    "admin.users.table.hide_deleted_tooltip": "Nascondi Utenti Eliminati",
+    "admin.roles.select_roles": "Seleziona Ruoli",
+    "admin.users.roles.add_title": "Associa ruoli per gli utenti selezionati",
+    "admin.roles.search_placeholder": "Cerca ruolo...",
 
     "admin.users.form.title_create": "Nuovo Utente",
     "admin.users.form.title_edit": "Modifica Utente",
@@ -166,17 +184,20 @@
     "admin.roles.toast.detail_created": "Il nuovo ruolo è stato creato con successo",
     "admin.roles.toast.detail_updated": "Il ruolo è stato aggiornato con successo",
     "admin.roles.toast.restore_success": "Ruolo ripristinato con successo",
-    "admin.roles.toast.restore_error": "Siè verificato un errore durante la ripristina del ruolo",
+    "admin.roles.toast.restore_error": "Si è verificato un errore durante il ripristino del ruolo",
     "admin.users.toast.restore_success": "Utente ripristinato con successo",
-    "admin.users.toast.restore_error": "Siè verificato un errore durante la ripristina dell'utente",
+    "admin.users.toast.restore_error": "Si è verificato un errore durante il ripristino dell'utente",
+    "admin.users.toast.add_roles_success": "Ruoli aggiunti con successo",
+    "admin.users.toast.add_roles_error": "Si è verificato un errore durante l'aggiunta dei ruoli",
 
     "admin.roles.form.error.domain.unique": "Il dominio del provider deve essere univoco",
     "admin.roles.form.error.domain.mandatory": "Il dominio del provider non puo' essere vuoto",
     "admin.roles.form.error.logout_url.invalid": "L'URL di logout non è valido",
     "admin.roles.restore.prompt": "Sei sicuro di voler ripristinare definitivamente il ruolo ",
+    "admin.roles.btn_add_roles": "Aggiungi Ruoli",
 
     "role.error.not_found": "Ruolo non trovato",
-    "role.error.restoring": "Errore durante la ripristina del ruolo",
+    "role.error.restoring": "Errore durante il ripristino del ruolo",
 
     "role.error.is_in_use": "Questo ruolo non puo' essere eliminato perche' viene utilizzato da uno o piu' utenti",
 
@@ -234,7 +255,7 @@
     "admin.providers.toast.detail_updated": "Il provider è stato aggiornato",
     "admin.providers.toast.invalid_url": "Il formato dell'URL inserito non è valido",
     "admin.providers.toast.restore_success": "Provider ripristinato con successo",
-    "admin.providers.toast.restore_error": "Si è verificato un errore durante la ripristina del provider",
+    "admin.providers.toast.restore_error": "Si è verificato un errore durante il ripristino del provider",
     "admin.providers.not_found_for_delete": "Provider non trovato per l'eliminazione",
     "admin.providers.delete_error_active_roles": "Non è possibile eliminare questo provider perché ci sono ruoli attivi associati ad esso",
 
@@ -264,7 +285,7 @@
     "admin.provider_user_roles.toast.detail_created": "L'associazione è stata creata correttamente",
     "admin.provider_user_roles.toast.detail_updated": "L'associazione è stata aggiornata correttamente",
     "admin.provider_user_roles.toast.restore_success": "L'associazione viene ripristinata con successo",
-    "admin.provider_user_roles.toast.restore_error": "Siè verificato un errore durante la ripristina dell'associazione",
+    "admin.provider_user_roles.toast.restore_error": "Siè verificato un errore durante il ripristino dell'associazione",
     "admin.provider_user_roles.table.delete_selected_tooltip": "Cancella l'associazione selezionata",
     "admin.provider_user_roles.table.restore_selected_tooltip": "Ripristina l'associazione selezionata",
     "admin.provider_user_roles.table.hide_deleted_tooltip": "Nascondi associazioni eliminate",
@@ -286,7 +307,7 @@
     "admin.provider_user_roles.toast.delete_error": "Si è verificato un errore durante l'eliminazione",
 
     "admin.provider_user_roles.delete.prompt_user": "Sei sicuro di voler rimuovere l'associazione tra: ",
-    "admin.provider_user_roles.delete.prompt_users": "Sei sicuro di voler rimuovere le associazione selezione",
+    "admin.provider_user_roles.delete.prompt_users": "Sei sicuro di voler rimuovere le associazione con id: ",
     "admin.provider_user_roles.errors.unique_role": "Questo utente possiede già questo ruolo per il provider selezionato.",
     "admin.provider_user_roles.errors.creation": "Si è verificato un errore durante la creazione.",
     "admin.provider_user_roles.table.show_deleted_tooltip": "Mostra associazioni cancellate",
@@ -303,6 +324,8 @@
     "provider_user_roles.not_found_multiple": "Ruoli utente del provider non trovati",
     "provider_user_roles.conflict_unique_multiple": "C'è gia' una relazione attiva per una o piu' relazioni selezionate",
     "provider_user_roles.bulk_restore_success": "Relazioni Provider-user-role ripristinate correttamente",
+    "provider_user_roles.bulk_add_error": "Errore nell'aggiunta delle relazioni provider-user-roles",
+    "provider_user_roles.bulk_add_success": "Relazioni provider-user-roles aggiunte correttamente",
 
     "admin.sessions.title": "Gestione Sessioni",
 
@@ -405,5 +428,9 @@
     "admin.parameters.form.type_placeholder": "Seleziona il tipo del parametro",
     "admin.parameters.form.value_label": "Valore",
     "admin.parameters.form.value_placeholder": "Inserisci il valore del parametro",
-    "admin.parameters.form.btn_create": "Crea Parametro"
+    "admin.parameters.form.btn_create": "Crea Parametro",
+    "parameter.error.not_found": "Parametro non trovato",
+    "parameter.error.restoring": "Errore durante la ripristinazione del parametro",
+    "parameter.error.updating": "Errore durante l'aggiornamento del parametro",
+    "parameter.error.alredy_exists": "Esiste gia' un parametro con la stessa chiave"
 }

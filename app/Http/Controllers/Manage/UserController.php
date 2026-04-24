@@ -463,42 +463,6 @@ class UserController extends Controller
         return response()->json([], 204);
     }
 
-    #[
-        OA\Patch(
-            path: "/api/v1/users/{id}/restore",
-            summary: "Restore user by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "User.restore",
-            tags: ["Users"],
-            security: [["passport" => []]],
-            parameters: [
-                new OA\Parameter(
-                    in: "path",
-                    required: true,
-                    description: "User id",
-                    name: "id",
-                    schema: new OA\Schema(type: "string"),
-                ),
-            ],
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
     public function restore($id)
     {
         $user = User::withTrashed()->find($id);
@@ -534,7 +498,7 @@ class UserController extends Controller
             return response()->json(["message" => __("user.bulk_delete_error")], 500);
         }
 
-        return response()->json(["message" => __("user.bulk_delete_success")], 204);
+        return response()->json(["message" => __("user.bulk_delete_success")], 200);
     }
 
     public function bulk_restore(Request $request)

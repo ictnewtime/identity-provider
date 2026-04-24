@@ -122,7 +122,7 @@ class ParametersController extends Controller
         $data = $request->only("key", "value", "type");
         $existingParameter = Parameter::where("key", $data["key"])->first();
         if ($existingParameter) {
-            return response()->json(["message" => "Parameter with this key already exists"], 422);
+            return response()->json(["message" => __("parameter.error.exists")], 422);
         }
 
         try {
@@ -130,7 +130,7 @@ class ParametersController extends Controller
 
             return response()->json($parameter, 201);
         } catch (QueryException $e) {
-            return response()->json(["message" => "Error on saving parameter"], 500);
+            return response()->json(["message" => __("parameter.error.creating")], 500);
         }
     }
 
@@ -174,7 +174,7 @@ class ParametersController extends Controller
     {
         $parameter = Parameter::find($id);
         if (empty($parameter)) {
-            return response()->json(["message" => "Parameter not found"], 404);
+            return response()->json(["message" => __("parameter.error.not_found")], 404);
         }
         return response()->json($parameter);
     }
@@ -255,7 +255,7 @@ class ParametersController extends Controller
         $parameter = Parameter::find($id);
 
         if (empty($parameter)) {
-            return response()->json(["message" => "Parameter not found"], 404);
+            return response()->json(["message" => __("parameter.error.not_found")], 404);
         }
 
         try {
@@ -263,7 +263,7 @@ class ParametersController extends Controller
 
             return response()->json($parameter, 200);
         } catch (QueryException $e) {
-            return response()->json(["message" => "Error on updating parameter"], 500);
+            return response()->json(["message" => __("parameter.error.updating")], 500);
         }
     }
 
@@ -310,7 +310,7 @@ class ParametersController extends Controller
         if (empty($parameter)) {
             return response()->json(
                 [
-                    "message" => "Parameter id not found",
+                    "message" => __("parameter.error.not_found"),
                 ],
                 404,
             );
@@ -325,42 +325,6 @@ class ParametersController extends Controller
         return response()->json(null, 204);
     }
 
-    #[
-        OA\Patch(
-            path: "/api/v1/parameters/{id}/restore",
-            summary: "Restore parameter by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "Parameter.restore",
-            tags: ["Parameters"],
-            security: [["passport" => ["manage-idp"]]],
-            parameters: [
-                new OA\Parameter(
-                    in: "path",
-                    required: true,
-                    description: "Parameter id",
-                    name: "id",
-                    schema: new OA\Schema(type: "integer", minimum: 1),
-                ),
-            ],
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 500,
-                    description: "Error on restoring",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
     public function restore($id)
     {
         $parameter = Parameter::withTrashed()->find($id);

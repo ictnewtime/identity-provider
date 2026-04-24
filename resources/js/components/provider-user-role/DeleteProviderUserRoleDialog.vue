@@ -14,11 +14,11 @@ const props = defineProps({
 const emit = defineEmits(["update:visible", "item-success", "item-error"]);
 const toast = useToast();
 
-const deleteProviderUserRoles = (ids) => {
-    if (!ids || ids.length === 0) return;
+const deleteProviderUserRole = (id) => {
+    if (!id) return;
 
     window.axios
-        .delete("/admin/v1/provider-user-roles/bulk-delete", { data: { ids } })
+        .delete(`/admin/v1/provider-user-roles/${id}`)
         .then(() => {
             emit("update:visible", false);
             toast.add({
@@ -67,7 +67,7 @@ const deleteProviderUserRoles = (ids) => {
                 :label="$t('common.delete')"
                 icon="pi pi-check"
                 severity="danger"
-                @click="deleteProviderUserRoles(itemSelected.ids)"
+                @click="deleteProviderUserRole(itemSelected.id)"
                 autofocus
             />
         </template>

@@ -1,4 +1,14 @@
 {
+    "primevue.date_format": "mm/dd/yy",
+    "primevue.first_day_of_week": "0",
+    "primevue.day_names": "Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+    "primevue.day_names_short": "Sun,Mon,Tue,Wed,Thu,Fri,Sat",
+    "primevue.day_names_min": "Su,Mo,Tu,We,Th,Fr,Sa",
+    "primevue.month_names": "January,February,March,April,May,June,July,August,September,October,November,December",
+    "primevue.month_names_short": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
+    "primevue.today": "Today",
+    "primevue.clear": "Clear",
+
     "validation.current_password": "Incorrect password",
     "auth.err-login": "Invalid credentials",
     "auth.verification.errors.invalid_code": "The verification code is invalid or has already been used.",
@@ -53,6 +63,8 @@
     "common.close": "Close",
     "common.logout": "Logout",
     "common.restore": "Restore",
+    "common.loading": "Loading",
+    "common.no_records_found": "No records found",
 
     "admin.nav.users": "Users",
     "admin.nav.roles": "Roles",
@@ -63,7 +75,7 @@
     "admin.nav.parameters": "Parameters",
 
     "admin.users.title": "User Management",
-    "admin.users.handle_role_relations": "Handle User Roles",
+    "admin.users.add_role_relations": "Assign Roles",
     "admin.users.new_user": "New User",
 
     "admin.users.table.title": "User List",
@@ -78,6 +90,12 @@
     "admin.users.table.empty": "No users found in the system.",
     "admin.users.table.deleted_at": "Deleted At",
     "admin.users.table.show_deleted_tooltip": "Show Deleted Users",
+    "admin.users.table.delete_selected_tooltip": "Delete Selected Users",
+    "admin.users.table.restore_selected_tooltip": "Restore Selected Users",
+    "admin.users.table.hide_deleted_tooltip": "Hide Deleted Users",
+    "admin.roles.select_roles": "Select Roles",
+    "admin.users.roles.add_title": "Add roles for selected user",
+    "admin.roles.search_placeholder": "Search role...",
 
     "admin.users.form.title_create": "New User",
     "admin.users.form.title_edit": "Edit User",
@@ -169,11 +187,14 @@
     "admin.roles.toast.restore_error": "An error occurred while restoring the role",
     "admin.users.toast.restore_success": "User restored successfully",
     "admin.users.toast.restore_error": "An error occurred while restoring the user",
+    "admin.users.toast.add_roles_success": "Roles added successfully",
+    "admin.users.toast.add_roles_error": "An error occurred while adding roles",
 
     "admin.roles.form.error.domain.unique": "Il dominio del provider deve essere univoco",
     "admin.roles.form.error.domain.mandatory": "The provider domain cannot be empty",
     "admin.roles.form.error.logout_url.invalid": "The logout URL is invalid",
     "admin.roles.restore.prompt": "Are you sure you want to restore the role ",
+    "admin.roles.btn_add_roles": "Add Roles",
 
     "role.error.not_found": "Role not found",
     "role.error.restoring": "Error on restoring role",
@@ -300,6 +321,8 @@
     "provider_user_roles.not_found_multiple": "Roles for the provider not found",
     "provider_user_roles.conflict_unique_multiple": "There is already an active Provider-user-role for one or more selected items",
     "provider_user_roles.bulk_restore_success": "Provider user roles restored successfully",
+    "provider_user_roles.bulk_add_error": "Error adding provider user roles",
+    "provider_user_roles.bulk_add_success": "Provider user roles added successfully",
 
     "role.error.is_in_use": "This role is in use and cannot be deleted.",
 
@@ -403,6 +426,9 @@
     "admin.parameters.form.type_placeholder": "Select parameter type",
     "admin.parameters.form.value_label": "Value",
     "admin.parameters.form.value_placeholder": "Enter parameter value",
-    "admin.parameters.form.value_disabled_hint": "Value cannot be modified after creation",
-    "admin.parameters.form.btn_create": "Create Parameter"
+    "admin.parameters.form.btn_create": "Create Parameter",
+    "parameter.error.not_found": "Parameter not found",
+    "parameter.error.restoring": "An error occurred while restoring the parameter",
+    "parameter.error.updating": "An error occurred while updating the parameter",
+    "parameter.error.alredy_exists": "A parameter with the same key already exists"
 }

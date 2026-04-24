@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, computed, watch } from "vue";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n";
 
@@ -21,7 +21,7 @@ import RestoreUsersDialog from "./user/RestoreUsersDialog.vue";
 import AddRolesDialog from "./user/AddRolesDialog.vue";
 import { formatDate } from "../utils/data";
 
-const emit = defineEmits(["user-success", "user-error"]);
+const emit = defineEmits(["user-success", "user-error", "selection-changed"]);
 const toast = useToast();
 
 const filter = ref("");
@@ -144,6 +144,11 @@ const onModalSuccess = () => {
     loadUsers(pagination.value.current_page);
 };
 
+const onModalAddRolesSuccess = () => {
+    itemSelected.value = null;
+    displayAddRoleModal.value = false;
+};
+
 const deleteSelectedUsers = () => {
     const rawData = getSelectedUsers();
     const ids = rawData.map((item) => item.id);
@@ -168,6 +173,9 @@ onMounted(() => {
 
 const hasSelectedUsers = computed(() => {
     return selectedUsers.value && selectedUsers.value.length > 0;
+});
+watch(hasSelectedUsers, (newValue) => {
+    emit("selection-changed", newValue);
 });
 </script>
 
@@ -215,8 +223,8 @@ const hasSelectedUsers = computed(() => {
                                 @click="toggleShowUsersDeleted"
                                 v-tooltip.top="
                                     tableComponent.showUsersDeleted
-                                        ? $t('admin.providers.table.hide_deleted_tooltip')
-                                        : $t('admin.providers.table.show_deleted_tooltip')
+                                        ? $t('admin.users.table.hide_deleted_tooltip')
+                                        : $t('admin.users.table.show_deleted_tooltip')
                                 "
                             >
                                 <Icon
@@ -240,6 +248,12 @@ const hasSelectedUsers = computed(() => {
                 </template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+
+                <Column field="id" :header="$t('common.id')" style="width: 5%">
+                    <template #body="slotProps">
+                        <span class="text-surface-500 text-sm">{{ slotProps.data.id }}</span>
+                    </template>
+                </Column>
 
                 <Column field="username" :header="$t('admin.users.table.username')">
                     <template #body="slotProps">
@@ -373,7 +387,7 @@ const hasSelectedUsers = computed(() => {
         <AddRolesDialog
             v-model:visible="displayAddRoleModal"
             :itemSelected="itemSelected"
-            @user-success="onModalSuccess"
+            @user-success="onModalAddRolesSuccess"
         />
     </div>
 </template>

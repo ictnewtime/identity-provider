@@ -54,7 +54,7 @@ const deleteUsers = (ids) => {
             <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
             <span v-if="itemSelected" class="text-surface-700">
                 {{ $t("admin.users.delete.prompt_users") }}
-                <b class="text-surface-900">{{ itemSelected.ids.join(",") }}</b
+                <b class="text-surface-900">{{ itemSelected.ids.sort().join(",") }}</b
                 >?
             </span>
         </div>

@@ -18,7 +18,7 @@ const deleteProviderUserRoles = (ids) => {
     if (!ids || ids.length === 0) return;
 
     window.axios
-        .delete("/admin/v1/provider-user-roles/", { data: { ids } })
+        .delete("/admin/v1/provider-user-roles/bulk-delete", { data: { ids } })
         .then(() => {
             emit("update:visible", false);
             toast.add({
@@ -54,8 +54,8 @@ const deleteProviderUserRoles = (ids) => {
         <div class="flex items-center gap-4 pt-2">
             <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
             <span v-if="itemSelected" class="text-surface-700">
-                {{ $t("admin.provider_user_roles.delete.prompt_user") }}
-                <b class="text-surface-900">{{ itemSelected.ids.join(",") }}</b
+                {{ $t("admin.provider_user_roles.delete.prompt_users") }}
+                <b class="text-surface-900">{{ itemSelected.ids.sort().join(",") }}</b
                 >?
             </span>
         </div>

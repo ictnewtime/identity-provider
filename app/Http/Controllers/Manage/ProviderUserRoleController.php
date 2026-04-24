@@ -8,6 +8,7 @@ use App\Models\ProviderUserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 
 class ProviderUserRoleController extends Controller
@@ -263,35 +264,6 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => "Provider user role deleted"], 204);
     }
 
-    #[
-        OA\Delete(path: "/api/v1/provider-user-roles/bulk-delete", summary: "Delete provider user roles by ids"),
-        OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: "application/x-www-form-urlencoded",
-                schema: new OA\Schema(
-                    type: "object",
-                    properties: [new OA\Property(property: "ids", type: "array", items: new OA\Items(type: "integer"))],
-                ),
-            ),
-        ),
-        OA\Response(
-            response: 204,
-            description: "Operation successful",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(response: 404, description: "Not found", content: new OA\MediaType(mediaType: "application/json")),
-        OA\Response(
-            response: 422,
-            description: "Unprocessable Entity",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 500,
-            description: "Internal Server Error",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-    ]
     public function bulk_delete(Request $request)
     {
         $request->validate([
@@ -314,34 +286,6 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => __("provider_user_roles.bulk_delete_success")], 204);
     }
 
-    #[
-        OA\Patch(path: "/api/v1/provider-user-roles/{id}/restore", summary: "Restore provider user role by id"),
-        OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: "application/x-www-form-urlencoded",
-                schema: new OA\Schema(
-                    type: "object",
-                    properties: [new OA\Property(property: "id", type: "integer", example: "1")],
-                ),
-            ),
-        ),
-        OA\Response(
-            response: 200,
-            description: "Operation successful",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 422,
-            description: "Unprocessable Entity",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 500,
-            description: "Internal Server Error",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-    ]
     public function restore(Request $request)
     {
         $providerUserRole = ProviderUserRole::withTrashed()->find($request->id);
@@ -359,37 +303,6 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => __("provider_user_roles.restore_success")], 200);
     }
 
-    #[
-        OA\Patch(path: "/api/v1/provider-user-roles/bulk-restore", summary: "Restore provider user role by id"),
-        OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: "application/x-www-form-urlencoded",
-                schema: new OA\Schema(
-                    type: "object",
-                    properties: [new OA\Property(property: "ids", type: "array", items: new OA\Items(type: "integer"))],
-                ),
-                example: [
-                    "ids" => [1, 2, 3],
-                ],
-            ),
-        ),
-        OA\Response(
-            response: 200,
-            description: "Operation successful",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 422,
-            description: "Unprocessable Entity",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 500,
-            description: "Internal Server Error",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-    ]
     public function bulk_restore(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -442,6 +355,45 @@ class ProviderUserRoleController extends Controller
         }
 
         return response()->json(["message" => __("provider_user_roles.bulk_restore_success")], 200);
+    }
+
+    public function bulk_add(Request $request)
+    {
+        Log::info($request->all());
+        $request->validate([
+            "user_ids" => "required|array",
+            "user_ids.*" => "integer|exists:users,id",
+            "roles" => "required|array",
+            "roles.*.role_id" => "required|integer|exists:roles,id",
+            "roles.*.provider_id" => "required|integer|exists:providers,id",
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($request->user_ids as $userId) {
+                foreach ($request->roles as $roleData) {
+                    ProviderUserRole::firstOrCreate([
+                        "user_id" => $userId,
+                        "role_id" => $roleData["role_id"],
+                        "provider_id" => $roleData["provider_id"],
+                    ]);
+                }
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(
+                [
+                    "message" => __("provider_user_roles.bulk_add_error"),
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
+        }
+
+        return response()->json(["message" => __("provider_user_roles.bulk_add_success")], 200);
     }
 
     public function hasRelation(Request $request)

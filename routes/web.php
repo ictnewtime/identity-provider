@@ -128,6 +128,7 @@ Route::prefix("admin")
                 "restore",
             ])->whereNumber("id");
             Route::patch("provider-user-roles/bulk-restore", [ProviderUserRoleController::class, "bulk_restore"]);
+            Route::post("provider-user-roles/bulk-add", [ProviderUserRoleController::class, "bulk_add"]);
 
             // sessions
             Route::get("sessions", [SessionController::class, "all"]);

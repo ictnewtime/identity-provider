@@ -10,6 +10,7 @@ import InputGroupAddon from "primevue/inputgroupaddon";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
 import DatePicker from "primevue/datepicker";
+import LocalizedDatePicker from "../ui/LocalizedDatePicker.vue";
 
 import ToggleSwitch from "primevue/toggleswitch";
 import Button from "primevue/button";
@@ -483,12 +484,11 @@ watch(
                     {{ $t("admin.users.form.password_expires_at_label") }}
                 </label>
                 <InputGroup>
-                    <DatePicker
+                    <LocalizedDatePicker
                         id="password_expires_at"
                         v-model="form.password_expires_at"
                         :invalid="!!errors.password_expires_at"
                         :showIcon="true"
-                        dateFormat="dd/mm/yy"
                     />
                 </InputGroup>
                 <Message v-if="errors.password_expires_at" severity="error" size="small" variant="simple">

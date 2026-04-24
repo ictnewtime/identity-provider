@@ -100,12 +100,10 @@ const editItem = (item) => {
 };
 
 const confirmDelete = (item) => {
-    console.log(item);
     itemSelected.value = item;
     displayDeleteItemModal.value = true;
 };
 const confirmRestore = (item) => {
-    console.log(item);
     itemSelected.value = item;
     displayRestoreItemModal.value = true;
 };
@@ -230,6 +228,12 @@ onMounted(() => {
                 </template>
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+
+                <Column field="id" :header="$t('common.id')" style="width: 5%">
+                    <template #body="slotProps">
+                        <span class="text-surface-500 text-sm">{{ slotProps.data.id }}</span>
+                    </template>
+                </Column>
 
                 <Column :header="$t('admin.provider_user_roles.table.user')">
                     <template #body="slotProps">

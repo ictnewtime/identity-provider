@@ -13,6 +13,276 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/api/v1/parameters": {
+            "get": {
+                "tags": [
+                    "Parameters"
+                ],
+                "summary": "list of parameters",
+                "description": "Returns the entire list of parameters",
+                "operationId": "Parameter.all",
+                "responses": {
+                    "200": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Parameters"
+                ],
+                "summary": "Create a new parameter",
+                "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
+                "operationId": "Parameter.create",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "properties": {
+                                    "key": {
+                                        "description": "Parameter key",
+                                        "type": "string",
+                                        "example": "max_login_attempts"
+                                    },
+                                    "value": {
+                                        "description": "Parameter value",
+                                        "type": "string",
+                                        "example": "5"
+                                    },
+                                    "type": {
+                                        "description": "Parameter type",
+                                        "type": "string",
+                                        "example": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "403": {
+                        "description": "Invalid scope or client role, Forbidden",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "passport": [
+                            "manage-idp"
+                        ]
+                    }
+                ]
+            }
+        },
+        "/api/v1/parameters/{id}": {
+            "get": {
+                "tags": [
+                    "Parameters"
+                ],
+                "summary": "Returns parameter by id",
+                "description": "Returns parameter details by id",
+                "operationId": "Parameter.find",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Parameter id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "500": {
+                        "description": "Error on finding",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Parameters"
+                ],
+                "summary": "Update parameter by id",
+                "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
+                "operationId": "Parameter.update",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Parameter id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "properties": {
+                                    "key": {
+                                        "description": "Parameter key",
+                                        "type": "string",
+                                        "example": "max_login_attempts"
+                                    },
+                                    "value": {
+                                        "description": "Parameter value",
+                                        "type": "string",
+                                        "example": "5"
+                                    },
+                                    "type": {
+                                        "description": "Parameter type",
+                                        "type": "string",
+                                        "example": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "500": {
+                        "description": "Error on updating",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "passport": [
+                            "manage-idp"
+                        ]
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Parameters"
+                ],
+                "summary": "Remove parameter by id",
+                "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
+                "operationId": "Parameter.delete",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Parameter id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "500": {
+                        "description": "Error on deleting",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "passport": [
+                            "manage-idp"
+                        ]
+                    }
+                ]
+            }
+        },
         "/api/v1/providers": {
             "get": {
                 "tags": [
@@ -281,6 +551,52 @@
                 ],
                 "responses": {
                     "204": {
+                        "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "404": {
+                        "description": "Not found",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "500": {
+                        "description": "Server error",
+                        "content": {
+                            "application/json": {}
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/providers/{id}/restore": {
+            "post": {
+                "tags": [
+                    "Providers"
+                ],
+                "summary": "Restore provider by id",
+                "description": "__*Security:*__ __*can be used only by clients with 'admin' role*__",
+                "operationId": "Provider.restore",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Provider id",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
                         "description": "Operation successful",
                         "content": {
                             "application/json": {}
@@ -1153,6 +1469,10 @@
         {
             "name": "Roles",
             "description": "Handle roles operations"
+        },
+        {
+            "name": "Parameters",
+            "description": "Parameters"
         },
         {
             "name": "Providers",

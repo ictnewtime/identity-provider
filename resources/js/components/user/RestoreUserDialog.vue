@@ -53,7 +53,7 @@ const restoreUser = (id) => {
         <div class="flex items-center gap-4 pt-2">
             <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
             <span v-if="itemSelected" class="text-surface-700">
-                {{ $t("admin.users.restore.prompt_restore_user") }}
+                {{ $t("admin.users.restore.prompt_user") }}
                 <b class="text-surface-900">{{ itemSelected.username }}</b
                 >?
             </span>
