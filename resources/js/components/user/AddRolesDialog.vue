@@ -26,14 +26,24 @@ const selectedRoles = ref([]);
 
 const roleOptions = computed(() => {
     const rolesArray = pagination.value?.data || [];
-    return rolesArray.map((role) => {
+    const mappedServerRoles = rolesArray.map((role) => {
         const providerName = role?.provider?.name || "";
-
         return {
             ...role,
             displayName: `${role.name} (${providerName})`,
         };
     });
+
+    const allOptionsMap = new Map();
+    selectedRoles.value.forEach((role) => {
+        allOptionsMap.set(role.id, role);
+    });
+
+    mappedServerRoles.forEach((role) => {
+        allOptionsMap.set(role.id, role);
+    });
+
+    return Array.from(allOptionsMap.values());
 });
 
 const onFilterChange = () => {
@@ -134,6 +144,7 @@ watch(
         :header="$t('admin.users.roles.add_title')"
         :style="{ width: '600px' }"
         modal
+        :draggable="false"
     >
         <div class="flex flex-col gap-2 mt-4">
             <IconField iconPosition="left">
@@ -159,6 +170,7 @@ watch(
                     :filter="false"
                     :loading="loading"
                     :maxSelectedLabels="3"
+                    :selectedItemsLabel="$t('admin.roles.items_selected')"
                     :disabled="roleOptions.length === 0 && !loading"
                     class="w-full"
                 >
