@@ -9,7 +9,6 @@ import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
-import DatePicker from "primevue/datepicker";
 import LocalizedDatePicker from "../ui/LocalizedDatePicker.vue";
 
 import ToggleSwitch from "primevue/toggleswitch";

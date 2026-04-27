@@ -359,7 +359,6 @@ class ProviderUserRoleController extends Controller
 
     public function bulk_add(Request $request)
     {
-        Log::info($request->all());
         $request->validate([
             "user_ids" => "required|array",
             "user_ids.*" => "integer|exists:users,id",
