@@ -5,11 +5,14 @@ namespace App\Http\Controllers\Manage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProviderUserRoleRequest;
 use App\Models\ProviderUserRole;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
+use OwenIt\Auditing\Models\Audit;
 
 class ProviderUserRoleController extends Controller
 {
@@ -357,7 +360,7 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => __("provider_user_roles.bulk_restore_success")], 200);
     }
 
-    public function bulk_add(Request $request)
+    public function bulk_add_roles_to_users(Request $request)
     {
         $request->validate([
             "user_ids" => "required|array",
@@ -365,20 +368,59 @@ class ProviderUserRoleController extends Controller
             "roles" => "required|array",
             "roles.*.role_id" => "required|integer|exists:roles,id",
             "roles.*.provider_id" => "required|integer|exists:providers,id",
+            "is_all_selected" => "required|boolean",
+            "user_deleted" => "required|boolean",
         ]);
+
+        $userIds = [];
+        if ($request->is_all_selected) {
+            if ($request->show_user_deleted) {
+                $userIds = User::onlyTrashed()->pluck("id")->toArray();
+            } else {
+                $userIds = User::pluck("id")->toArray();
+            }
+        } else {
+            $userIds = $request->user_ids;
+        }
 
         try {
             DB::beginTransaction();
 
-            foreach ($request->user_ids as $userId) {
+            $insertData = [];
+            $now = now();
+
+            foreach ($userIds as $userId) {
                 foreach ($request->roles as $roleData) {
-                    ProviderUserRole::firstOrCreate([
+                    $insertData[] = [
                         "user_id" => $userId,
                         "role_id" => $roleData["role_id"],
                         "provider_id" => $roleData["provider_id"],
-                    ]);
+                        "created_at" => $now,
+                        "updated_at" => $now,
+                    ];
                 }
             }
+            foreach (array_chunk($insertData, 1000) as $chunk) {
+                ProviderUserRole::insertOrIgnore($chunk);
+            }
+
+            $userId = Auth::id();
+            $userType = $userId ? get_class(Auth::user()) : null;
+            Audit::create([
+                "event" => "bulk_assign_roles",
+                "auditable_type" => User::class,
+                "auditable_id" => 0,
+                "user_type" => $userType,
+                "user_id" => $userId,
+                "url" => request()->fullUrl(),
+                "ip_address" => request()->ip(),
+                "user_agent" => request()->userAgent(),
+                "old_values" => [],
+                "new_values" => [
+                    "assigned_roles" => $request->roles,
+                    "users_affected" => $userIds,
+                ],
+            ]);
 
             DB::commit();
         } catch (\Exception $e) {

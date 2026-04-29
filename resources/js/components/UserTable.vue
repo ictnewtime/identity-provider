@@ -34,8 +34,10 @@ const displayRestoreUserModal = ref(false);
 const displayRestoreUsersModal = ref(false);
 const displayAddRoleModal = ref(false);
 const itemSelected = ref(null);
-const selectedUsers = ref();
+const selectedUsers = ref([]);
 let searchTimeout = null;
+const isAllSelected = ref(false);
+
 const tableComponent = reactive({
     showUsersDeleted: false,
 });
@@ -167,6 +169,56 @@ const toggleShowUsersDeleted = () => {
     loadUsers(1);
 };
 
+const addCurrentPageToSelection = () => {
+    const currentData = pagination.value?.data || [];
+    // filtriamo gli utenti nuovi
+    const newSelections = currentData.filter(
+        (user) => !selectedUsers.value.some((selected) => selected.id === user.id)
+    );
+    if (newSelections.length > 0) {
+        selectedUsers.value = [...selectedUsers.value, ...newSelections];
+    }
+};
+
+const selectAllUser = () => {
+    isAllSelected.value = true;
+    addCurrentPageToSelection();
+};
+const unselectAllUser = () => {
+    isAllSelected.value = false;
+    selectedUsers.value = [];
+};
+
+// Se l'utente deseleziona manualmente una riga, togliamo il flag isAllSelected
+watch(selectedUsers, (newVal, oldVal) => {
+    if (isAllSelected.value && newVal.length < oldVal.length) {
+        isAllSelected.value = false;
+    }
+});
+
+// Quando la pagina è cambiata e isAllSelected è true
+// gli utenti vanno selezionati e aggiunti a selectedUsers.
+watch(
+    () => pagination.value.data,
+    () => {
+        if (isAllSelected.value) {
+            addCurrentPageToSelection();
+        }
+    }
+);
+
+const showSelectAllUser = computed(() => {
+    return (
+        selectedUsers.value.length > 0 && selectedUsers.value.length < pagination.value.total && !isAllSelected.value
+    );
+});
+
+const showDeselectAllUser = computed(() => {
+    return (
+        isAllSelected.value || (selectedUsers.value.length > 0 && selectedUsers.value.length === pagination.value.total)
+    );
+});
+
 onMounted(() => {
     loadUsers();
 });
@@ -195,7 +247,28 @@ watch(hasSelectedUsers, (newValue) => {
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
                             {{ $t("admin.users.table.title") }}
                         </h3>
+
                         <div class="flex gap-4">
+                            <div v-if="selectedUsers.length > 0">
+                                <div v-if="showSelectAllUser">
+                                    <Button
+                                        @click="selectAllUser"
+                                        variant="text"
+                                        class="ml-2 font-semibold text-primary-500 hover:underline"
+                                    >
+                                        Seleziona tutti gli utenti ({{ pagination.total }})
+                                    </Button>
+                                </div>
+                                <div v-if="showDeselectAllUser">
+                                    <Button
+                                        @click="unselectAllUser"
+                                        variant="text"
+                                        class="ml-2 font-semibold text-primary-500 hover:underline"
+                                    >
+                                        Deseleziona tutti
+                                    </Button>
+                                </div>
+                            </div>
                             <Button
                                 v-if="hasSelectedUsers && !tableComponent.showUsersDeleted"
                                 variant="text"
@@ -387,6 +460,8 @@ watch(hasSelectedUsers, (newValue) => {
         <AddRolesDialog
             v-model:visible="displayAddRoleModal"
             :itemSelected="itemSelected"
+            :isAllSelected="isAllSelected"
+            :usersDeleted="tableComponent.showUsersDeleted"
             @user-success="onModalAddRolesSuccess"
         />
     </div>

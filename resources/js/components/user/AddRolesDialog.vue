@@ -14,6 +14,8 @@ import { Icon } from "@iconify/vue";
 const props = defineProps({
     visible: { type: Boolean, required: true },
     itemSelected: { type: Object, default: () => null },
+    isAllSelected: { type: Object, default: () => null },
+    usersDeleted: { type: Object, default: () => null },
 });
 
 const emit = defineEmits(["update:visible", "user-success", "user-error"]);
@@ -89,7 +91,9 @@ const loadRoles = () => {
         });
 };
 
-const addRolesToUserIds = (userIds) => {
+const addRolesToUserIds = () => {
+    const userIds = props.itemSelected.ids;
+    const isAllSelected = props.isAllSelected;
     if (!userIds || userIds.length === 0 || selectedRoles.value.length === 0) {
         return;
     }
@@ -106,6 +110,8 @@ const addRolesToUserIds = (userIds) => {
         .post("/admin/v1/provider-user-roles/bulk-add", {
             user_ids: userIds,
             roles: formattedRoles,
+            is_all_selected: isAllSelected,
+            user_deleted: usersDeleted,
         })
         .then((res) => {
             selectedRoles.value = [];
@@ -183,7 +189,7 @@ watch(
                 :label="$t('admin.roles.btn_add_roles')"
                 icon="pi pi-check"
                 sclass="shadow-sm"
-                @click="addRolesToUserIds(itemSelected.ids)"
+                @click="addRolesToUserIds()"
                 autofocus
             />
         </template>
