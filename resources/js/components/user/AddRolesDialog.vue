@@ -21,7 +21,7 @@ const toast = useToast();
 const loading = ref(false);
 const filterRoles = ref("");
 let searchTimeout = null;
-const pagination = ref({ data: [], total: 0, per_page: 50 });
+const pagination = ref({ data: [], total: 0, per_page: 100 });
 const selectedRoles = ref([]);
 
 const roleOptions = computed(() => {
@@ -46,10 +46,16 @@ const roleOptions = computed(() => {
     return Array.from(allOptionsMap.values());
 });
 
-const onFilterChange = () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-        loadRoles(1);
+let debounceTimeout = null;
+
+const onFilterChange = (event) => {
+    if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+    }
+
+    debounceTimeout = setTimeout(() => {
+        filterRoles.value = event.value;
+        loadRoles();
     }, 500);
 };
 
@@ -146,40 +152,30 @@ watch(
         modal
         :draggable="false"
     >
-        <div class="flex flex-col gap-2 mt-4">
-            <IconField iconPosition="left">
-                <InputIcon class="pi pi-search" />
-                <InputText
-                    id="search-role"
-                    v-model="filterRoles"
-                    @input="onFilterChange"
-                    :placeholder="$t('admin.roles.search_placeholder')"
-                    class="w-full"
-            /></IconField>
+        <div class="flex flex-col gap-2">
+            <label for="roles-multiselect" class="font-medium text-surface-900 dark:text-surface-0">
+                {{ $t("admin.roles.select_roles") }}
+            </label>
 
-            <div class="flex flex-col gap-2 mt-4">
-                <label for="roles-multiselect" class="font-medium text-surface-900 dark:text-surface-0">
-                    {{ $t("admin.roles.select_roles") }}
-                </label>
-
-                <MultiSelect
-                    id="roles-multiselect"
-                    v-model="selectedRoles"
-                    :options="roleOptions"
-                    optionLabel="displayName"
-                    :filter="false"
-                    :loading="loading"
-                    :maxSelectedLabels="3"
-                    :selectedItemsLabel="$t('admin.roles.items_selected')"
-                    :disabled="roleOptions.length === 0 && !loading"
-                    class="w-full"
-                >
-                    <template #empty>
-                        <span v-if="loading">{{ $t("common.loading") }}</span>
-                        <span v-else>{{ $t("common.no_records_found") }}</span>
-                    </template>
-                </MultiSelect>
-            </div>
+            <MultiSelect
+                id="roles-multiselect"
+                v-model="selectedRoles"
+                :options="roleOptions"
+                optionLabel="displayName"
+                :filter="true"
+                @filter="onFilterChange"
+                :loading="loading"
+                :maxSelectedLabels="3"
+                :selectedItemsLabel="$t('admin.roles.items_selected')"
+                :disabled="roleOptions.length === 0 && !loading"
+                :placeholder="$t('admin.roles.search_placeholder')"
+                class="w-full"
+            >
+                <template #empty>
+                    <span v-if="loading">{{ $t("common.loading") }}</span>
+                    <span v-else>{{ $t("common.no_records_found") }}</span>
+                </template>
+            </MultiSelect>
         </div>
         <template #footer>
             <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="$emit('update:visible', false)" />

@@ -95,7 +95,7 @@
     "admin.users.table.hide_deleted_tooltip": "Hide Deleted Users",
     "admin.roles.select_roles": "Select Roles",
     "admin.users.roles.add_title": "Add roles for selected user",
-    "admin.roles.search_placeholder": "Search role...",
+    "admin.roles.search_placeholder": "Search roles...",
 
     "admin.users.form.title_create": "New User",
     "admin.users.form.title_edit": "Edit User",

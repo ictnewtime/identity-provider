@@ -95,7 +95,7 @@
     "admin.users.table.hide_deleted_tooltip": "Nascondi Utenti Eliminati",
     "admin.roles.select_roles": "Seleziona Ruoli",
     "admin.users.roles.add_title": "Associa ruoli per gli utenti selezionati",
-    "admin.roles.search_placeholder": "Cerca ruolo...",
+    "admin.roles.search_placeholder": "Cerca ruoli...",
 
     "admin.users.form.title_create": "Nuovo Utente",
     "admin.users.form.title_edit": "Modifica Utente",
