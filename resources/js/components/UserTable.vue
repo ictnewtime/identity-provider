@@ -461,7 +461,7 @@ watch(hasSelectedUsers, (newValue) => {
             v-model:visible="displayAddRoleModal"
             :itemSelected="itemSelected"
             :isAllSelected="isAllSelected"
-            :usersDeleted="tableComponent.showUsersDeleted"
+            :onlyUsersDeleted="tableComponent.showUsersDeleted"
             @user-success="onModalAddRolesSuccess"
         />
     </div>

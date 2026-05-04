@@ -59,7 +59,7 @@ class TokenProviderService
                 throw new \Exception("Provider misconfigured.");
             }
 
-            // TODO Parameters
+            // TODO gestire i calculatedTtl con Parameters
             $currentTime = time();
             $calculatedTtl = $this->ttlInSeconds ?? 3600;
             $expirationTime = $currentTime + $calculatedTtl;

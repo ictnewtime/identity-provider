@@ -15,7 +15,7 @@ const props = defineProps({
     visible: { type: Boolean, required: true },
     itemSelected: { type: Object, default: () => null },
     isAllSelected: { type: Object, default: () => null },
-    usersDeleted: { type: Object, default: () => null },
+    onlyUsersDeleted: { type: Object, default: () => null },
 });
 
 const emit = defineEmits(["update:visible", "user-success", "user-error"]);
@@ -94,6 +94,7 @@ const loadRoles = () => {
 const addRolesToUserIds = () => {
     const userIds = props.itemSelected.ids;
     const isAllSelected = props.isAllSelected;
+    const onlyUsersDeleted = props.onlyUsersDeleted;
     if (!userIds || userIds.length === 0 || selectedRoles.value.length === 0) {
         return;
     }
@@ -111,7 +112,7 @@ const addRolesToUserIds = () => {
             user_ids: userIds,
             roles: formattedRoles,
             is_all_selected: isAllSelected,
-            user_deleted: usersDeleted,
+            only_user_deleted: onlyUsersDeleted,
         })
         .then((res) => {
             selectedRoles.value = [];

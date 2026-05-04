@@ -96,7 +96,11 @@ class UserController extends Controller
 
         if ($request->filled("q")) {
             $query->where(function ($q) use ($request) {
-                $q->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
+                $q->where("email", "like", "%" . $request->q . "%")->orWhere(
+                    "username",
+                    "like",
+                    "%" . $request->q . "%",
+                );
             });
         }
 

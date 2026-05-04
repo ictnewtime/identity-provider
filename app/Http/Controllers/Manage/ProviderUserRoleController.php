@@ -369,12 +369,12 @@ class ProviderUserRoleController extends Controller
             "roles.*.role_id" => "required|integer|exists:roles,id",
             "roles.*.provider_id" => "required|integer|exists:providers,id",
             "is_all_selected" => "required|boolean",
-            "user_deleted" => "required|boolean",
+            "only_user_deleted" => "required|boolean",
         ]);
 
         $userIds = [];
         if ($request->is_all_selected) {
-            if ($request->show_user_deleted) {
+            if ($request->only_user_deleted) {
                 $userIds = User::onlyTrashed()->pluck("id")->toArray();
             } else {
                 $userIds = User::pluck("id")->toArray();
