@@ -96,6 +96,8 @@
     "admin.roles.select_roles": "Select Roles",
     "admin.users.roles.add_title": "Add roles for selected user",
     "admin.roles.search_placeholder": "Search roles...",
+    "admin.users.roles.add_roles_from_user": "Add roles from selected user",
+    "admin.roles.form.user_placeholder": "Select User",
 
     "admin.users.form.title_create": "New User",
     "admin.users.form.title_edit": "Edit User",
@@ -164,6 +166,7 @@
     "admin.roles.form.title_edit": "Edit Role",
 
     "admin.roles.toast.load_error": "Unable to load role list",
+    "admin.roles.toast.load_user_role_error": "Unable to load roles from the selected user",
     "admin.roles.toast.delete_success": "Role successfully deleted",
     "admin.roles.toast.delete_error": "An error occurred while deleting the role",
     "admin.roles.delete.prompt": "Are you sure you want to permanently delete the role ",
@@ -227,7 +230,7 @@
     "admin.providers.form.btn_create": "Create Provider",
     "admin.providers.form.url_label": "Main App URL",
     "admin.providers.form.url_placeholder": "e.g., https://myapp.com or localhost:8000",
-    "admin.providers.form.url_tooltip": "Enter the URL and use the magic wand to auto-fill the fields below.",
+    "admin.providers.form.url_tooltip": "Enter the URL and use the magic stars to auto-fill the fields below.",
     "admin.providers.form.url_btn_tooltip": "Extract Domain, Protocol, and Logout URL",
     "admin.providers.form.domain_label": "Domain",
     "admin.providers.form.domain_placeholder": "idp.newtimegroup.it",

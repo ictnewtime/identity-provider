@@ -96,6 +96,8 @@
     "admin.roles.select_roles": "Seleziona Ruoli",
     "admin.users.roles.add_title": "Associa ruoli per gli utenti selezionati",
     "admin.roles.search_placeholder": "Cerca ruoli...",
+    "admin.users.roles.add_roles_from_user": "Aggiungi ruoli dal utente selezionato",
+    "admin.roles.form.user_placeholder": "Seleziona Utente",
 
     "admin.users.form.title_create": "Nuovo Utente",
     "admin.users.form.title_edit": "Modifica Utente",
@@ -164,6 +166,7 @@
     "admin.roles.form.title_edit": "Modifica Ruolo",
 
     "admin.roles.toast.load_error": "Impossibile caricare la lista dei ruoli",
+    "admin.roles.toast.load_user_role_error": "Errore durante il caricamento dei ruoli dell'utente",
     "admin.roles.toast.delete_success": "Ruolo eliminato correttamente",
     "admin.roles.toast.delete_error": "Si è verificato un errore durante l'eliminazione del ruolo",
     "admin.roles.delete.prompt": "Sei sicuro di voler eliminare definitivamente il ruolo ",
@@ -230,7 +233,7 @@
     "admin.providers.form.btn_create": "Crea Provider",
     "admin.providers.form.url_label": "URL Principale App",
     "admin.providers.form.url_placeholder": "es. https://myapp.com o localhost:8000",
-    "admin.providers.form.url_tooltip": "Inserisci l'URL e usa la bacchetta per auto-compilare i campi sottostanti.",
+    "admin.providers.form.url_tooltip": "Inserisci l'URL e usa la stella per auto-compilare i campi sottostanti.",
     "admin.providers.form.url_btn_tooltip": "Estrai Dominio, Protocollo e Logout URL",
     "admin.providers.form.domain_label": "Dominio",
     "admin.providers.form.domain_placeholder": "idp.newtimegroup.it",

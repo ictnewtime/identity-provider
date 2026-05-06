@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\UserResource;
+use App\Models\ProviderUserRole;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -483,7 +484,7 @@ class UserController extends Controller
         return response()->json($user, 200);
     }
 
-    public function bulk_delete(Request $request)
+    public function bulkDelete(Request $request)
     {
         $request->validate([
             "ids" => "required|array",
@@ -505,7 +506,7 @@ class UserController extends Controller
         return response()->json(["message" => __("user.bulk_delete_success")], 200);
     }
 
-    public function bulk_restore(Request $request)
+    public function bulkRestore(Request $request)
     {
         $validator = Validator::make($request->all(), [
             "ids" => "required|array",
@@ -540,5 +541,25 @@ class UserController extends Controller
         }
 
         return response()->json(["message" => __("users.bulk_restore_success")], 200);
+    }
+
+    public function getUserRoles(Request $request, int $id)
+    {
+        $user = User::find($id);
+        if (empty($user)) {
+            return response()->json([], 404);
+        }
+        $providerUserRoles = ProviderUserRole::where("user_id", $id)
+            ->with(["role", "provider:id,name"])
+            ->get();
+        $userRoles = $providerUserRoles->map(function ($relation) {
+            return [
+                "id" => $relation->role_id,
+                "name" => $relation->role->name,
+                "provider_id" => $relation->provider_id,
+                "provider_name" => $relation->provider->name,
+            ];
+        });
+        return response()->json($userRoles, 200);
     }
 }

@@ -267,7 +267,7 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => "Provider user role deleted"], 204);
     }
 
-    public function bulk_delete(Request $request)
+    public function bulkDelete(Request $request)
     {
         $request->validate([
             "ids" => "required|array",
@@ -306,7 +306,7 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => __("provider_user_roles.restore_success")], 200);
     }
 
-    public function bulk_restore(Request $request)
+    public function bulkRestore(Request $request)
     {
         $validator = Validator::make($request->all(), [
             "ids" => "required|array",
@@ -360,7 +360,7 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => __("provider_user_roles.bulk_restore_success")], 200);
     }
 
-    public function bulk_add_roles_to_users(Request $request)
+    public function bulkAddRolesToUsers(Request $request)
     {
         $request->validate([
             "user_ids" => "required|array",
