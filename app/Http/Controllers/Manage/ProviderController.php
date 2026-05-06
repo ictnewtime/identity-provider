@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Manage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProviderRequest;
 use App\Models\Provider;
+use App\Models\ProviderUserRole;
 // use App\Repositories\RepositoryInterface;
 
 use Illuminate\Http\Request;
@@ -49,6 +50,13 @@ class ProviderController extends Controller
         if ($show_deleted) {
             $query->onlyTrashed();
         }
+        // contatore per il numero di utenti univoci per provider
+        $query->addSelect([
+            "unique_users_count" => ProviderUserRole::selectRaw("count(distinct user_id)")
+                ->whereColumn("provider_id", "providers.id")
+                ->whereNull("deleted_at"),
+        ]);
+
         $perPage = $request->input("per_page", 10);
         return $query->paginate($perPage);
     }

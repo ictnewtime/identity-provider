@@ -216,26 +216,21 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column field="domain" :header="$t('admin.providers.table.domain')">
-                    <template #body="slotProps">
-                        <span class="font-bold text-surface-900">{{ slotProps.data.domain }}</span>
-                    </template>
-                </Column>
-
                 <Column field="name" :header="$t('admin.providers.table.name')">
                     <template #body="slotProps">
                         <span class="font-medium text-surface-700">{{ slotProps.data.name }}</span>
                     </template>
                 </Column>
 
-                <Column field="logoutUrl" :header="$t('admin.providers.table.logout_url')">
+                <Column field="domain" :header="$t('admin.providers.table.domain')">
                     <template #body="slotProps">
-                        <span v-if="slotProps.data.logoutUrl" class="text-surface-600">
-                            {{ slotProps.data.logoutUrl }}
-                        </span>
-                        <span v-else class="text-surface-400 italic">
-                            {{ $t("admin.providers.table.default_url") }}
-                        </span>
+                        <span class="font-bold text-surface-900">{{ slotProps.data.domain }}</span>
+                    </template>
+                </Column>
+
+                <Column field="name" :header="$t('admin.providers.table.unique_users_count')">
+                    <template #body="slotProps">
+                        <span class="font-medium text-surface-700">{{ slotProps.data.unique_users_count }}</span>
                     </template>
                 </Column>
                 <Column
