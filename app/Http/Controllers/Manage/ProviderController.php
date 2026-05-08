@@ -52,10 +52,22 @@ class ProviderController extends Controller
         }
         // contatore per il numero di utenti univoci per provider
         $query->addSelect([
-            "unique_users_count" => ProviderUserRole::selectRaw("count(distinct user_id)")
-                ->whereColumn("provider_id", "providers.id")
-                ->whereNull("deleted_at"),
+            "unique_users_count" => ProviderUserRole::selectRaw("count(distinct user_id)")->whereColumn(
+                "provider_id",
+                "providers.id",
+            ),
         ]);
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["id", "name", "domain", "unique_users_count", "deleted_at"];
+
+            if (in_array($field, $allowedSorts)) {
+                $query->orderBy($field, $direction);
+            }
+        } else {
+            $query->orderBy("id", "asc");
+        }
 
         $perPage = $request->input("per_page", 10);
         return $query->paginate($perPage);

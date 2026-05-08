@@ -93,6 +93,8 @@
     "admin.users.table.delete_selected_tooltip": "Elimina Utenti Selezionati",
     "admin.users.table.restore_selected_tooltip": "Ripristina Utenti Selezionati",
     "admin.users.table.hide_deleted_tooltip": "Nascondi Utenti Eliminati",
+    "admin.users.table.select_all_label": "Seleziona tutti gli utenti",
+    "admin.users.table.deselect_all_label": "Deseleziona tutti",
     "admin.roles.select_roles": "Seleziona Ruoli",
     "admin.users.roles.add_title": "Associa ruoli per gli utenti selezionati",
     "admin.roles.search_placeholder": "Cerca ruoli...",

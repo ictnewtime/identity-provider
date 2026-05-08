@@ -64,6 +64,25 @@ class RoleController extends Controller
                 });
             });
         }
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["id", "name", "provider.domain", "provider.name", "deleted_at"];
+
+            if (in_array($field, $allowedSorts)) {
+                if (str_starts_with($field, "provider.")) {
+                    $sortColumn = str_replace("provider.", "providers.", $field);
+                    $query
+                        ->join("providers", "roles.provider_id", "=", "providers.id")
+                        ->select("roles.*")
+                        ->orderBy($sortColumn, $direction);
+                } else {
+                    $query->orderBy("roles." . $field, $direction);
+                }
+            }
+        } else {
+            $query->orderBy("id", "asc");
+        }
         if ($show_deleted) {
             $query->onlyTrashed();
         }

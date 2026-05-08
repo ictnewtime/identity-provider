@@ -74,7 +74,6 @@ class RedirectIfAuthenticated
      */
     private function resolveAuthenticatedUser(Request $request, $guard, $idpProviderId, $cookieName)
     {
-        // 1. Controllo standard Sessione Laravel
         if (Auth::guard($guard)->check()) {
             return Auth::guard($guard)->user();
         }

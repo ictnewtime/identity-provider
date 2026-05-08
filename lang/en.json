@@ -93,6 +93,8 @@
     "admin.users.table.delete_selected_tooltip": "Delete Selected Users",
     "admin.users.table.restore_selected_tooltip": "Restore Selected Users",
     "admin.users.table.hide_deleted_tooltip": "Hide Deleted Users",
+    "admin.users.table.select_all_label": "Select All",
+    "admin.users.table.deselect_all_label": "Deselect All",
     "admin.roles.select_roles": "Select Roles",
     "admin.users.roles.add_title": "Add roles for selected user",
     "admin.roles.search_placeholder": "Search roles...",

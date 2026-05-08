@@ -39,6 +39,7 @@ class ProviderUserRoleController extends Controller
     {
         $show_deleted = $request->boolean("show_deleted");
         $query = ProviderUserRole::with(["user:id,username", "provider:id,name", "role:id,name"]);
+        $baseTable = (new ProviderUserRole())->getTable();
 
         if ($request->filled("q")) {
             $searchTerm = "%" . $request->q . "%";
@@ -62,6 +63,35 @@ class ProviderUserRoleController extends Controller
         if ($show_deleted) {
             $query->onlyTrashed();
         }
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["id", "provider.name", "user.username", "role.name", "deleted_at"];
+
+            if (in_array($field, $allowedSorts)) {
+                if ($field === "provider.name") {
+                    $query
+                        ->join("providers", "{$baseTable}.provider_id", "=", "providers.id")
+                        ->select("{$baseTable}.*")
+                        ->orderBy("providers.name", $direction);
+                } elseif ($field === "user.username") {
+                    $query
+                        ->join("users", "{$baseTable}.user_id", "=", "users.id")
+                        ->select("{$baseTable}.*")
+                        ->orderBy("users.username", $direction);
+                } elseif ($field === "role.name") {
+                    $query
+                        ->join("roles", "{$baseTable}.role_id", "=", "roles.id")
+                        ->select("{$baseTable}.*")
+                        ->orderBy("roles.name", $direction);
+                } else {
+                    $query->orderBy("{$baseTable}.{$field}", $direction);
+                }
+            }
+        } else {
+            $query->orderBy("id", "asc");
+        }
+
         $perPage = $request->input("per_page", 10);
         return $query->paginate($perPage);
     }

@@ -25,6 +25,7 @@ const toast = useToast();
 const filter = ref("");
 const loading = ref(false);
 const pagination = ref({ data: [], total: 0, per_page: 10 });
+const sortParams = ref({ field: null, order: null });
 const displayModal = ref(false);
 const itemSelected = ref(null);
 const displayDeleteModal = ref(false);
@@ -41,7 +42,9 @@ const tableComponent = reactive({
 
 const loadRecords = (page = 1) => {
     loading.value = true;
-
+    let sort_dir = null;
+    if (sortParams.value.order === 1) sort_dir = "asc";
+    else if (sortParams.value.order === -1) sort_dir = "desc";
     window.axios
         .get("/admin/v1/provider-user-roles", {
             params: {
@@ -49,6 +52,8 @@ const loadRecords = (page = 1) => {
                 per_page: pagination.value.per_page,
                 q: filter.value,
                 show_deleted: tableComponent.showRecordsDeleted,
+                sort_by: sortParams.value.field,
+                sort_dir: sort_dir,
             },
         })
         .then((res) => {
@@ -70,7 +75,14 @@ const loadRecords = (page = 1) => {
 };
 
 const onPage = (event) => {
+    pagination.value.per_page = event.rows;
     loadRecords(event.page + 1);
+};
+
+const onSort = (event) => {
+    sortParams.value.field = event.sortField;
+    sortParams.value.order = event.sortOrder;
+    loadRecords();
 };
 
 const onFilterChange = () => {
@@ -170,6 +182,9 @@ onMounted(() => {
                 responsiveLayout="scroll"
                 stripedRows
                 size="small"
+                :lazy="true"
+                @sort="onSort"
+                :sortOrder="sortParams.order"
             >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
@@ -229,13 +244,13 @@ onMounted(() => {
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
-                <Column field="id" :header="$t('common.id')" style="width: 5%">
+                <Column field="id" :header="$t('common.id')" style="width: 5%; padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="text-surface-500 text-sm">{{ slotProps.data.id }}</span>
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.provider_user_roles.table.user')">
+                <Column field="user.username" :header="$t('admin.provider_user_roles.table.user')" sortable>
                     <template #body="slotProps">
                         <span v-if="slotProps.data.user" class="font-bold text-surface-900">
                             {{ slotProps.data.user.username }}
@@ -246,7 +261,7 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.provider_user_roles.table.provider')">
+                <Column field="provider.name" :header="$t('admin.provider_user_roles.table.provider')" sortable>
                     <template #body="slotProps">
                         <span v-if="slotProps.data.provider" class="text-surface-700 font-medium">
                             {{ slotProps.data.provider.name }}
@@ -257,7 +272,7 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.provider_user_roles.table.role')">
+                <Column field="role.name" :header="$t('admin.provider_user_roles.table.role')" sortable>
                     <template #body="slotProps">
                         <span v-if="slotProps.data.role" class="text-surface-600">
                             {{ slotProps.data.role.name }}
@@ -271,6 +286,7 @@ onMounted(() => {
                     field="deleted_at"
                     :header="$t('admin.provider_user_roles.table.deleted_at')"
                     v-if="tableComponent.showRecordsDeleted === true"
+                    sortable
                 >
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>

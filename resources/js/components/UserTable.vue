@@ -27,6 +27,7 @@ const toast = useToast();
 const filter = ref("");
 const loading = ref(false);
 const pagination = ref({ data: [], total: 0, per_page: 10 });
+const sortParams = ref({ field: null, order: null });
 const displayUserModal = ref(false);
 const displayDeleteUserModal = ref(false);
 const displayDeleteUsersModal = ref(false);
@@ -44,6 +45,9 @@ const tableComponent = reactive({
 
 const loadUsers = (page = 1) => {
     loading.value = true;
+    let sort_dir = null;
+    if (sortParams.value.order === 1) sort_dir = "asc";
+    else if (sortParams.value.order === -1) sort_dir = "desc";
     window.axios
         .get("/admin/v1/users", {
             params: {
@@ -51,6 +55,8 @@ const loadUsers = (page = 1) => {
                 per_page: pagination.value.per_page,
                 q: filter.value,
                 show_deleted: tableComponent.showUsersDeleted,
+                sort_by: sortParams.value.field,
+                sort_dir: sort_dir,
             },
         })
         .then((res) => {
@@ -71,7 +77,14 @@ const loadUsers = (page = 1) => {
 };
 
 const onPage = (event) => {
+    pagination.value.per_page = event.rows;
     loadUsers(event.page + 1);
+};
+
+const onSort = (event) => {
+    sortParams.value.field = event.sortField;
+    sortParams.value.order = event.sortOrder;
+    loadUsers();
 };
 
 const onFilterChange = () => {
@@ -241,6 +254,10 @@ watch(hasSelectedUsers, (newValue) => {
                 stripedRows
                 size="small"
                 v-model:selection="selectedUsers"
+                class="w-full"
+                :lazy="true"
+                @sort="onSort"
+                :sortOrder="sortParams.order"
             >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
@@ -256,7 +273,7 @@ watch(hasSelectedUsers, (newValue) => {
                                         variant="text"
                                         class="ml-2 font-semibold text-primary-500 hover:underline"
                                     >
-                                        Seleziona tutti gli utenti ({{ pagination.total }})
+                                        {{ $t("admin.users.table.select_all_label") }} ({{ pagination.total }})
                                     </Button>
                                 </div>
                                 <div v-if="showDeselectAllUser">
@@ -265,7 +282,7 @@ watch(hasSelectedUsers, (newValue) => {
                                         variant="text"
                                         class="ml-2 font-semibold text-primary-500 hover:underline"
                                     >
-                                        Deseleziona tutti
+                                        {{ $t("admin.users.table.deselect_all_label") }}
                                     </Button>
                                 </div>
                             </div>
@@ -320,27 +337,27 @@ watch(hasSelectedUsers, (newValue) => {
                     </div>
                 </template>
 
-                <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
+                <Column selectionMode="multiple"></Column>
 
-                <Column field="id" :header="$t('common.id')" style="width: 5%">
+                <Column field="id" :header="$t('common.id')" style="width: 5%; padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="text-surface-500 text-sm">{{ slotProps.data.id }}</span>
                     </template>
                 </Column>
 
-                <Column field="username" :header="$t('admin.users.table.username')">
+                <Column field="username" :header="$t('admin.users.table.username')" sortable>
                     <template #body="slotProps">
                         <span class="font-medium text-surface-900">{{ slotProps.data.username }}</span>
                     </template>
                 </Column>
 
-                <Column field="email" :header="$t('admin.users.table.email')">
+                <Column field="email" :header="$t('admin.users.table.email')" sortable>
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ slotProps.data.email }}</span>
                     </template>
                 </Column>
 
-                <Column field="enabled" :header="$t('admin.users.table.status')">
+                <Column field="enabled" :header="$t('admin.users.table.status')" sortable>
                     <template #body="slotProps">
                         <Tag
                             :severity="slotProps.data.enabled ? 'success' : 'danger'"
@@ -358,6 +375,7 @@ watch(hasSelectedUsers, (newValue) => {
                     field="deleted_at"
                     :header="$t('admin.users.table.deleted_at')"
                     v-if="tableComponent.showUsersDeleted === true"
+                    sortable
                 >
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
@@ -419,8 +437,9 @@ watch(hasSelectedUsers, (newValue) => {
             </DataTable>
 
             <Paginator
+                :rows="10"
+                :rowsPerPageOptions="[10, 20, 30, 50]"
                 v-if="pagination.total > 0"
-                :rows="pagination.per_page"
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"

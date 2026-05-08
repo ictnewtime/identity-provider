@@ -22,6 +22,7 @@ const toast = useToast();
 const filter = ref("");
 const loading = ref(false);
 const pagination = ref({ data: [], total: 0, per_page: 10 });
+const sortParams = ref({ field: null, order: null });
 const displayModal = ref(false);
 const providerSelected = ref(null);
 const displayDeleteModal = ref(false);
@@ -33,7 +34,9 @@ const tableComponent = reactive({
 
 const loadProviders = (page = 1) => {
     loading.value = true;
-
+    let sort_dir = null;
+    if (sortParams.value.order === 1) sort_dir = "asc";
+    else if (sortParams.value.order === -1) sort_dir = "desc";
     window.axios
         .get("/admin/v1/providers", {
             params: {
@@ -41,6 +44,8 @@ const loadProviders = (page = 1) => {
                 per_page: pagination.value.per_page,
                 q: filter.value,
                 show_deleted: tableComponent.showProvidersDeleted,
+                sort_by: sortParams.value.field,
+                sort_dir: sort_dir,
             },
         })
         .then((res) => {
@@ -62,7 +67,14 @@ const loadProviders = (page = 1) => {
 };
 
 const onPage = (event) => {
+    pagination.value.per_page = event.rows;
     loadProviders(event.page + 1);
+};
+
+const onSort = (event) => {
+    sortParams.value.field = event.sortField;
+    sortParams.value.order = event.sortOrder;
+    loadProviders();
 };
 
 const onFilterChange = () => {
@@ -173,7 +185,16 @@ onMounted(() => {
 <template>
     <div>
         <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
-            <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
+            <DataTable
+                :value="pagination.data"
+                :loading="loading"
+                responsiveLayout="scroll"
+                stripedRows
+                size="small"
+                :lazy="true"
+                @sort="onSort"
+                :sortOrder="sortParams.order"
+            >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
@@ -210,25 +231,25 @@ onMounted(() => {
                     </div>
                 </template>
 
-                <Column field="id" :header="$t('common.id')" style="width: 5%">
+                <Column field="id" :header="$t('common.id')" style="width: 5%; padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="text-surface-500 text-sm">{{ slotProps.data.id }}</span>
                     </template>
                 </Column>
 
-                <Column field="name" :header="$t('admin.providers.table.name')">
+                <Column field="name" :header="$t('admin.providers.table.name')" sortable>
                     <template #body="slotProps">
                         <span class="font-medium text-surface-700">{{ slotProps.data.name }}</span>
                     </template>
                 </Column>
 
-                <Column field="domain" :header="$t('admin.providers.table.domain')">
+                <Column field="domain" :header="$t('admin.providers.table.domain')" sortable>
                     <template #body="slotProps">
                         <span class="font-bold text-surface-900">{{ slotProps.data.domain }}</span>
                     </template>
                 </Column>
 
-                <Column field="name" :header="$t('admin.providers.table.unique_users_count')">
+                <Column field="unique_users_count" :header="$t('admin.providers.table.unique_users_count')" sortable>
                     <template #body="slotProps">
                         <span class="font-medium text-surface-700">{{ slotProps.data.unique_users_count }}</span>
                     </template>
@@ -237,6 +258,7 @@ onMounted(() => {
                     field="deleted_at"
                     :header="$t('admin.providers.table.deleted_at')"
                     v-if="tableComponent.showProvidersDeleted === true"
+                    sortable
                 >
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>

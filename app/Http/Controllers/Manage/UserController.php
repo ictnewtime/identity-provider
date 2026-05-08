@@ -105,10 +105,13 @@ class UserController extends Controller
             });
         }
 
-        if ($request->filled("sortField")) {
-            $field = $request->sortField;
-            $direction = $request->sortOrder == 1 ? "asc" : "desc";
-            $query->orderBy($field, $direction);
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["id", "username", "email", "enabled", "deleted_at"];
+            if (in_array($field, $allowedSorts)) {
+                $query->orderBy($field, $direction);
+            }
         } else {
             $query->orderBy("created_at", "asc");
         }

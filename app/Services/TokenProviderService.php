@@ -118,8 +118,8 @@ class TokenProviderService
             $this->getExpiredAt(), // Durata in secondi
             "/", // Path
             $domain, // Domain (null = automatico)
-            $is_https, // Secure (true = solo HTTPS, metti env('APP_SECURE', false) per locale)
-            true, // HttpOnly (FONDAMENTALE: true = JS non può leggerlo)
+            $is_https, // Secure (true = solo HTTPS)
+            true, // HttpOnly (true = JS non può leggerlo)
             false, // Raw
             "Lax", // SameSite (Lax va bene per i redirect, Strict per API pure)
         );
