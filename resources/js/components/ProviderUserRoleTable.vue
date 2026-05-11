@@ -12,19 +12,28 @@ import InputText from "primevue/inputtext";
 import Dialog from "primevue/dialog";
 import Button from "primevue/button";
 import ProviderUserRoleForm from "./ProviderUserRoleForm.vue";
+import DeleteProviderUserRoleDialog from "./provider-user-role/DeleteProviderUserRoleDialog.vue";
+import DeleteProviderUserRolesDialog from "./provider-user-role/DeleteProviderUserRolesDialog.vue";
+import RestoreProviderUserRoleDialog from "./provider-user-role/RestoreProviderUserRoleDialog.vue";
+import RestoreProviderUserRolesDialog from "./provider-user-role/RestoreProviderUserRolesDialog.vue";
 import { Icon } from "@iconify/vue";
 import { formatDate } from "../utils/data";
 
-const emit = defineEmits(["item-saved", "item-error"]);
+const emit = defineEmits(["item-success", "item-error"]);
 const toast = useToast();
 
 const filter = ref("");
 const loading = ref(false);
-const pagination = ref({ data: [], total: 0, per_page: 10 });
+const pagination = ref({ data: [], total: 0, per_page: 25 });
+const sortParams = ref({ field: null, order: null });
 const displayModal = ref(false);
 const itemSelected = ref(null);
 const displayDeleteModal = ref(false);
+const displayDeleteItemModal = ref(false);
+const displayDeleteItemsModal = ref(false);
 const displayRestoreModal = ref(false);
+const displayRestoreItemModal = ref(false);
+const displayRestoreItemsModal = ref(false);
 const selectedProviderUserRoles = ref();
 let searchTimeout = null;
 const tableComponent = reactive({
@@ -33,7 +42,9 @@ const tableComponent = reactive({
 
 const loadRecords = (page = 1) => {
     loading.value = true;
-
+    let sort_dir = null;
+    if (sortParams.value.order === 1) sort_dir = "asc";
+    else if (sortParams.value.order === -1) sort_dir = "desc";
     window.axios
         .get("/admin/v1/provider-user-roles", {
             params: {
@@ -41,6 +52,8 @@ const loadRecords = (page = 1) => {
                 per_page: pagination.value.per_page,
                 q: filter.value,
                 show_deleted: tableComponent.showRecordsDeleted,
+                sort_by: sortParams.value.field,
+                sort_dir: sort_dir,
             },
         })
         .then((res) => {
@@ -62,7 +75,14 @@ const loadRecords = (page = 1) => {
 };
 
 const onPage = (event) => {
+    pagination.value.per_page = event.rows;
     loadRecords(event.page + 1);
+};
+
+const onSort = (event) => {
+    sortParams.value.field = event.sortField;
+    sortParams.value.order = event.sortOrder;
+    loadRecords();
 };
 
 const onFilterChange = () => {
@@ -93,11 +113,25 @@ const editItem = (item) => {
 
 const confirmDelete = (item) => {
     itemSelected.value = item;
-    displayDeleteModal.value = true;
+    displayDeleteItemModal.value = true;
 };
 const confirmRestore = (item) => {
     itemSelected.value = item;
-    displayRestoreModal.value = true;
+    displayRestoreItemModal.value = true;
+};
+
+const confirmDeleteSelectedProviderUserRoles = () => {
+    const rawData = getSelectedProviderUserRoles();
+    const ids = rawData.map((item) => item.id);
+    itemSelected.value = { ids: ids };
+    displayDeleteItemsModal.value = true;
+};
+
+const confirmRestoreSelectedProviderUserRoles = () => {
+    const rawData = getSelectedProviderUserRoles();
+    const ids = rawData.map((item) => item.id);
+    itemSelected.value = { ids: ids };
+    displayRestoreItemsModal.value = true;
 };
 
 const toggleShowRecordsDeleted = () => {
@@ -106,76 +140,16 @@ const toggleShowRecordsDeleted = () => {
     loadRecords(1);
 };
 
-const deleteProviderUserRoles = (ids) => {
-    if (!ids || ids.length === 0) return;
-
-    window.axios
-        .delete("/admin/v1/provider-user-roles/bulk-delete", { data: { ids } })
-        .then(() => {
-            displayDeleteModal.value = false;
-            itemSelected.value = null;
-            selectedProviderUserRoles.value = [];
-            loadRecords(pagination.value.current_page);
-            toast.add({
-                severity: "success",
-                summary: trans("common.success"),
-                detail: trans("admin.provider_user_roles.toast.delete_success"),
-                life: 3000,
-            });
-            emit("item-saved");
-        })
-        .catch((error) => {
-            console.error(error);
-            toast.add({
-                severity: "error",
-                summary: trans("common.error"),
-                detail: trans("admin.provider_user_roles.toast.delete_error"),
-                life: 3000,
-            });
-            emit("item-error", error);
-        });
-};
-
-const restoreProviderUserRoles = (ids) => {
-    if (!ids || ids.length === 0) return;
-
-    window.axios
-        .patch("/admin/v1/provider-user-roles/bulk-restore", { ids })
-        .then(() => {
-            displayRestoreModal.value = false;
-            itemSelected.value = null;
-            selectedProviderUserRoles.value = [];
-            loadRecords(pagination.value.current_page);
-            toast.add({
-                severity: "success",
-                summary: trans("common.success"),
-                detail: trans("admin.provider_user_roles.toast.restore_success"),
-                life: 3000,
-            });
-            emit("item-saved");
-        })
-        .catch((error) => {
-            console.error(error);
-            toast.add({
-                severity: "error",
-                summary: trans("common.error"),
-                detail: trans("admin.provider_user_roles.toast.restore_error"),
-                life: 3000,
-            });
-            emit("item-error", error);
-        });
+const onModalSuccess = () => {
+    itemSelected.value = null;
+    selectedProviderUserRoles.value = [];
+    loadRecords(pagination.value.current_page);
 };
 
 const deleteSelectedProviderUserRoles = () => {
     const rawData = getSelectedProviderUserRoles();
     const ids = rawData.map((item) => item.id);
     deleteProviderUserRoles(ids);
-};
-
-const restoreSelectedProviderUserRoles = () => {
-    const rawData = getSelectedProviderUserRoles();
-    const ids = rawData.map((item) => item.id);
-    restoreProviderUserRoles(ids);
 };
 
 const getSelectedProviderUserRoles = () => {
@@ -208,6 +182,9 @@ onMounted(() => {
                 responsiveLayout="scroll"
                 stripedRows
                 size="small"
+                :lazy="true"
+                @sort="onSort"
+                :sortOrder="sortParams.order"
             >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
@@ -219,7 +196,7 @@ onMounted(() => {
                                 v-if="hasSelectedProviderUserRoles && !tableComponent.showRecordsDeleted"
                                 variant="text"
                                 severity="danger"
-                                @click="deleteSelectedProviderUserRoles"
+                                @click="confirmDeleteSelectedProviderUserRoles"
                                 v-tooltip.top="$t('admin.provider_user_roles.table.delete_selected_tooltip')"
                                 ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
                             </Button>
@@ -227,7 +204,7 @@ onMounted(() => {
                                 v-if="hasSelectedProviderUserRoles && tableComponent.showRecordsDeleted"
                                 variant="text"
                                 severity="warn"
-                                @click="restoreSelectedProviderUserRoles"
+                                @click="confirmRestoreSelectedProviderUserRoles"
                                 v-tooltip.top="$t('admin.provider_user_roles.table.restore_selected_tooltip')"
                                 ><Icon
                                     icon="material-symbols:restore-from-trash-outline-rounded"
@@ -267,7 +244,18 @@ onMounted(() => {
 
                 <Column selectionMode="multiple" headerStyle="width: 3rem"></Column>
 
-                <Column :header="$t('admin.provider_user_roles.table.user')">
+                <Column field="id" :header="$t('common.id')" style="width: 5%; padding: 1rem" sortable>
+                    <template #body="slotProps">
+                        <span class="text-surface-500 text-sm">{{ slotProps.data.id }}</span>
+                    </template>
+                </Column>
+
+                <Column
+                    field="user.username"
+                    :header="$t('admin.provider_user_roles.table.user')"
+                    style="padding: 1rem"
+                    sortable
+                >
                     <template #body="slotProps">
                         <span v-if="slotProps.data.user" class="font-bold text-surface-900">
                             {{ slotProps.data.user.username }}
@@ -278,7 +266,12 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.provider_user_roles.table.provider')">
+                <Column
+                    field="provider.name"
+                    :header="$t('admin.provider_user_roles.table.provider')"
+                    style="padding: 1rem"
+                    sortable
+                >
                     <template #body="slotProps">
                         <span v-if="slotProps.data.provider" class="text-surface-700 font-medium">
                             {{ slotProps.data.provider.name }}
@@ -289,7 +282,12 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.provider_user_roles.table.role')">
+                <Column
+                    field="role.name"
+                    :header="$t('admin.provider_user_roles.table.role')"
+                    style="padding: 1rem"
+                    sortable
+                >
                     <template #body="slotProps">
                         <span v-if="slotProps.data.role" class="text-surface-600">
                             {{ slotProps.data.role.name }}
@@ -303,6 +301,8 @@ onMounted(() => {
                     field="deleted_at"
                     :header="$t('admin.provider_user_roles.table.deleted_at')"
                     v-if="tableComponent.showRecordsDeleted === true"
+                    style="padding: 1rem"
+                    sortable
                 >
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
@@ -357,7 +357,8 @@ onMounted(() => {
 
             <Paginator
                 v-if="pagination.total > 0"
-                :rows="pagination.per_page"
+                :rows="25"
+                :rowsPerPageOptions="[25, 50, 75, 100]"
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"
@@ -375,60 +376,28 @@ onMounted(() => {
             modal
             :draggable="false"
         >
-            <ProviderUserRoleForm :itemSelected="itemSelected" @item-saved="onItemSaved" />
+            <ProviderUserRoleForm :itemSelected="itemSelected" @item-success="onItemSaved" />
         </Dialog>
 
-        <Dialog
-            v-model:visible="displayRestoreModal"
-            :header="$t('admin.provider_user_roles.restore.title')"
-            :style="{ width: '450px' }"
-            modal
-            :draggable="false"
-        >
-            <div class="flex items-center gap-4 pt-2">
-                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
-                <span v-if="itemSelected" class="text-surface-700">
-                    {{ $t("admin.provider_user_roles.restore.prompt") }}
-                    <b class="text-surface-900">{{ itemSelected.user ? itemSelected.user.username : "Selezionato" }}</b
-                    >?
-                </span>
-            </div>
-            <template #footer>
-                <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="displayRestoreModal = false" />
-                <Button
-                    :label="$t('common.restore')"
-                    icon="pi pi-check"
-                    severity="danger"
-                    @click="restoreProviderUserRoles([itemSelected.id])"
-                    autofocus
-                />
-            </template>
-        </Dialog>
-        <Dialog
-            v-model:visible="displayDeleteModal"
-            :header="$t('common.confirm_delete_title')"
-            :style="{ width: '450px' }"
-            modal
-            :draggable="false"
-        >
-            <div class="flex items-center gap-4 pt-2">
-                <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
-                <span v-if="itemSelected" class="text-surface-700">
-                    {{ $t("admin.provider_user_roles.delete.prompt") }}
-                    <b class="text-surface-900">{{ itemSelected.user ? itemSelected.user.username : "Selezionato" }}</b
-                    >?
-                </span>
-            </div>
-            <template #footer>
-                <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="displayDeleteModal = false" />
-                <Button
-                    :label="$t('common.delete')"
-                    icon="pi pi-check"
-                    severity="danger"
-                    @click="deleteProviderUserRoles([itemSelected.id])"
-                    autofocus
-                />
-            </template>
-        </Dialog>
+        <DeleteProviderUserRoleDialog
+            v-model:visible="displayDeleteItemModal"
+            :itemSelected="itemSelected"
+            @item-success="onModalSuccess"
+        />
+        <RestoreProviderUserRoleDialog
+            v-model:visible="displayRestoreItemModal"
+            :itemSelected="itemSelected"
+            @item-success="onModalSuccess"
+        />
+        <DeleteProviderUserRolesDialog
+            v-model:visible="displayDeleteItemsModal"
+            :itemSelected="itemSelected"
+            @item-success="onModalSuccess"
+        />
+        <RestoreProviderUserRolesDialog
+            v-model:visible="displayRestoreItemsModal"
+            :itemSelected="itemSelected"
+            @item-success="onModalSuccess"
+        />
     </div>
 </template>

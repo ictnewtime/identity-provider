@@ -99,7 +99,7 @@ class SessionService
             return null;
         }
 
-        $ttlInSeconds = $tokenService->getTtlInSeconds();
+        $ttlInSeconds = $tokenService->getExpiredAt();
         $expiresAt = now()->addSeconds($ttlInSeconds);
 
         $this->upsertSession($user->id, $provider_id, $ip_address, $user_agent, $token, null, $expiresAt);

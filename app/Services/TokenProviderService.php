@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Parameter;
 use App\Models\User;
 use App\Models\Provider;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -21,9 +22,9 @@ class TokenProviderService
         $this->ttlInSeconds = (int) env("JWT_TTL", 24 * 60 * 60); // default 24 ore
     }
 
-    public function getTtlInSeconds(): int
+    public function getExpiredAt(): int
     {
-        return $this->ttlInSeconds;
+        return (int) Parameter::where("key", "jwt-exp-time-seconds")->first()->value ?? $this->ttlInSeconds;
     }
 
     /**
@@ -34,7 +35,9 @@ class TokenProviderService
      */
     public function tokenCretion(User $user, ?string $redirectId = null)
     {
-        $ttlInMinutes = $this->ttlInSeconds / 60;
+        $jwt_exp_seconds = $this->getExpiredAt();
+        $ttlInMinutes = $jwt_exp_seconds / 60;
+
         // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
         JWTAuth::factory()->setTTL($ttlInMinutes);
         $provider = Provider::where("id", $redirectId)->first();
@@ -60,8 +63,7 @@ class TokenProviderService
             }
 
             $currentTime = time();
-            $calculatedTtl = $this->ttlInSeconds ?? 3600;
-            $expirationTime = $currentTime + $calculatedTtl;
+            $expirationTime = $currentTime + $jwt_exp_seconds;
 
             $payloadData = array_merge(
                 [
@@ -113,11 +115,11 @@ class TokenProviderService
         $cookie = cookie(
             $cookie_name, // Nome del cookie
             $token, // Il token JWT stringa
-            $this->ttlInSeconds, // Durata in secondi
+            $this->getExpiredAt(), // Durata in secondi
             "/", // Path
             $domain, // Domain (null = automatico)
-            $is_https, // Secure (true = solo HTTPS, metti env('APP_SECURE', false) per locale)
-            true, // HttpOnly (FONDAMENTALE: true = JS non può leggerlo)
+            $is_https, // Secure (true = solo HTTPS)
+            true, // HttpOnly (true = JS non può leggerlo)
             false, // Raw
             "Lax", // SameSite (Lax va bene per i redirect, Strict per API pure)
         );

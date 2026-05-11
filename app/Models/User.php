@@ -51,7 +51,18 @@ class User extends Authenticatable
      */
     protected $auditExclude = ["password"];
 
+    /**
+     * Restituisce tutti i ruoli dell'utente per ogni provider
+     */
     public function roles()
+    {
+        return ProviderUserRole::where("user_id", $this->id)->with("role")->get();
+    }
+
+    /**
+     * Restituisce i ruoli dell'utente per l'IDP
+     */
+    public function idpRoles()
     {
         // $user_roles = $this->hasMany(UserRole::class, "user_id");
         $provider_id = config("app.provider_id");

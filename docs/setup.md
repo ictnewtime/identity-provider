@@ -26,6 +26,8 @@ php artisan passport:client --personal
 # per leggere le chaivi di passport
 chown -R www-data:www-data storage
 php artisan storage:link
+chmod -R 775 storage bootstrap/cache
+npm run build
 ```
 
 (Facoltativo) Pulisci cache se si hanno dati sporchi quando già avvaita l'applicazione

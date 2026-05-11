@@ -368,6 +368,7 @@ const generateSecret = () => {
                             pcInputText: {
                                 root: {
                                     type: formItems.secret_key.visible ? 'text' : 'password',
+                                    autocomplete: 'new-password',
                                 },
                             },
                         }"
