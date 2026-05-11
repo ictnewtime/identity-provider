@@ -6,23 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ProviderRequest;
 use App\Models\Provider;
 use App\Models\ProviderUserRole;
-// use App\Repositories\RepositoryInterface;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-// use Laravel\Passport\ClientRepository;
 use OpenApi\Attributes as OA;
 
 class ProviderController extends Controller
 {
-    protected $providerRepository;
-
-    public function __construct()
-    {
-        // $this->providerRepository = $providerRepository;
-    }
-
     #[
         OA\Get(
             path: "/api/v1/providers",

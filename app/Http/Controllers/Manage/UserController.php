@@ -9,31 +9,14 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
 use Illuminate\Support\Facades\Validator;
-use App\Http\Resources\UserResource;
 use App\Models\ProviderUserRole;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
-// use App\Repositories\RepositoryInterface;
-// use App\Repositories\UserRepositoryInterface;
 use OpenApi\Attributes as OA;
 
 class UserController extends Controller
 {
-    // protected $userRepository;
-    protected $verificationTokenRepository;
-    // protected $mailerService;
-
-    public function __construct()
-    {
-        // Mailer $mailerService,
-        // $this->userRepository = $userRepository;
-        // $this->verificationTokenRepository = $verificationToken;
-        // $this->mailerService = $mailerService;
-    }
-    // UserRepositoryInterface $userRepository,
-    // RepositoryInterface $verificationToken,
-
     #[
         OA\Get(
             path: "/api/v1/users",
