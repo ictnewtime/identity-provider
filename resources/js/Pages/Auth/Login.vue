@@ -58,6 +58,11 @@ const submit = () => {
 const togglePasswordVisibility = () => {
     formItems.value.password.visible = !formItems.value.password.visible;
 };
+
+const googleAuthUrl = computed(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return `/auth/google/redirect?${urlParams.toString()}`;
+});
 </script>
 
 <template>
@@ -146,6 +151,16 @@ const togglePasswordVisibility = () => {
                     :disabled="!isFormValid"
                 />
             </form>
+            <div class="flex flex-col gap-2 mt-4 w-full">
+                <Button
+                    as="a"
+                    :href="googleAuthUrl"
+                    class="btn-google"
+                    target="_blank"
+                    rel="noopener"
+                    icon="pi-google"
+                />
+            </div>
         </div>
     </div>
 </template>
