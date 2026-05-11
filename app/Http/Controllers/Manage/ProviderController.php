@@ -27,7 +27,7 @@ class ProviderController extends Controller
         OA\Get(
             path: "/api/v1/providers",
             summary: "list of providers",
-            description: "Returns the entire list of providers",
+            description: self::OA_DESC_MSG_SUCCESS,
             operationId: "Provider.all",
             tags: ["Providers"],
             security: [["passport" => []]],
@@ -71,8 +71,8 @@ class ProviderController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -116,7 +116,7 @@ class ProviderController extends Controller
         OA\Get(
             path: "/api/v1/providers/{id}",
             summary: "Get provider by id",
-            description: "Returns provider details by id",
+            description: self::OA_DESC_MSG_SUCCESS,
             operationId: "Provider.find",
             tags: ["Providers"],
             security: [["passport" => []]],
@@ -132,18 +132,18 @@ class ProviderController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Internal server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -167,7 +167,7 @@ class ProviderController extends Controller
         OA\Post(
             path: "/api/v1/providers",
             summary: "Create a new provider",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.create",
             tags: ["Providers"],
             security: [["passport" => []]],
@@ -222,18 +222,18 @@ class ProviderController extends Controller
             responses: [
                 new OA\Response(
                     response: 201,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 422,
-                    description: "Validation error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_UNPROCESSABLE_ENTITY,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -256,7 +256,7 @@ class ProviderController extends Controller
         OA\Put(
             path: "/api/v1/providers/{id}",
             summary: "Update provider by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.update",
             tags: ["Providers"],
             security: [["passport" => []]],
@@ -320,23 +320,23 @@ class ProviderController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 422,
-                    description: "Validation error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_UNPROCESSABLE_ENTITY,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -370,7 +370,7 @@ class ProviderController extends Controller
         OA\Delete(
             path: "/api/v1/providers/{id}",
             summary: "Delete provider by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.delete",
             tags: ["Providers"],
             security: [["passport" => []]],
@@ -386,18 +386,18 @@ class ProviderController extends Controller
             responses: [
                 new OA\Response(
                     response: 204,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -431,42 +431,6 @@ class ProviderController extends Controller
         }
     }
 
-    #[
-        OA\Post(
-            path: "/api/v1/providers/{id}/restore",
-            summary: "Restore provider by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "Provider.restore",
-            tags: ["Providers"],
-            security: [["passport" => []]],
-            parameters: [
-                new OA\Parameter(
-                    in: "path",
-                    required: true,
-                    description: "Provider id",
-                    name: "id",
-                    schema: new OA\Schema(type: "string"),
-                ),
-            ],
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
     public function restore($id)
     {
         try {

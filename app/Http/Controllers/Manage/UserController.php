@@ -38,7 +38,7 @@ class UserController extends Controller
         OA\Get(
             path: "/api/v1/users",
             summary: "Get all users",
-            description: "Get all users with pagination. __*Security: Richiede token M2M Passport*__",
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.all",
             tags: ["Users"],
             security: [["passport" => []]],
@@ -75,13 +75,13 @@ class UserController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 401,
-                    description: "Unauthorized",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::UNAUTHORIZED,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -128,8 +128,8 @@ class UserController extends Controller
     #[
         OA\Post(
             path: "/api/v1/users",
-            summary: "create a new user",
-            description: '__*Security:*__ __*can be used only by clients with \'manager\' role*__',
+            summary: "Create a new user",
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.create",
             tags: ["Users"],
             security: [["passport" => []]],
@@ -195,18 +195,18 @@ class UserController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 422,
-                    description: "Validation error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_UNPROCESSABLE_ENTITY,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -240,7 +240,7 @@ class UserController extends Controller
         OA\Get(
             path: "/api/v1/users/{id}",
             summary: "Returns user by id",
-            description: "Returns user details by id",
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.find",
             tags: ["Users"],
             security: [["passport" => []]],
@@ -256,18 +256,18 @@ class UserController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -285,7 +285,7 @@ class UserController extends Controller
         OA\Put(
             path: "/api/v1/users/{id}",
             summary: "Update user by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.update",
             tags: ["Users"],
             security: [["passport" => []]],
@@ -360,18 +360,18 @@ class UserController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -424,7 +424,7 @@ class UserController extends Controller
         OA\Delete(
             path: "/api/v1/users/{id}",
             summary: "Delete user by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.delete",
             tags: ["Users"],
             security: [["passport" => []]],
@@ -440,23 +440,23 @@ class UserController extends Controller
             responses: [
                 new OA\Response(
                     response: 204,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 400,
-                    description: "Bad request",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_BAD_REQUEST,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),

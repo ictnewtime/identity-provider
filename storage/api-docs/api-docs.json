@@ -21,6 +21,54 @@
                 "summary": "list of providers",
                 "description": "Returns the entire list of providers",
                 "operationId": "Provider.all",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Search term for filtering providers by domain or name",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "show_deleted",
+                        "in": "query",
+                        "description": "Whether to include deleted providers in the results",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Field to sort by (id, name, domain, unique_users_count, deleted_at)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sort_dir",
+                        "in": "query",
+                        "description": "Sort direction (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Operation successful",
@@ -360,6 +408,54 @@
                 "summary": "list of provider user roles",
                 "description": "Returns the entire list of provider user roles",
                 "operationId": "ProviderUserRole.all",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Search term to filter provider user roles by user username, provider domain or name, role name",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "show_deleted",
+                        "in": "query",
+                        "description": "Whether to include deleted provider user roles in the results",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Field to sort by (id, provider.name, user.username, role.name, deleted_at)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sort_dir",
+                        "in": "query",
+                        "description": "Sort direction (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Operation successful",
@@ -589,6 +685,72 @@
                 "summary": "list of roles",
                 "description": "Returns the entire list of roles",
                 "operationId": "Role.all",
+                "parameters": [
+                    {
+                        "name": "q",
+                        "in": "query",
+                        "description": "Search term to filter roles by name or provider domain",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "provider_id",
+                        "in": "query",
+                        "description": "Filter roles by provider id",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "show_deleted",
+                        "in": "query",
+                        "description": "Whether to include deleted roles in the results",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Field to sort by (id, name, provider.domain, provider.name, deleted_at)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sort_dir",
+                        "in": "query",
+                        "description": "Sort direction (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 10
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "Operation successful",
@@ -853,34 +1015,34 @@
                     {
                         "name": "q",
                         "in": "query",
-                        "description": "Termine di ricerca (nome o email)",
+                        "description": "Search term for filtering users by username or email",
                         "required": false,
                         "schema": {
                             "type": "string"
                         }
                     },
                     {
-                        "name": "sortField",
+                        "name": "sort_by",
                         "in": "query",
-                        "description": "Campo per ordinamento",
+                        "description": "Field to sort by (id, username, email, enabled, deleted_at)",
                         "required": false,
                         "schema": {
                             "type": "string"
                         }
                     },
                     {
-                        "name": "sortOrder",
+                        "name": "sort_dir",
                         "in": "query",
-                        "description": "Direzione (1 asc, -1 desc)",
+                        "description": "Sort direction (asc or desc)",
                         "required": false,
                         "schema": {
-                            "type": "integer"
+                            "type": "string"
                         }
                     },
                     {
                         "name": "per_page",
                         "in": "query",
-                        "description": "Elementi per pagina",
+                        "description": "Number of items per page for pagination",
                         "required": false,
                         "schema": {
                             "type": "integer",
@@ -1156,6 +1318,12 @@
                 "responses": {
                     "204": {
                         "description": "Operation successful",
+                        "content": {
+                            "application/json": {}
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
                         "content": {
                             "application/json": {}
                         }
