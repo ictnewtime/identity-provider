@@ -42,8 +42,29 @@ class AuditController extends Controller
                     });
             });
         }
-        // Paginazione standard
-        $perPage = $request->input("per_page", 15);
+
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["created_at", "event", "auditable_type", "user.username", "ip_address"];
+
+            if (in_array($field, $allowedSorts)) {
+                if (str_starts_with($field, "user.")) {
+                    $sortColumn = str_replace("user.", "users.", $field);
+                    $query
+                        ->join("users", "audits.user_id", "=", "users.id")
+                        ->select("audits.*")
+                        ->orderBy($sortColumn, $direction);
+                } else {
+                    $query->orderBy("audits." . $field, $direction);
+                }
+            }
+        } else {
+            $query->orderBy("created_at", "desc");
+        }
+
+        // Paginazione
+        $perPage = $request->input("per_page", 25);
         return $query
             ->latest()
             ->paginate($perPage)

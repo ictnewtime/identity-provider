@@ -105,6 +105,10 @@ class UserController extends Controller
             });
         }
 
+        if ($show_deleted) {
+            $query->onlyTrashed();
+        }
+
         if ($request->filled("sort_by")) {
             $field = $request->sort_by;
             $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
@@ -115,10 +119,7 @@ class UserController extends Controller
         } else {
             $query->orderBy("created_at", "asc");
         }
-        if ($show_deleted) {
-            $query->onlyTrashed();
-        }
-        $perPage = $request->input("per_page", 10);
+        $perPage = $request->input("per_page", 25);
         $users = $query->paginate($perPage);
 
         return response()->json($users);
@@ -443,6 +444,11 @@ class UserController extends Controller
                     content: new OA\MediaType(mediaType: "application/json"),
                 ),
                 new OA\Response(
+                    response: 400,
+                    description: "Bad request",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
                     response: 404,
                     description: "Not found",
                     content: new OA\MediaType(mediaType: "application/json"),
@@ -460,6 +466,11 @@ class UserController extends Controller
         $user = User::find($id);
         if (empty($user)) {
             return response()->json([], 404);
+        }
+        // Se l'utente ha ruoli associati, non permettere la cancellazione
+        $hasRoles = ProviderUserRole::where("user_id", $id)->exists();
+        if ($hasRoles) {
+            return response()->json(["message" => __("user.delete_has_roles_error")], 400);
         }
 
         try {

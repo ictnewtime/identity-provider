@@ -31,10 +31,14 @@ const deleteUser = (id) => {
         })
         .catch((error) => {
             console.error(error);
+            const errorMessage =
+                error.response && error.response.data && error.response.data.message
+                    ? error.response.data.message
+                    : trans("admin.users.toast.delete_user_error");
             toast.add({
                 severity: "error",
                 summary: trans("common.error"),
-                detail: trans("admin.users.toast.delete_error"),
+                detail: errorMessage,
                 life: 3000,
             });
             emit("user-error", error);

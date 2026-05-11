@@ -64,7 +64,7 @@ const restoreProviderUserRoles = (ids) => {
             <Button
                 :label="$t('common.restore')"
                 icon="pi pi-check"
-                severity="danger"
+                severity="primary"
                 @click="restoreProviderUserRoles(itemSelected.ids)"
                 autofocus
             />

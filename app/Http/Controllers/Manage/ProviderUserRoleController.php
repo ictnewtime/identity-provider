@@ -60,9 +60,11 @@ class ProviderUserRoleController extends Controller
                     });
             });
         }
+
         if ($show_deleted) {
             $query->onlyTrashed();
         }
+
         if ($request->filled("sort_by")) {
             $field = $request->sort_by;
             $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
@@ -92,7 +94,7 @@ class ProviderUserRoleController extends Controller
             $query->orderBy("id", "asc");
         }
 
-        $perPage = $request->input("per_page", 10);
+        $perPage = $request->input("per_page", 25);
         return $query->paginate($perPage);
     }
 

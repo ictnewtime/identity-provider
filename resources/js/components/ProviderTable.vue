@@ -21,7 +21,7 @@ const toast = useToast();
 
 const filter = ref("");
 const loading = ref(false);
-const pagination = ref({ data: [], total: 0, per_page: 10 });
+const pagination = ref({ data: [], total: 0, per_page: 25 });
 const sortParams = ref({ field: null, order: null });
 const displayModal = ref(false);
 const providerSelected = ref(null);
@@ -237,19 +237,24 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column field="name" :header="$t('admin.providers.table.name')" sortable>
+                <Column field="name" :header="$t('admin.providers.table.name')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="font-medium text-surface-700">{{ slotProps.data.name }}</span>
                     </template>
                 </Column>
 
-                <Column field="domain" :header="$t('admin.providers.table.domain')" sortable>
+                <Column field="domain" :header="$t('admin.providers.table.domain')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="font-bold text-surface-900">{{ slotProps.data.domain }}</span>
                     </template>
                 </Column>
 
-                <Column field="unique_users_count" :header="$t('admin.providers.table.unique_users_count')" sortable>
+                <Column
+                    field="unique_users_count"
+                    :header="$t('admin.providers.table.unique_users_count')"
+                    style="padding: 1rem"
+                    sortable
+                >
                     <template #body="slotProps">
                         <span class="font-medium text-surface-700">{{ slotProps.data.unique_users_count }}</span>
                     </template>
@@ -258,6 +263,7 @@ onMounted(() => {
                     field="deleted_at"
                     :header="$t('admin.providers.table.deleted_at')"
                     v-if="tableComponent.showProvidersDeleted === true"
+                    style="padding: 1rem"
                     sortable
                 >
                     <template #body="slotProps">
@@ -323,7 +329,8 @@ onMounted(() => {
 
             <Paginator
                 v-if="pagination.total > 0"
-                :rows="pagination.per_page"
+                :rows="25"
+                :rowsPerPageOptions="[25, 50, 75, 100]"
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"
@@ -386,7 +393,7 @@ onMounted(() => {
                 <Button
                     :label="$t('common.restore')"
                     icon="pi pi-check"
-                    severity="danger"
+                    severity="primary"
                     @click="restoreProvider"
                     autofocus
                 />

@@ -63,7 +63,7 @@ const restoreUsers = (ids) => {
             <Button
                 :label="$t('common.restore')"
                 icon="pi pi-check"
-                severity="danger"
+                severity="primary"
                 @click="restoreUsers(itemSelected.ids)"
                 autofocus
             />

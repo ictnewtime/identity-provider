@@ -61,9 +61,9 @@ const restoreUser = (id) => {
         <template #footer>
             <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="$emit('update:visible', false)" />
             <Button
-                :label="$t('common.delete')"
+                :label="$t('common.restore')"
                 icon="pi pi-check"
-                severity="danger"
+                severity="primary"
                 @click="restoreUser(itemSelected.id)"
                 autofocus
             />

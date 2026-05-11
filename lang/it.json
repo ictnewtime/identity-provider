@@ -106,7 +106,8 @@
 
     "admin.users.toast.load_error": "Impossibile caricare la lista degli utenti",
     "admin.users.toast.delete_success": "Utente eliminato correttamente",
-    "admin.users.toast.delete_error": "Si è verificato un errore durante l'eliminazione dell'utente",
+    "admin.users.toast.delete_user_error": "Si è verificato un errore durante l'eliminazione dell'utente",
+    "admin.users.toast.delete_users_error": "Si è verificato un errore durante l'eliminazione degli utenti",
 
     "admin.users.delete.user_title": "Elimina Utente",
     "admin.users.delete.users_title": "Elimina Utenti",
@@ -141,6 +142,7 @@
 
     "user.error.not_found": "Utente non trovato",
     "user.delete_error": "Errore durante l'eliminazione dell'utente",
+    "user.delete_has_roles_error": "Impossibile eliminare l'utente perché ci sono ruoli attivi associati ad esso",
     "user.restore_error": "Errore durante la ripristinazione dell'utente",
     "user.bulk_delete_error": "Errore cancellazione utenti",
     "user.bulk_delete_success": "Utenti cancellati con successo",

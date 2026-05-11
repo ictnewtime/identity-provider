@@ -26,7 +26,7 @@ const toast = useToast();
 
 const filter = ref("");
 const loading = ref(false);
-const pagination = ref({ data: [], total: 0, per_page: 10 });
+const pagination = ref({ data: [], total: 0, per_page: 25 });
 const sortParams = ref({ field: null, order: null });
 const displayUserModal = ref(false);
 const displayDeleteUserModal = ref(false);
@@ -345,19 +345,19 @@ watch(hasSelectedUsers, (newValue) => {
                     </template>
                 </Column>
 
-                <Column field="username" :header="$t('admin.users.table.username')" sortable>
+                <Column field="username" :header="$t('admin.users.table.username')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="font-medium text-surface-900">{{ slotProps.data.username }}</span>
                     </template>
                 </Column>
 
-                <Column field="email" :header="$t('admin.users.table.email')" sortable>
+                <Column field="email" :header="$t('admin.users.table.email')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ slotProps.data.email }}</span>
                     </template>
                 </Column>
 
-                <Column field="enabled" :header="$t('admin.users.table.status')" sortable>
+                <Column field="enabled" :header="$t('admin.users.table.status')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <Tag
                             :severity="slotProps.data.enabled ? 'success' : 'danger'"
@@ -375,6 +375,7 @@ watch(hasSelectedUsers, (newValue) => {
                     field="deleted_at"
                     :header="$t('admin.users.table.deleted_at')"
                     v-if="tableComponent.showUsersDeleted === true"
+                    style="padding: 1rem"
                     sortable
                 >
                     <template #body="slotProps">
@@ -437,9 +438,9 @@ watch(hasSelectedUsers, (newValue) => {
             </DataTable>
 
             <Paginator
-                :rows="10"
-                :rowsPerPageOptions="[10, 20, 30, 50]"
                 v-if="pagination.total > 0"
+                :rows="25"
+                :rowsPerPageOptions="[25, 50, 75, 100]"
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"

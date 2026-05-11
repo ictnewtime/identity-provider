@@ -106,7 +106,8 @@
 
     "admin.users.toast.load_error": "Unable to load user list",
     "admin.users.toast.delete_success": "User successfully deleted",
-    "admin.users.toast.delete_error": "An error occurred while deleting the user",
+    "admin.users.toast.delete_user_error": "An error occurred while deleting the user",
+    "admin.users.toast.delete_users_error": "An error occurred while deleting the users",
 
     "admin.users.delete.user_title": "Delete User",
     "admin.users.delete.users_title": "Delete Users",
@@ -141,6 +142,7 @@
 
     "user.error.not_found": "User not found",
     "user.delete_error": "Error during deleting user",
+    "user.delete_has_roles_error": "Unable to delete user because there are active roles associated with it",
     "user.restore_error": "Error during restoring user",
     "user.bulk_delete_error": "Error deleting users",
     "user.bulk_delete_success": "Users deleted successfully",

@@ -18,17 +18,26 @@ const toast = useToast();
 
 const filter = ref("");
 const loading = ref(false);
-const pagination = ref({ data: [], total: 0, per_page: 10 });
+const pagination = ref({ data: [], total: 0, per_page: 25 });
+const sortParams = ref({ field: null, order: null });
 const displayDeleteModal = ref(false);
 const sessionToDelete = ref(null);
 let searchTimeout = null;
 
 const loadSessions = (page = 1) => {
     loading.value = true;
-
+    let sort_dir = null;
+    if (sortParams.value.order === 1) sort_dir = "asc";
+    else if (sortParams.value.order === -1) sort_dir = "desc";
     window.axios
         .get("/admin/v1/sessions", {
-            params: { page: page, per_page: pagination.value.per_page, q: filter.value },
+            params: {
+                page: page,
+                per_page: pagination.value.per_page,
+                q: filter.value,
+                sort_by: sortParams.value.field,
+                sort_dir: sort_dir,
+            },
         })
         .then((res) => {
             pagination.value = res.data;
@@ -50,6 +59,12 @@ const loadSessions = (page = 1) => {
 
 const onPage = (event) => {
     loadSessions(event.page + 1);
+};
+
+const onSort = (event) => {
+    sortParams.value.field = event.sortField;
+    sortParams.value.order = event.sortOrder;
+    loadSessions();
 };
 
 const onFilterChange = () => {
@@ -109,7 +124,16 @@ onMounted(() => {
 <template>
     <div>
         <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
-            <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
+            <DataTable
+                :value="pagination.data"
+                :loading="loading"
+                responsiveLayout="scroll"
+                stripedRows
+                size="small"
+                :lazy="true"
+                @sort="onSort"
+                :sortOrder="sortParams.order"
+            >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
@@ -127,7 +151,7 @@ onMounted(() => {
                     </div>
                 </template>
 
-                <Column :header="$t('common.id')">
+                <Column field="id" :header="$t('common.id')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span
                             class="inline-block max-w-[80px] sm:max-w-[120px] truncate text-surface-400 text-sm font-mono cursor-help"
@@ -138,7 +162,12 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.sessions.table.username')">
+                <Column
+                    field="user.username"
+                    :header="$t('admin.sessions.table.username')"
+                    style="padding: 1rem"
+                    sortable
+                >
                     <template #body="slotProps">
                         <span v-if="slotProps.data.user" class="text-surface-900 font-bold">
                             {{ slotProps.data.user.username }}
@@ -149,7 +178,12 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.sessions.table.provider')">
+                <Column
+                    field="provider.name"
+                    :header="$t('admin.sessions.table.provider')"
+                    style="padding: 1rem"
+                    sortable
+                >
                     <template #body="slotProps">
                         <span v-if="slotProps.data.provider" class="text-surface-700 font-medium">
                             {{ slotProps.data.provider.name }}
@@ -160,7 +194,7 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.sessions.table.ip')">
+                <Column field="ip_address" :header="$t('admin.sessions.table.ip')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="text-surface-600 font-mono text-sm">
                             {{ slotProps.data.ip_address }}
@@ -168,7 +202,12 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.sessions.table.user_agent')">
+                <Column
+                    field="user_agent"
+                    :header="$t('admin.sessions.table.user_agent')"
+                    style="padding: 1rem"
+                    sortable
+                >
                     <template #body="slotProps">
                         <span
                             class="inline-block max-w-[80px] sm:max-w-[120px] md:max-w-[150px] lg:max-w-[200px] truncate text-surface-500 text-sm cursor-help"
@@ -179,7 +218,12 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.sessions.table.last_modified')">
+                <Column
+                    field="updated_at"
+                    :header="$t('admin.sessions.table.last_modified')"
+                    style="padding: 1rem"
+                    sortable
+                >
                     <template #body="slotProps">
                         <span class="text-surface-500 text-sm whitespace-nowrap">
                             {{ formatDate(slotProps.data.updated_at) }}
@@ -211,7 +255,8 @@ onMounted(() => {
 
             <Paginator
                 v-if="pagination.total > 0"
-                :rows="pagination.per_page"
+                :rows="25"
+                :rowsPerPageOptions="[25, 50, 75, 100]"
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"

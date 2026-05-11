@@ -25,7 +25,21 @@ class ParametersController extends Controller
             $query->onlyTrashed();
         }
 
-        $perPage = $request->input("per_page", 50);
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["key", "value", "type", "created_at", "updated_at"];
+
+            if (in_array($field, $allowedSorts)) {
+                $query->orderBy($field, $direction);
+            } else {
+                $query->orderBy("created_at", "desc");
+            }
+        } else {
+            $query->orderBy("created_at", "desc");
+        }
+
+        $perPage = $request->input("per_page", 25);
         return $query->paginate($perPage);
     }
 

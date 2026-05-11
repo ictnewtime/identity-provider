@@ -64,6 +64,11 @@ class RoleController extends Controller
                 });
             });
         }
+
+        if ($show_deleted) {
+            $query->onlyTrashed();
+        }
+
         if ($request->filled("sort_by")) {
             $field = $request->sort_by;
             $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
@@ -83,11 +88,8 @@ class RoleController extends Controller
         } else {
             $query->orderBy("id", "asc");
         }
-        if ($show_deleted) {
-            $query->onlyTrashed();
-        }
 
-        $perPage = $request->input("per_page", 10);
+        $perPage = $request->input("per_page", 25);
         return $query->paginate($perPage);
     }
 
