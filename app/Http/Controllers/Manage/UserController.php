@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UserRequest;
+use Illuminate\Support\Facades\Validator;
 use App\Http\Resources\UserResource;
+use App\Models\ProviderUserRole;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -42,31 +44,31 @@ class UserController extends Controller
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
+                    in: "query",
                     name: "q",
-                    in: "query",
                     required: false,
-                    description: "Termine di ricerca (nome o email)",
+                    description: "Search term for filtering users by username or email",
                     schema: new OA\Schema(type: "string"),
                 ),
                 new OA\Parameter(
-                    name: "sortField",
                     in: "query",
+                    name: "sort_by",
                     required: false,
-                    description: "Campo per ordinamento",
+                    description: "Field to sort by (id, username, email, enabled, deleted_at)",
                     schema: new OA\Schema(type: "string"),
                 ),
                 new OA\Parameter(
-                    name: "sortOrder",
                     in: "query",
+                    name: "sort_dir",
                     required: false,
-                    description: "Direzione (1 asc, -1 desc)",
-                    schema: new OA\Schema(type: "integer"),
+                    schema: new OA\Schema(type: "string"),
+                    description: "Sort direction (asc or desc)",
                 ),
                 new OA\Parameter(
+                    in: "query",
                     name: "per_page",
-                    in: "query",
                     required: false,
-                    description: "Elementi per pagina",
+                    description: "Number of items per page for pagination",
                     schema: new OA\Schema(type: "integer", default: 10),
                 ),
             ],
@@ -95,21 +97,29 @@ class UserController extends Controller
 
         if ($request->filled("q")) {
             $query->where(function ($q) use ($request) {
-                $q->where("email", "like", "%" . $request->q . "%")->orWhere("name", "like", "%" . $request->q . "%");
+                $q->where("email", "like", "%" . $request->q . "%")->orWhere(
+                    "username",
+                    "like",
+                    "%" . $request->q . "%",
+                );
             });
         }
 
-        if ($request->filled("sortField")) {
-            $field = $request->sortField;
-            $direction = $request->sortOrder == 1 ? "asc" : "desc";
-            $query->orderBy($field, $direction);
-        } else {
-            $query->orderBy("created_at", "asc");
-        }
         if ($show_deleted) {
             $query->onlyTrashed();
         }
-        $perPage = $request->input("per_page", 10);
+
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["id", "username", "email", "enabled", "deleted_at"];
+            if (in_array($field, $allowedSorts)) {
+                $query->orderBy($field, $direction);
+            }
+        } else {
+            $query->orderBy("created_at", "asc");
+        }
+        $perPage = $request->input("per_page", 25);
         $users = $query->paginate($perPage);
 
         return response()->json($users);
@@ -434,6 +444,11 @@ class UserController extends Controller
                     content: new OA\MediaType(mediaType: "application/json"),
                 ),
                 new OA\Response(
+                    response: 400,
+                    description: "Bad request",
+                    content: new OA\MediaType(mediaType: "application/json"),
+                ),
+                new OA\Response(
                     response: 404,
                     description: "Not found",
                     content: new OA\MediaType(mediaType: "application/json"),
@@ -452,6 +467,11 @@ class UserController extends Controller
         if (empty($user)) {
             return response()->json([], 404);
         }
+        // Se l'utente ha ruoli associati, non permettere la cancellazione
+        $hasRoles = ProviderUserRole::where("user_id", $id)->exists();
+        if ($hasRoles) {
+            return response()->json(["message" => __("user.delete_has_roles_error")], 400);
+        }
 
         try {
             $user->delete();
@@ -462,42 +482,6 @@ class UserController extends Controller
         return response()->json([], 204);
     }
 
-    #[
-        OA\Patch(
-            path: "/api/v1/users/{id}/restore",
-            summary: "Restore user by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
-            operationId: "User.restore",
-            tags: ["Users"],
-            security: [["passport" => []]],
-            parameters: [
-                new OA\Parameter(
-                    in: "path",
-                    required: true,
-                    description: "User id",
-                    name: "id",
-                    schema: new OA\Schema(type: "string"),
-                ),
-            ],
-            responses: [
-                new OA\Response(
-                    response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-                new OA\Response(
-                    response: 500,
-                    description: "Server error",
-                    content: new OA\MediaType(mediaType: "application/json"),
-                ),
-            ],
-        ),
-    ]
     public function restore($id)
     {
         $user = User::withTrashed()->find($id);
@@ -512,5 +496,84 @@ class UserController extends Controller
             return response()->json(["message" => __("user.restore_error")], 500);
         }
         return response()->json($user, 200);
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            "ids" => "required|array",
+            "ids.*" => "integer|exists:users,id",
+        ]);
+
+        try {
+            DB::beginTransaction();
+            $usersToDelete = User::whereIn("id", $request->ids)->get();
+            foreach ($usersToDelete as $user) {
+                $user->delete();
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(["message" => __("user.bulk_delete_error")], 500);
+        }
+
+        return response()->json(["message" => __("user.bulk_delete_success")], 200);
+    }
+
+    public function bulkRestore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            "ids" => "required|array",
+            "ids.*" => "integer",
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(
+                [
+                    "message" => __("users.bulk_restore_error"),
+                    "errors" => $validator->errors(),
+                ],
+                422,
+            );
+        }
+
+        $usersToRestore = User::withTrashed()->whereIn("id", $request->ids)->get();
+
+        if ($usersToRestore->isEmpty()) {
+            return response()->json(["message" => __("users.not_found_multiple")], 404);
+        }
+
+        try {
+            DB::beginTransaction();
+            foreach ($usersToRestore as $user) {
+                $user->restore();
+            }
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollback();
+            return response()->json(["message" => $e->getMessage()], 500);
+        }
+
+        return response()->json(["message" => __("users.bulk_restore_success")], 200);
+    }
+
+    public function getUserRoles(Request $request, int $id)
+    {
+        $user = User::find($id);
+        if (empty($user)) {
+            return response()->json([], 404);
+        }
+        $providerUserRoles = ProviderUserRole::where("user_id", $id)
+            ->with(["role", "provider:id,name"])
+            ->get();
+        $userRoles = $providerUserRoles->map(function ($relation) {
+            return [
+                "id" => $relation->role_id,
+                "name" => $relation->role->name,
+                "provider_id" => $relation->provider_id,
+                "provider_name" => $relation->provider->name,
+            ];
+        });
+        return response()->json($userRoles, 200);
     }
 }

@@ -19,7 +19,7 @@ const props = defineProps({
 const form = useForm({
     current_password: "",
     new_password: "",
-    password_confirmation: "",
+    new_password_confirmation: "",
 });
 
 const formItems = ref({
@@ -29,13 +29,13 @@ const formItems = ref({
     new_password: {
         visible: false,
     },
-    password_confirmation: {
+    new_password_confirmation: {
         visible: false,
     },
 });
 
 const passwordRef = toRef(form, "new_password");
-const confirmPasswordRef = toRef(form, "password_confirmation");
+const confirmPasswordRef = toRef(form, "new_password_confirmation");
 
 const { requirements, strength, strengthColorClass, strengthTextColorClass, strengthText, isValid, generatePassword } =
     usePassword(passwordRef, confirmPasswordRef);
@@ -45,7 +45,7 @@ const isFormValid = computed(() => form.current_password.length > 0 && isValid.v
 const handleGeneratePassword = () => {
     const newPwd = generatePassword();
     form.new_password = newPwd;
-    form.password_confirmation = newPwd;
+    form.new_password_confirmation = newPwd;
 };
 
 const submit = () => {
@@ -180,20 +180,20 @@ const togglePasswordVisibility = (password_type) => {
                     <InputGroup>
                         <FloatLabel variant="on">
                             <Password
-                                inputId="password_confirmation"
-                                name="password_confirmation"
-                                v-model="form.password_confirmation"
+                                inputId="new_password_confirmation"
+                                name="new_password_confirmation"
+                                v-model="form.new_password_confirmation"
                                 :feedback="false"
                                 fluid
                                 :pt="{
                                     pcInputText: {
                                         root: {
-                                            type: formItems.password_confirmation.visible ? 'text' : 'password',
+                                            type: formItems.new_password_confirmation.visible ? 'text' : 'password',
                                         },
                                     },
                                 }"
                             />
-                            <label for="password_confirmation" class="font-medium text-gray-700 z-10">
+                            <label for="new_password_confirmation" class="font-medium text-gray-700 z-10">
                                 {{ $t("auth.password_confirmation_label") }}
                             </label>
                         </FloatLabel>
@@ -201,9 +201,9 @@ const togglePasswordVisibility = (password_type) => {
                             <Button
                                 type="button"
                                 severity="secondary"
-                                :icon="formItems.password_confirmation.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                                :icon="formItems.new_password_confirmation.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
                                 v-tooltip.top="null"
-                                @click="togglePasswordVisibility('password_confirmation')"
+                                @click="togglePasswordVisibility('new_password_confirmation')"
                             />
                         </InputGroupAddon>
                     </InputGroup>
@@ -247,7 +247,7 @@ const togglePasswordVisibility = (password_type) => {
                             {{ $t("auth.req_special") }}
                         </li>
                         <li
-                            v-if="form.password_confirmation"
+                            v-if="form.new_password_confirmation"
                             :class="
                                 requirements.passwordsMatch ? 'text-green-600 font-medium' : 'text-red-600 font-medium'
                             "

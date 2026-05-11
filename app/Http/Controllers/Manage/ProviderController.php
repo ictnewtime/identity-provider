@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Manage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProviderRequest;
 use App\Models\Provider;
+use App\Models\ProviderUserRole;
 // use App\Repositories\RepositoryInterface;
 
 use Illuminate\Http\Request;
@@ -30,6 +31,43 @@ class ProviderController extends Controller
             operationId: "Provider.all",
             tags: ["Providers"],
             security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    name: "q",
+                    in: "query",
+                    required: false,
+                    description: "Search term for filtering providers by domain or name",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "show_deleted",
+                    in: "query",
+                    required: false,
+                    description: "Whether to include deleted providers in the results",
+                    schema: new OA\Schema(type: "boolean"),
+                ),
+                new OA\Parameter(
+                    name: "sort_by",
+                    in: "query",
+                    required: false,
+                    description: "Field to sort by (id, name, domain, unique_users_count, deleted_at)",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "sort_dir",
+                    in: "query",
+                    required: false,
+                    description: "Sort direction (asc or desc)",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "per_page",
+                    in: "query",
+                    required: false,
+                    description: "Number of items per page for pagination",
+                    schema: new OA\Schema(type: "integer", default: 10),
+                ),
+            ],
             responses: [
                 new OA\Response(
                     response: 200,
@@ -46,10 +84,31 @@ class ProviderController extends Controller
         if ($request->filled("q")) {
             $query->where("domain", "like", "%" . $request->q . "%");
         }
+        // contatore per il numero di utenti univoci per provider
+        $query->addSelect([
+            "unique_users_count" => ProviderUserRole::selectRaw("count(distinct user_id)")->whereColumn(
+                "provider_id",
+                "providers.id",
+            ),
+        ]);
+
         if ($show_deleted) {
             $query->onlyTrashed();
         }
-        $perPage = $request->input("per_page", 10);
+
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["id", "name", "domain", "unique_users_count", "deleted_at"];
+
+            if (in_array($field, $allowedSorts)) {
+                $query->orderBy($field, $direction);
+            }
+        } else {
+            $query->orderBy("id", "asc");
+        }
+
+        $perPage = $request->input("per_page", 25);
         return $query->paginate($perPage);
     }
 
