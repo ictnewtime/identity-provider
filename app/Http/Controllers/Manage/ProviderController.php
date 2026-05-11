@@ -31,6 +31,43 @@ class ProviderController extends Controller
             operationId: "Provider.all",
             tags: ["Providers"],
             security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    name: "q",
+                    in: "query",
+                    required: false,
+                    description: "Search term for filtering providers by domain or name",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "show_deleted",
+                    in: "query",
+                    required: false,
+                    description: "Whether to include deleted providers in the results",
+                    schema: new OA\Schema(type: "boolean"),
+                ),
+                new OA\Parameter(
+                    name: "sort_by",
+                    in: "query",
+                    required: false,
+                    description: "Field to sort by (id, name, domain, unique_users_count, deleted_at)",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "sort_dir",
+                    in: "query",
+                    required: false,
+                    description: "Sort direction (asc or desc)",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "per_page",
+                    in: "query",
+                    required: false,
+                    description: "Number of items per page for pagination",
+                    schema: new OA\Schema(type: "integer", default: 10),
+                ),
+            ],
             responses: [
                 new OA\Response(
                     response: 200,

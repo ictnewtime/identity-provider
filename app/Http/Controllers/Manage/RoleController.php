@@ -29,6 +29,57 @@ class RoleController extends Controller
             operationId: "Role.all",
             tags: ["Roles"],
             security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    in: "query",
+                    name: "q",
+                    required: false,
+                    schema: new OA\Schema(type: "string"),
+                    description: "Search term to filter roles by name or provider domain",
+                ),
+                new OA\Parameter(
+                    in: "query",
+                    name: "provider_id",
+                    required: false,
+                    schema: new OA\Schema(type: "integer"),
+                    description: "Filter roles by provider id",
+                ),
+                new OA\Parameter(
+                    in: "query",
+                    name: "show_deleted",
+                    required: false,
+                    schema: new OA\Schema(type: "boolean"),
+                    description: "Whether to include deleted roles in the results",
+                ),
+                new OA\Parameter(
+                    in: "query",
+                    name: "sort_by",
+                    required: false,
+                    schema: new OA\Schema(type: "string"),
+                    description: "Field to sort by (id, name, provider.domain, provider.name, deleted_at)",
+                ),
+                new OA\Parameter(
+                    in: "query",
+                    name: "sort_dir",
+                    required: false,
+                    schema: new OA\Schema(type: "string"),
+                    description: "Sort direction (asc or desc)",
+                ),
+                new OA\Parameter(
+                    in: "query",
+                    name: "per_page",
+                    required: false,
+                    schema: new OA\Schema(type: "integer"),
+                    description: "Number of items per page for pagination",
+                ),
+                new OA\Parameter(
+                    in: "query",
+                    name: "page",
+                    required: false,
+                    schema: new OA\Schema(type: "integer", default: 10),
+                    description: "Page number for pagination",
+                ),
+            ],
             responses: [
                 new OA\Response(
                     response: 200,
