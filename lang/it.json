@@ -216,7 +216,7 @@
     "admin.providers.table.search_placeholder": "Cerca dominio...",
     "admin.providers.table.domain": "Dominio",
     "admin.providers.table.name": "Nome",
-    "admin.providers.table.unique_users_count": "Utenti",
+    "admin.providers.table.unique_users_count": "Numero utenti",
     "admin.providers.table.default_url": "Predefinito",
     "admin.providers.table.empty": "Nessun provider trovato nel sistema.",
     "admin.providers.table.show_deleted_tooltip": "Visualizza Provider Eliminati",

@@ -168,7 +168,7 @@ const loadUsers = () => {
         .get("/admin/v1/users", {
             params: {
                 page: 1,
-                per_page: 1000,
+                per_page: paginationUsers.value.per_page,
                 q: filterUsers.value,
                 show_deleted: false,
             },

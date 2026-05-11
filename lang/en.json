@@ -213,7 +213,7 @@
     "admin.providers.table.search_placeholder": "Search domain...",
     "admin.providers.table.domain": "Domain",
     "admin.providers.table.name": "Name",
-    "admin.providers.table.unique_users_count": "Users",
+    "admin.providers.table.unique_users_count": "Number of users",
     "admin.providers.table.default_url": "Default",
     "admin.providers.table.empty": "No providers found in the system.",
     "admin.providers.table.show_deleted_tooltip": "Show Deleted Providers",
