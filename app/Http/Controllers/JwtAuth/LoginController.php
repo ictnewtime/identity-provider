@@ -7,15 +7,15 @@ use Illuminate\Http\Request;
 use App\Http\Requests\LoginRequest;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
-use App\Http\Resources\UserResource;
 use App\Models\Provider;
 use App\Models\Session;
+use App\Models\User;
 use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Inertia\Inertia;
-use Tymon\JWTAuth\Facades\JWTAuth;
+use Laravel\Socialite\Facades\Socialite;
 
 class LoginController extends Controller
 {
@@ -40,11 +40,62 @@ class LoginController extends Controller
             return back()->withErrors(["login" => __("auth.err-login")]);
         }
 
-        $user = Auth::user();
-        event(new LoginEvent($user, $request->ip()));
+        return $this->processSsoRedirect(
+            $request,
+            Auth::user(),
+            $request->input("provider_id"),
+            $request->input("redirect_to"),
+        );
+    }
 
-        $provider_id = $request->input("provider_id");
+    public function redirectToGoogle(Request $request)
+    {
+        if ($request->has("provider_id")) {
+            $request->session()->put("sso_provider_id", $request->input("provider_id"));
+            $request->session()->put("sso_redirect_to", $request->input("redirect_to"));
+        }
 
+        return Socialite::driver("google")->redirect();
+    }
+
+    public function handleGoogleCallback(Request $request)
+    {
+        try {
+            $googleUser = Socialite::driver("google")->user();
+        } catch (\Exception $e) {
+            return redirect()
+                ->route("login")
+                ->withErrors(["login" => __("auth.google_login_failed")]);
+        }
+
+        $user = User::where("google_id", $googleUser->getId())->first();
+        if (!$user) {
+            $user = User::where("email", $googleUser->getEmail())->first();
+
+            if ($user) {
+                // L' user esiste, ma è la prima volta che usa Google.
+                $user->update([
+                    "google_id" => $googleUser->getId(),
+                ]);
+            } else {
+                // L' user non esiste allinterno dell applicazione IDP.
+                return redirect()
+                    ->route("login")
+                    ->withErrors(["login" => __("auth.google_login_without_account")]);
+            }
+        }
+
+        Auth::login($user);
+        // Recuperia i parametri salvati prima del redirect a Google
+        $provider_id = $request->session()->pull("sso_provider_id");
+        $redirect_to = $request->session()->pull("sso_redirect_to");
+
+        $request->merge(["provider_id" => $provider_id, "redirect_to" => $redirect_to]);
+        return $this->processSsoRedirect($request, $user, $provider_id, $redirect_to);
+    }
+
+    private function processSsoRedirect($request, $user, $provider_id, $redirect_to)
+    {
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
             Log::warning("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
 
@@ -115,13 +166,6 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route("sso.unauthorized");
-    }
-
-    public function userByToken()
-    {
-        $userResource = UserResource::make(Auth::user());
-
-        return response()->json($userResource);
     }
 
     public function logout_web(Request $request)

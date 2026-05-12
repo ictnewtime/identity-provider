@@ -13,7 +13,7 @@ use App\Http\Controllers\Manage\SessionController;
 use App\Http\Controllers\Manage\AuditController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Manage\ParametersController;
-use Illuminate\Support\Facades\Log;
+use Laravel\Socialite\Facades\Socialite;
 
 // Redirect Home -> Login
 Route::get("/", function () {
@@ -43,6 +43,9 @@ Route::middleware("guest")->group(function () {
 Route::post("v2/login", [LoginController::class, "login"]);
 Route::post("logout", [LoginController::class, "logout_web"])->name("logout_web");
 Route::get("/sso/logout", [LoginController::class, "logout_sso"])->name("logout_sso");
+
+Route::get("/auth/google/redirect", [LoginController::class, "redirectToGoogle"])->name("google.redirect");
+Route::get("/auth/google/callback", [LoginController::class, "handleGoogleCallback"])->name("google.callback");
 
 Route::middleware(["auth"])->group(function () {
     Route::get("/password/expired", [PasswordResetController::class, "expired"])->name("password.expired");

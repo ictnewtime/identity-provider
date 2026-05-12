@@ -35,8 +35,8 @@ npm run build
 ```php
 php artisan config:cache
 php artisan route:cache
-php artisan config:clear
 php artisan cache:clear
+php artisan config:clear
 php artisan route:clear
 // php artisan config:show app
 composer dump-autoload
