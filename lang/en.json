@@ -17,6 +17,9 @@
     "auth.verification.errors.delete_failed": "Account activated, but unable to remove security code.",
 
     "auth.forgot_password": "Forgot Password?",
+    "auth.login_with_google": "Login with Google",
+    "auth.google_login_failed": "An error occurred during Google login.",
+    "auth.google_login_without_account": "Unauthorized or non-existent user.",
     "auth.recover_password_title": "Recover Password",
     "auth.recover_password_body": "Enter your username. We will send you a recovery link to the email address associated with your profile.",
     "auth.send_recovery_link": "Send Recovery Link",
