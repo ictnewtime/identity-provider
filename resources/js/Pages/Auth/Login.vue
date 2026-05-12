@@ -13,6 +13,7 @@ import FloatLabel from "primevue/floatlabel";
 import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import { Toast } from "primevue";
+import { Icon } from "@iconify/vue";
 
 const form = useForm({
     username: "",
@@ -151,15 +152,23 @@ const googleAuthUrl = computed(() => {
                     :disabled="!isFormValid"
                 />
             </form>
-            <div class="flex flex-col gap-2 mt-4 w-full">
+            <div class="flex flex-col items-center gap-2 mt-4 w-full">
                 <Button
+                    type="button"
                     as="a"
                     :href="googleAuthUrl"
-                    class="btn-google"
                     target="_blank"
                     rel="noopener"
-                    icon="pi-google"
-                />
+                    class="flex items-center border-none p-0.5!"
+                    style="background-color: #4285f4; color: white"
+                >
+                    <div class="bg-white rounded-sm flex items-center justify-center p-2">
+                        <Icon icon="material-icon-theme:google" width="24" height="24" />
+                    </div>
+                    <div class="flex-1 text-center font-medium pr-4">
+                        {{ $t("auth.login_with_google") }}
+                    </div>
+                </Button>
             </div>
         </div>
     </div>
