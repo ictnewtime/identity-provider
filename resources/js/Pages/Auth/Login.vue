@@ -157,8 +157,6 @@ const googleAuthUrl = computed(() => {
                     type="button"
                     as="a"
                     :href="googleAuthUrl"
-                    target="_blank"
-                    rel="noopener"
                     class="flex items-center border-none p-0.5!"
                     style="background-color: #4285f4; color: white"
                 >
