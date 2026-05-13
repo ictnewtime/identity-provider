@@ -30,4 +30,17 @@ use OpenApi\Attributes as OA;
 class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+
+    public const OA_DESC_MSG_SUCCESS = "Operation successful"; // 200
+    public const OA_DESC_MSG_CREATED = "Resource created successfully"; // 201
+    public const OA_DESC_MSG_BAD_REQUEST = "Bad request"; // 400
+    public const UNAUTHORIZED = "Unauthorized"; // 401
+    public const OA_DESC_MSG_FORBIDDEN = "Forbidden"; // 403
+    public const OA_DESC_MSG_NOT_FOUND = "Not found"; // 404
+    public const OA_DESC_MSG_UNPROCESSABLE_ENTITY = "Unprocessable entity"; // 422
+    public const OA_DESC_MSG_INTERNAL_SERVER_ERROR = "Internal server error"; // 500
+
+    public const MEDIA_TYPE_JSON = "application/json";
+
+    public const OA_DESC_MSG_SECURITY_ADMIN = "__*Security:*__ __*can be used only by clients with \'admin\' role*__";
 }
