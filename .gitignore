@@ -26,3 +26,4 @@ Homestead.yaml
 Thumbs.db
 /tmp*
 supervisord.pid
+cypress.env.json
