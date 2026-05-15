@@ -49,8 +49,10 @@
     "auth.req_number": "Un numero",
     "auth.req_special": "Un carattere speciale",
     "auth.req_match": "Le password coincidono",
-
     "auth.password_same_as_old": "La nuova password non può essere uguale a quella attuale.",
+
+    "jwks.public_key_not_found": "Public key non trovata.",
+    "jwks.unable_to_extract_public_key_rsa": "Impossibile estrarre i dettagli RSA dalla public key.",
 
     "common.id": "ID",
     "common.actions": "Azioni",

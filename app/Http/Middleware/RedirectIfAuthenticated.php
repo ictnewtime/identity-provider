@@ -2,16 +2,16 @@
 
 namespace App\Http\Middleware;
 
-use App\Services\TokenProviderService;
 use Closure;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Log;
-use Tymon\JWTAuth\Providers\JWT\Lcobucci;
-use App\Models\Session;
 use App\Models\User;
 use App\Models\Provider;
+use App\Services\TokenProviderService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Session;
+use Tymon\JWTAuth\Providers\JWT\Lcobucci;
 
 class RedirectIfAuthenticated
 {
@@ -43,7 +43,7 @@ class RedirectIfAuthenticated
             return redirect()->route("password.expired");
         }
 
-        // Check provider_id e autorizzazioni
+        // Check provider_id e autorizzazioni base
         if (empty($providerId)) {
             if ($user->isAdmin()) {
                 return redirect()->route("admin-home");
@@ -52,25 +52,18 @@ class RedirectIfAuthenticated
             Log::warning("Accesso negato: Utente loggato ma nessun provider_id richiesto.");
             return $this->forceLogoutAndShowLogin($request, $cookieName, "Nessuna applicazione specificata.");
         }
+        // --- INIZIO NUOVA LOGICA MASTER TOKEN ---
+        // se non c'è master token
+        // fare forceLogoutAndShowLogin
 
-        // Ottengo i parametri per la redirezione, come token e redirect_url
-        $ssoData = TokenProviderService::respondWithSsoRedirect($user, $providerId, $request, $redirectTo);
-
-        if (!$ssoData) {
-            return $this->handleSsoFailure($request, $providerId);
-        }
-
-        $parsedTargetHost = parse_url($ssoData["url"], PHP_URL_HOST);
-        $isLocalhostTarget = TokenProviderService::checkLocalHost($parsedTargetHost);
-        if (!$isLocalhostTarget) {
-            Cookie::queue($ssoData["cookie"]);
-        }
-
-        return redirect()->away($ssoData["url"])->withCookie($ssoData["cookie"]);
+        $provider = Provider::find($providerId);
+        $redirectUrl = $provider->url;
+        return redirect()->away($redirectUrl);
     }
 
     /**
-     * Tenta di recuperare l'utente autenticato dalla sessione o dal JWT (Grant Token)
+     * Tenta di recuperare l'utente autenticato dalla sessione o dal JWT interno dell'IDP
+     * MANTENUTO INALTERATO (Usa HS256 per idp_token_1)
      */
     private function resolveAuthenticatedUser(Request $request, $guard, $idpProviderId, $cookieName)
     {
@@ -113,32 +106,7 @@ class RedirectIfAuthenticated
     }
 
     /**
-     * Gestisce il fallimento dell'autorizzazione per l'App esterna
-     */
-    private function handleSsoFailure(Request $request, string $providerId)
-    {
-        Log::warning("Seamless SSO Fallito: L'utente non ha i permessi per l'App {$providerId}.");
-
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        $cookieName = "idp_token_" . config("idp.provider_id");
-        $provider = Provider::find(config("idp.provider_id"));
-
-        Log::warning("Seamless SSO Fallito: provider-domain: " . $provider->domain);
-
-        Cookie::queue(Cookie::forget($cookieName, "/"));
-        if ($provider && $provider->domain) {
-            Cookie::queue(Cookie::forget($cookieName, "/", $provider->domain));
-        }
-
-        return redirect()->route("sso.unauthorized");
-    }
-
-    /**
      * Pulisce la sessione corrente e fa passare la richiesta verso il form di login
-     * evitando il famigerato loop di redirect.
      */
     private function forceLogoutAndShowLogin(Request $request, string $cookieName, string $errorMessage)
     {
@@ -150,10 +118,12 @@ class RedirectIfAuthenticated
 
         Cookie::queue(Cookie::forget($cookieName, "/"));
         Cookie::queue(Cookie::forget("token", "/"));
+        Cookie::queue(Cookie::forget("idp-master-token", "/"));
 
         if ($provider_idp && $provider_idp->domain) {
             Cookie::queue(Cookie::forget($cookieName, "/", $provider_idp->domain));
             Cookie::queue(Cookie::forget("token", "/", $provider_idp->domain));
+            Cookie::queue(Cookie::forget("idp-master-token", "/", $provider_idp->domain));
         }
 
         // Ricarichiamo la pagina di login

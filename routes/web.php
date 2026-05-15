@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\JwksController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
@@ -54,6 +55,8 @@ Route::middleware(["auth"])->group(function () {
         "password.force-update",
     );
 });
+
+Route::get("/.well-known/jwks.json", [JwksController::class, "index"]);
 
 /********* ADMIN ROUTES ************/
 Route::prefix("admin")

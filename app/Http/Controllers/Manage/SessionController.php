@@ -135,6 +135,63 @@ class SessionController extends Controller
         );
     }
 
+    public function get_token(Request $request): JsonResponse
+    {
+        Log::debug("api get_token is called");
+        $userId = $request->attributes->get("jwt_user_id");
+
+        if (!$userId) {
+            return response()->json(["message" => "Master Token claims missing"], 401);
+        }
+
+        $validated = $request->validate([
+            "provider_id" => "required|string",
+            "ip_address" => "nullable|string",
+            "user_agent" => "nullable|string",
+        ]);
+
+        $providerId = $validated["provider_id"];
+
+        $user = User::find($userId);
+
+        if (!$user) {
+            return response()->json(["message" => "User not found"], 404);
+        }
+
+        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
+            return response()->json(["message" => "Password expired."], 401);
+        }
+
+        $tokenService = new TokenProviderService();
+        $sessionService = $this->sessionService ?? new SessionService();
+
+        $appToken = $sessionService->getValidProviderToken(
+            $user,
+            $providerId,
+            $validated["ip_address"] ?? $request->ip(),
+            $validated["user_agent"] ?? $request->userAgent(),
+            $tokenService,
+        );
+
+        if (!$appToken) {
+            Log::debug("api get_token error on providerId=" . $providerId);
+            return response()->json(
+                [
+                    "message" => "Access denied: User disabled or missing roles for Provider {$providerId}.",
+                ],
+                403,
+            );
+        }
+        Log::debug("api get_token response appToken " . $appToken);
+
+        return response()->json(
+            [
+                "token" => $appToken,
+            ],
+            200,
+        );
+    }
+
     /**
      * Chiamata API M2M da App esterne per innescare il Single Logout (SLO).
      */

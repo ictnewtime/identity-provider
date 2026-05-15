@@ -5,11 +5,12 @@ namespace App\Services;
 use App\Models\Parameter;
 use App\Models\User;
 use App\Models\Provider;
-use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Services\ProviderUserRoleService;
 use Illuminate\Support\Facades\Log;
+use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
-use Lcobucci\JWT\Configuration;
+use Firebase\JWT\JWT;
+use Illuminate\Support\Facades\File;
 
 class TokenProviderService
 {
@@ -33,7 +34,7 @@ class TokenProviderService
      * Altrimenti genera un token standard.
      * * @return string|null Ritorna il token stringa, o null se l'utente non è abilitato per quel provider.
      */
-    public function tokenCretion(User $user, ?string $redirectId = null)
+    public function generateAppToken(User $user, ?string $redirectId = null)
     {
         $jwt_exp_seconds = $this->getExpiredAt();
         $ttlInMinutes = $jwt_exp_seconds / 60;
@@ -105,10 +106,31 @@ class TokenProviderService
         return $token;
     }
 
-    public function cookieCretion(string $token, string $provider_id)
+    public function generateMasterToken(User $user)
+    {
+        $jwt_exp_seconds = $this->getExpiredAt();
+        $expiration_seconds = time() + $jwt_exp_seconds;
+
+        $payload = [
+            "iss" => config("app.url"),
+            "iat" => time(),
+            "exp" => $expiration_seconds,
+            "sub" => (string) $user->id,
+            "username" => $user->username,
+            "email" => $user->email,
+        ];
+
+        $privateKey = File::get(storage_path("app/keys/private.key"));
+        $keyId = config("idp.jwt.master_key_id");
+        return JWT::encode($payload, $privateKey, "RS256", $keyId);
+    }
+
+    public function cookieCretion(string $token, string $provider_id, $cookie_name = null)
     {
         // creo un cookie con il token
-        $cookie_name = "idp_token_" . $provider_id;
+        if (empty($cookie_name)) {
+            $cookie_name = "idp_token_" . $provider_id;
+        }
         $provider = Provider::where("id", $provider_id)->first();
         $domain = $provider->domain;
         $is_https = str_starts_with($provider->protocol, "https");

@@ -93,7 +93,7 @@ class SessionService
         }
 
         // Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
-        $token = $tokenService->tokenCretion($user, $provider_id);
+        $token = $tokenService->generateAppToken($user, $provider_id);
 
         if (!$token) {
             return null;

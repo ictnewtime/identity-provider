@@ -14,6 +14,7 @@ use App\Http\Middleware\SetLocale;
 // use App\Http\Middleware\CheckClientCredentials;
 use App\Http\Middleware\ProviderClientCredentials;
 use App\Http\Middleware\VerifyExternalToken;
+use App\Http\Middleware\VerifyMasterToken;
 use App\Http\Middleware\CheckPasswordExpiration;
 use App\Http\Middleware\EncryptCookies as CustomEncryptCookies;
 use Illuminate\Cookie\Middleware\EncryptCookies as CoreEncryptCookies;
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
             "authenticated" => Authenticated::class,
             "role" => CheckRole::class,
             "verify_external_token" => VerifyExternalToken::class,
+            "verify_master_token" => VerifyMasterToken::class,
             "password.expiration" => CheckPasswordExpiration::class,
 
             // Utility

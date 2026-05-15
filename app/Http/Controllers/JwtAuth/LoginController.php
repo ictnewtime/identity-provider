@@ -40,12 +40,7 @@ class LoginController extends Controller
             return back()->withErrors(["login" => __("auth.err-login")]);
         }
 
-        return $this->processSsoRedirect(
-            $request,
-            Auth::user(),
-            $request->input("provider_id"),
-            $request->input("redirect_to"),
-        );
+        return $this->processSsoRedirect($request, Auth::user());
     }
 
     public function redirectToGoogle(Request $request)
@@ -91,11 +86,12 @@ class LoginController extends Controller
         $redirect_to = $request->session()->pull("sso_redirect_to");
 
         $request->merge(["provider_id" => $provider_id, "redirect_to" => $redirect_to]);
-        return $this->processSsoRedirect($request, $user, $provider_id, $redirect_to);
+        return $this->processSsoRedirect($request, $user);
     }
 
-    private function processSsoRedirect($request, $user, $provider_id, $redirect_to)
+    private function processSsoRedirect($request, $user)
     {
+        $provider_id = $request->provider_id;
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
             Log::warning("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
 
@@ -107,40 +103,33 @@ class LoginController extends Controller
             return redirect()->route("password.expired");
         }
 
+        // dopo essermi autenticato con la login classica o con socialite/google
+        // creo il master-token e se dovevo fare una redirect, la effettuo
+        // solo quando sono nella App2 chiedo i ruoli in un token-JWT
+        $tokenService = new TokenProviderService();
+        $masterToken = $tokenService->generateMasterToken($user);
+        $idpProviderId = config("idp.provider_id");
+        $master_token_name = config("idp.jwt.master_token_name");
+        Cookie::queue($tokenService->cookieCretion($masterToken, $idpProviderId, $master_token_name));
+
         if ($provider_id) {
-            $ssoData = TokenProviderService::respondWithSsoRedirect(
-                $user,
-                $provider_id,
-                $request,
-                $request->input("redirect_to"),
-            );
-
-            if (!$ssoData) {
-                // L'utente non ha ruoli validi per quel provider
-                Auth::logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
-                return redirect()->route("sso.unauthorized");
-            }
-
-            $parsedTargetHost = parse_url($ssoData["url"], PHP_URL_HOST);
-            $isLocalhostTarget = TokenProviderService::checkLocalHost($parsedTargetHost);
-            if (!$isLocalhostTarget) {
-                Cookie::queue($ssoData["cookie"]);
-            }
-            return Inertia::location($ssoData["url"]);
+            // devo semplicemente ottenere l' url e redirigere l' user
+            $provider = Provider::find($provider_id);
+            $redirectUrl = $provider->url;
+            return redirect()->away($redirectUrl);
         }
 
+        // solo se il provider id è vouto, creo il token App2
+        // in quanto è da considerare App2 == IDP
         // L'utente va verso l'home dell'IdP
         if ($user->isAdmin()) {
             $request->session()->regenerate();
 
-            $idpProviderId = config("idp.provider_id");
             $tokenService = new TokenProviderService();
             $sessionService = new SessionService();
 
             $ip_address = $request->ip();
-            $token = $sessionService->getValidProviderToken(
+            $appToken = $sessionService->getValidProviderToken(
                 $user,
                 $idpProviderId,
                 $ip_address,
@@ -148,7 +137,7 @@ class LoginController extends Controller
                 $tokenService,
             );
 
-            if (!$token) {
+            if (!$appToken) {
                 // L'utente non ha ruoli validi per quel provider
                 Auth::logout();
                 $request->session()->invalidate();
@@ -156,11 +145,11 @@ class LoginController extends Controller
                 return redirect()->route("sso.unauthorized");
             }
 
-            Cookie::queue($tokenService->cookieCretion($token, $idpProviderId));
+            Cookie::queue($tokenService->cookieCretion($appToken, $idpProviderId));
             return redirect()->route("admin-home");
         }
 
-        // Se utente non admin, lo mandiamo alla pagina non autorizzato
+        // Se utente non è admin, lo mandiamo alla pagina non autorizzato
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -215,12 +204,15 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        Log::debug("delete master token");
+        $master_token_name = config("idp.jwt.master_token_name");
         $cookiesToForget = [
             Cookie::forget($dynamicCookieName, "/", $cookieDomain),
             Cookie::forget("token", "/", $cookieDomain),
             Cookie::forget("laravel_session", "/", $cookieDomain),
             // Fallback per localhost
             Cookie::forget($dynamicCookieName),
+            Cookie::forget($master_token_name),
             Cookie::forget("token"),
         ];
 

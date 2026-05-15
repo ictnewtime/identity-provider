@@ -48,3 +48,13 @@ php artisan optimize:clear
 ```php
 php artisan l5-swagger:generate
 ```
+
+# Creare la chiave pubblica e privata per firmare il master token
+
+mkdir -p storage/app/keys
+openssl genrsa -out storage/app/keys/private.key 2048
+openssl rsa -in storage/app/keys/private.key -pubout -out storage/app/keys/public.key
+chown -R www-data:www-data storage/app/keys
+chmod 600 storage/app/keys/private.key
+chmod 644 storage/app/keys/public.key
+chmod 755 storage/app/keys
