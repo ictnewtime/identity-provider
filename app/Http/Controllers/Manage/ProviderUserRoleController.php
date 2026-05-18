@@ -216,7 +216,7 @@ class ProviderUserRoleController extends Controller
     ]
     public function find($id)
     {
-        $providerUserRole = ProviderUserRole::find($id);
+        $providerUserRole = ProviderUserRole::withTrashed()->find($id);
         if (empty($providerUserRole)) {
             return response()->json(["message" => "Provider user role not found"], 404);
         }

@@ -142,7 +142,7 @@ class ProviderController extends Controller
     public function find($id)
     {
         try {
-            $provider = Provider::find($id);
+            $provider = Provider::withTrashed()->find($id);
         } catch (\Exception $e) {
             return response()->json(["message" => "Invalid id" . $e], 500);
         }
