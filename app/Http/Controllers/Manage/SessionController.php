@@ -137,7 +137,6 @@ class SessionController extends Controller
 
     public function get_token(Request $request): JsonResponse
     {
-        Log::debug("api get_token is called");
         $userId = $request->attributes->get("jwt_user_id");
 
         if (!$userId) {
@@ -174,7 +173,6 @@ class SessionController extends Controller
         );
 
         if (!$appToken) {
-            Log::debug("api get_token error on providerId=" . $providerId);
             return response()->json(
                 [
                     "message" => "Access denied: User disabled or missing roles for Provider {$providerId}.",
@@ -182,7 +180,6 @@ class SessionController extends Controller
                 403,
             );
         }
-        Log::debug("api get_token response appToken " . $appToken);
 
         return response()->json(
             [

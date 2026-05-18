@@ -94,14 +94,14 @@ class LoginController extends Controller
         $provider_id = $request->provider_id;
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
             Log::warning("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
-
             if ($provider_id) {
                 $request->session()->put("pending_sso_provider_id", $provider_id);
                 $request->session()->put("pending_sso_redirect_to", $request->input("redirect_to"));
             }
-
             return redirect()->route("password.expired");
         }
+
+        $redirect_to = $request->input("redirect_to");
 
         // dopo essermi autenticato con la login classica o con socialite/google
         // creo il master-token e se dovevo fare una redirect, la effettuo
@@ -115,8 +115,8 @@ class LoginController extends Controller
         if ($provider_id) {
             // devo semplicemente ottenere l' url e redirigere l' user
             $provider = Provider::find($provider_id);
-            $redirectUrl = $provider->url;
-            return redirect()->away($redirectUrl);
+            $redirectUrl = $redirect_to ?? $provider->url;
+            return Inertia::location($redirectUrl);
         }
 
         // solo se il provider id è vouto, creo il token App2
@@ -204,7 +204,6 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        Log::debug("delete master token");
         $master_token_name = config("idp.jwt.master_token_name");
         $cookiesToForget = [
             Cookie::forget($dynamicCookieName, "/", $cookieDomain),

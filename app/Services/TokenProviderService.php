@@ -116,8 +116,15 @@ class TokenProviderService
             "iat" => time(),
             "exp" => $expiration_seconds,
             "sub" => (string) $user->id,
-            "username" => $user->username,
-            "email" => $user->email,
+            "paylaod" => [
+                "user" => [
+                    "id" => $user->id,
+                    "username" => $user->username,
+                    "email" => $user->email,
+                    "name" => $user->name,
+                    "surname" => $user->surname,
+                ],
+            ],
         ];
 
         $privateKey = File::get(storage_path("app/keys/private.key"));

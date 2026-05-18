@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use Closure;
 use App\Models\User;
 use App\Models\Provider;
-use App\Services\TokenProviderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -50,20 +49,23 @@ class RedirectIfAuthenticated
             }
 
             Log::warning("Accesso negato: Utente loggato ma nessun provider_id richiesto.");
-            return $this->forceLogoutAndShowLogin($request, $cookieName, "Nessuna applicazione specificata.");
+            return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.password_same_as_old"));
         }
-        // --- INIZIO NUOVA LOGICA MASTER TOKEN ---
-        // se non c'è master token
+        // Se non c'è master token (idp-master-token)
         // fare forceLogoutAndShowLogin
-
-        $provider = Provider::find($providerId);
-        $redirectUrl = $provider->url;
-        return redirect()->away($redirectUrl);
+        $master_token_name = config("idp.jwt.master_token_name");
+        $hasRequestMasterToken = $request->hasCookie($master_token_name);
+        $hasQueuedMasterToken = Cookie::hasQueued($master_token_name);
+        if (!$hasRequestMasterToken && !$hasQueuedMasterToken) {
+            Log::warning("Master Token assente per l'utente loggato ({$user->id}). Effettuare Logout");
+            return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.no_application_specified"));
+        }
+        return redirect()->away($redirectTo);
     }
 
     /**
      * Tenta di recuperare l'utente autenticato dalla sessione o dal JWT interno dell'IDP
-     * MANTENUTO INALTERATO (Usa HS256 per idp_token_1)
+     * (Usa HS256 per idp_token_1)
      */
     private function resolveAuthenticatedUser(Request $request, $guard, $idpProviderId, $cookieName)
     {
