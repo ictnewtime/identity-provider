@@ -54,7 +54,7 @@ trait CustomAuditable
                         $action = "deleted";
                     }
                 } elseif ($originalAction === "restored") {
-                    return;
+                    $action = "restored";
                 }
             }
 
