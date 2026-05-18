@@ -254,7 +254,7 @@ class RoleController extends Controller
     ]
     public function find($id)
     {
-        $role = Role::find($id);
+        $role = Role::withTrashed()->find($id);
         if (empty($role)) {
             return response()->json(["message" => "Role not found"], 404);
         }

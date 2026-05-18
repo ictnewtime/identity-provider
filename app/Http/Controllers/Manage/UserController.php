@@ -274,7 +274,7 @@ class UserController extends Controller
     ]
     public function find($id)
     {
-        $user = User::find($id);
+        $user = User::withTrashed()->find($id);
         if (empty($user)) {
             return response()->json(["message" => __("user.error.not_found")], 404);
         }
