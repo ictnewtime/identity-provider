@@ -18,17 +18,26 @@ const toast = useToast();
 
 const filter = ref("");
 const loading = ref(false);
-const pagination = ref({ data: [], total: 0, per_page: 15 });
+const pagination = ref({ data: [], total: 0, per_page: 25 });
+const sortParams = ref({ field: null, order: null });
 const displayModal = ref(false);
 const selectedAudit = ref(null);
 let searchTimeout = null;
 
 const loadAudits = (page = 1) => {
     loading.value = true;
-
+    let sort_dir = null;
+    if (sortParams.value.order === 1) sort_dir = "asc";
+    else if (sortParams.value.order === -1) sort_dir = "desc";
     window.axios
         .get("/admin/v1/audits", {
-            params: { page: page, per_page: pagination.value.per_page, q: filter.value },
+            params: {
+                page: page,
+                per_page: pagination.value.per_page,
+                q: filter.value,
+                sort_by: sortParams.value.field,
+                sort_dir: sort_dir,
+            },
         })
         .then((res) => {
             pagination.value = res.data;
@@ -49,6 +58,12 @@ const loadAudits = (page = 1) => {
 
 const onPage = (event) => {
     loadAudits(event.page + 1);
+};
+
+const onSort = (event) => {
+    sortParams.value.field = event.sortField;
+    sortParams.value.order = event.sortOrder;
+    loadAudits();
 };
 
 const onFilterChange = () => {
@@ -91,7 +106,16 @@ onMounted(() => {
 <template>
     <div>
         <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
-            <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
+            <DataTable
+                :value="pagination.data"
+                :loading="loading"
+                responsiveLayout="scroll"
+                stripedRows
+                size="small"
+                :lazy="true"
+                @sort="onSort"
+                :sortOrder="sortParams.order"
+            >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
@@ -109,7 +133,7 @@ onMounted(() => {
                     </div>
                 </template>
 
-                <Column :header="$t('admin.audits.table.date')">
+                <Column field="created_at" :header="$t('admin.audits.table.date')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="text-surface-600 text-sm whitespace-nowrap font-medium">
                             {{ formatDate(slotProps.data.created_at) }}
@@ -117,7 +141,7 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.audits.table.user')">
+                <Column field="user.username" :header="$t('admin.audits.table.user')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span v-if="slotProps.data.user" class="font-bold text-surface-900">
                             {{ slotProps.data.user.username }}
@@ -126,7 +150,7 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.audits.table.action')">
+                <Column field="event" :header="$t('admin.audits.table.action')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <Tag
                             :severity="getEventSeverity(slotProps.data.event)"
@@ -135,7 +159,7 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.audits.table.entity')">
+                <Column field="auditable_type" :header="$t('admin.audits.table.entity')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="text-sm font-semibold text-surface-700">
                             {{ formatModelName(slotProps.data.auditable_type) }}
@@ -143,7 +167,7 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.audits.table.ip')">
+                <Column field="ip_address" :header="$t('admin.audits.table.ip')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="text-surface-500 font-mono text-sm">
                             {{ slotProps.data.ip_address }}
@@ -175,7 +199,8 @@ onMounted(() => {
 
             <Paginator
                 v-if="pagination.total > 0"
-                :rows="pagination.per_page"
+                :rows="25"
+                :rowsPerPageOptions="[25, 50, 75, 100]"
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"

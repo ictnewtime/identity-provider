@@ -47,7 +47,33 @@ class SessionController extends Controller
             });
         }
 
-        $perPage = $request->input("per_page", 10);
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["id", "user.username", "provider.name", "ip_address", "user_agent", "updated_at"];
+
+            if (in_array($field, $allowedSorts)) {
+                if (str_starts_with($field, "provider.")) {
+                    $sortColumn = str_replace("provider.", "providers.", $field);
+                    $query
+                        ->join("providers", "sessions.provider_id", "=", "providers.id")
+                        ->select("sessions.*")
+                        ->orderBy($sortColumn, $direction);
+                } elseif (str_starts_with($field, "user.")) {
+                    $sortColumn = str_replace("user.", "users.", $field);
+                    $query
+                        ->join("users", "sessions.user_id", "=", "users.id")
+                        ->select("sessions.*")
+                        ->orderBy($sortColumn, $direction);
+                } else {
+                    $query->orderBy("sessions." . $field, $direction);
+                }
+            }
+        } else {
+            $query->orderBy("updated_at", "desc");
+        }
+
+        $perPage = $request->input("per_page", 25);
         return $query->paginate($perPage);
     }
 
@@ -82,22 +108,19 @@ class SessionController extends Controller
 
         $validated = $request->validate([
             "user_agent" => "nullable|string",
+            "is_api" => "nullable|boolean",
         ]);
 
-        $user_agent = $validated["user_agent"];
+        $user_agent = $validated["user_agent"] ?? null;
+        $isApi = $validated["is_api"] ?? false;
 
-        $result = $this->sessionService->validateAndRefreshSession(
-            $providerId,
-            $userId,
-            $user_agent,
-            $this->tokenService,
-        );
+        $result = $this->sessionService->validateSession($providerId, $userId, $user_agent, $isApi);
 
         if ($result["status"] === 404) {
             return response()->json(
                 [
                     "valid" => false,
-                    "message" => "Session expired, not found, or access revoked.",
+                    "message" => "Session expired.",
                 ],
                 404,
             );

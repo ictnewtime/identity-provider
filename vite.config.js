@@ -29,14 +29,14 @@ export default defineConfig({
     server: {
         host: "0.0.0.0",
         port: 5173,
-        strictPort: true, // Se la porta è occupata, Vite va in errore invece di usarne un'altra
-        cors: true, // FONDAMENTALE: Permette al browser di scaricare i file
+        strictPort: true,
+        cors: true,
         hmr: {
             host: "localhost",
         },
         watch: {
-            usePolling: true, // FONDAMENTALE in Docker: forza Vite a controllare i file salvati
-            interval: 500, // Controlla ogni mezzo secondo
+            usePolling: true,
+            interval: 500,
         },
     },
 });

@@ -33,7 +33,7 @@ class RedirectIfAuthenticated
 
         // check scadenza Password
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
-            Log::info("Seamless SSO bloccato: Utente {$user->username} ha la password scaduta.");
+            Log::warning("Seamless SSO bloccato: Utente {$user->username} ha la password scaduta.");
 
             if ($providerId) {
                 $request->session()->put("pending_sso_provider_id", $providerId);
@@ -53,15 +53,18 @@ class RedirectIfAuthenticated
             return $this->forceLogoutAndShowLogin($request, $cookieName, "Nessuna applicazione specificata.");
         }
 
-        // Se l'utente è admin, lo mandiamo alla dashboard dell'IdP
+        // Ottengo i parametri per la redirezione, come token e redirect_url
         $ssoData = TokenProviderService::respondWithSsoRedirect($user, $providerId, $request, $redirectTo);
 
         if (!$ssoData) {
             return $this->handleSsoFailure($request, $providerId);
         }
 
-        // Log::info("Seamless SSO Response: " . json_encode($ssoData));
-        Cookie::queue($ssoData["cookie"]);
+        $parsedTargetHost = parse_url($ssoData["url"], PHP_URL_HOST);
+        $isLocalhostTarget = TokenProviderService::checkLocalHost($parsedTargetHost);
+        if (!$isLocalhostTarget) {
+            Cookie::queue($ssoData["cookie"]);
+        }
 
         return redirect()->away($ssoData["url"])->withCookie($ssoData["cookie"]);
     }
@@ -71,7 +74,6 @@ class RedirectIfAuthenticated
      */
     private function resolveAuthenticatedUser(Request $request, $guard, $idpProviderId, $cookieName)
     {
-        // 1. Controllo standard Sessione Laravel
         if (Auth::guard($guard)->check()) {
             return Auth::guard($guard)->user();
         }

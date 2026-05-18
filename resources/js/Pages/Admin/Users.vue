@@ -10,10 +10,19 @@ defineProps({
     users: Array,
 });
 
+const isButtonAddRoleDisabled = ref(true);
+
+const handleSelectionChange = (hasUsersSelected) => {
+    isButtonAddRoleDisabled.value = !hasUsersSelected;
+};
+
 const tableRef = ref(null);
 
 const handleNewUserClick = () => {
     tableRef.value?.openCreateModal();
+};
+const handleAddRoleClick = () => {
+    tableRef.value?.openAddRoleModal();
 };
 </script>
 
@@ -24,8 +33,22 @@ const handleNewUserClick = () => {
                 {{ $t("admin.users.title") }}
             </h1>
         </div>
-        <Button :label="$t('admin.users.new_user')" icon="pi pi-plus" @click="handleNewUserClick" class="shadow-sm" />
+        <div class="flex gap-2">
+            <Button
+                :disabled="isButtonAddRoleDisabled"
+                :label="$t('admin.users.add_role_relations')"
+                icon="pi pi-plus"
+                @click="handleAddRoleClick"
+                class="shadow-sm"
+            />
+            <Button
+                :label="$t('admin.users.new_user')"
+                icon="pi pi-plus"
+                @click="handleNewUserClick"
+                class="shadow-sm"
+            />
+        </div>
     </div>
 
-    <UserTable ref="tableRef" :users="users" />
+    <UserTable ref="tableRef" :users="users" @selection-changed="handleSelectionChange" />
 </template>
