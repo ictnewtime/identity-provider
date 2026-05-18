@@ -133,6 +133,7 @@ const logout = () => {
                         severity="secondary"
                         class="hover:!text-red-600 hover:!bg-red-50 transition-colors"
                         @click="logout"
+                        aria-label="Logout"
                     />
                 </div>
             </header>

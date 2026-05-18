@@ -17,6 +17,9 @@
     "auth.verification.errors.delete_failed": "Account activated, but unable to remove security code.",
 
     "auth.forgot_password": "Forgot Password?",
+    "auth.login_with_google": "Login with Google",
+    "auth.google_login_failed": "An error occurred during Google login.",
+    "auth.google_login_without_account": "Unauthorized or non-existent user.",
     "auth.recover_password_title": "Recover Password",
     "auth.recover_password_body": "Enter your username. We will send you a recovery link to the email address associated with your profile.",
     "auth.send_recovery_link": "Send Recovery Link",
@@ -134,6 +137,12 @@
     "admin.users.form.validate.surname.mandatory": "Last name is required",
     "admin.users.form.validate.password.mandatory": "Password is required for new users",
     "admin.users.form.validate.password_confirmation.mandatory": "Passwords do not match",
+
+    "users.validation.email_required": "Email is required",
+    "users.validation.email_invalid": "Email is invalid",
+    "users.validation.email_unique": "Email is taken",
+    "users.validation.username_required": "Username is required",
+    "users.validation.username_unique": "Username is taken",
 
     "admin.users.toast.load_user_error": "Unable to load data for the selected user",
     "admin.users.toast.submit_error": "An error occurred while saving the user",

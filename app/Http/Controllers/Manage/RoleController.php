@@ -25,7 +25,7 @@ class RoleController extends Controller
         OA\Get(
             path: "/api/v1/roles",
             summary: "list of roles",
-            description: "Returns the entire list of roles",
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.all",
             tags: ["Roles"],
             security: [["passport" => []]],
@@ -83,13 +83,13 @@ class RoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 401,
-                    description: "Unauthorized",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::UNAUTHORIZED,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -148,7 +148,7 @@ class RoleController extends Controller
         OA\Post(
             path: "/api/v1/roles",
             summary: "Create a new role",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.create",
             tags: ["Roles"],
             security: [["passport" => ["manage-idp"]]],
@@ -178,23 +178,23 @@ class RoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 201,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 401,
-                    description: "Unauthorized",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::UNAUTHORIZED,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 422,
-                    description: "Validation error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_UNPROCESSABLE_ENTITY,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 403,
-                    description: "Invalid scope or client role, Forbidden",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_FORBIDDEN,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -220,7 +220,7 @@ class RoleController extends Controller
         OA\Get(
             path: "/api/v1/roles/{id}",
             summary: "Returns role by id",
-            description: "Returns role details by id",
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.find",
             tags: ["Roles"],
             security: [["passport" => []]],
@@ -236,18 +236,18 @@ class RoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Error on finding",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -265,7 +265,7 @@ class RoleController extends Controller
         OA\Put(
             path: "/api/v1/roles/{id}",
             summary: "Update role by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.update",
             tags: ["Roles"],
             security: [["passport" => ["manage-idp"]]],
@@ -304,23 +304,23 @@ class RoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 422,
-                    description: "Validation error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_UNPROCESSABLE_ENTITY,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Error on updating",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -347,7 +347,7 @@ class RoleController extends Controller
         OA\Delete(
             path: "/api/v1/roles/{id}",
             summary: "Remove role by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.delete",
             tags: ["Roles"],
             security: [["passport" => ["manage-idp"]]],
@@ -363,18 +363,18 @@ class RoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 204,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Error on deleting",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),

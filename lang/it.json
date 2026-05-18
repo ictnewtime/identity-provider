@@ -17,6 +17,9 @@
     "auth.verification.errors.delete_failed": "Account attivato, ma impossibile rimuovere il codice di sicurezza.",
 
     "auth.forgot_password": "Password dimenticata?",
+    "auth.login_with_google": "Accedi con Google",
+    "auth.google_login_failed": "Si è verificato un errore durante il login con Google.",
+    "auth.google_login_without_account": "Utente non autorizzato o inesistente.",
     "auth.recover_password_title": "Recupera Password",
     "auth.recover_password_body": "Inserisci il tuo username. Ti invieremo un link di recupero all'indirizzo email associato al tuo profilo.",
     "auth.send_recovery_link": "Invia Link di Recupero",
@@ -134,6 +137,12 @@
     "admin.users.form.validate.surname.mandatory": "Il cognome è obbligatorio",
     "admin.users.form.validate.password.mandatory": "La password è obbligatoria per i nuovi utenti",
     "admin.users.form.validate.password_confirmation.mandatory": "Le password non coincidono",
+
+    "users.validation.email_required": "Email è obbligatoria",
+    "users.validation.email_invalid": "Email non è valida",
+    "users.validation.email_unique": "Email è già in uso",
+    "users.validation.username_required": "Username è obbligatorio",
+    "users.validation.username_unique": "Username è già in uso",
 
     "admin.users.toast.load_user_error": "Impossibile caricare i dati dell'utente selezionato",
     "admin.users.toast.submit_error": "Si è verificato un errore durante il salvataggio dell'utente",

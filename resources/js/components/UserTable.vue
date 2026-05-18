@@ -288,6 +288,7 @@ watch(hasSelectedUsers, (newValue) => {
                             </div>
                             <Button
                                 v-if="hasSelectedUsers && !tableComponent.showUsersDeleted"
+                                id="btn-delete-selected"
                                 variant="text"
                                 severity="danger"
                                 @click="confirmDeleteSelectedUsers"
@@ -296,6 +297,7 @@ watch(hasSelectedUsers, (newValue) => {
                             </Button>
                             <Button
                                 v-if="hasSelectedUsers && tableComponent.showUsersDeleted"
+                                id="btn-restore-selected"
                                 variant="text"
                                 severity="warn"
                                 @click="confirmRestoreSelectedUsers"
@@ -327,6 +329,7 @@ watch(hasSelectedUsers, (newValue) => {
                             <IconField iconPosition="left">
                                 <InputIcon class="pi pi-search text-surface-400" />
                                 <InputText
+                                    id="user-search"
                                     v-model="filter"
                                     :placeholder="$t('admin.users.table.search_placeholder')"
                                     @input="onFilterChange"
