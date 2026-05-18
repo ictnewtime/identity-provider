@@ -48,8 +48,10 @@ trait CustomAuditable
                         $action = is_null($model->deleted_at) ? "restored" : "deleted";
                     }
                 } elseif ($originalAction === "deleted") {
-                    if (method_exists($model, "isForceDeleting") && !$model->isForceDeleting()) {
-                        return;
+                    if (method_exists($model, "isForceDeleting") && $model->isForceDeleting()) {
+                        $action = "force_deleted";
+                    } else {
+                        $action = "deleted";
                     }
                 } elseif ($originalAction === "restored") {
                     return;
