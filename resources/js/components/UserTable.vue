@@ -246,7 +246,7 @@ watch(hasSelectedUsers, (newValue) => {
 
 <template>
     <div>
-        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
+        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6" data-cy="users-container">
             <DataTable
                 :value="pagination.data"
                 :loading="loading"
@@ -258,6 +258,7 @@ watch(hasSelectedUsers, (newValue) => {
                 :lazy="true"
                 @sort="onSort"
                 :sortOrder="sortParams.order"
+                data-cy="users-table"
             >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
@@ -272,19 +273,20 @@ watch(hasSelectedUsers, (newValue) => {
                                         @click="selectAllUser"
                                         variant="text"
                                         class="ml-2 font-semibold text-primary-500 hover:underline"
+                                        data-cy="btn-select-all-users"
                                     >
                                         {{ $t("admin.users.table.select_all_label") }} ({{ pagination.total }})
                                     </Button>
                                 </div>
-                                <div v-if="showDeselectAllUser">
-                                    <Button
-                                        @click="unselectAllUser"
-                                        variant="text"
-                                        class="ml-2 font-semibold text-primary-500 hover:underline"
-                                    >
-                                        {{ $t("admin.users.table.deselect_all_label") }}
-                                    </Button>
-                                </div>
+                                <Button
+                                    v-if="showDeselectAllUser"
+                                    @click="unselectAllUser"
+                                    variant="text"
+                                    class="ml-2 font-semibold text-primary-500 hover:underline"
+                                    data-cy="btn-deselect-all-users"
+                                >
+                                    {{ $t("admin.users.table.deselect_all_label") }}
+                                </Button>
                             </div>
                             <Button
                                 v-if="hasSelectedUsers && !tableComponent.showUsersDeleted"
@@ -293,6 +295,7 @@ watch(hasSelectedUsers, (newValue) => {
                                 severity="danger"
                                 @click="confirmDeleteSelectedUsers"
                                 v-tooltip.top="$t('admin.users.table.delete_selected_tooltip')"
+                                data-cy="btn-delete-selected-users"
                                 ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
                             </Button>
                             <Button
@@ -302,6 +305,7 @@ watch(hasSelectedUsers, (newValue) => {
                                 severity="warn"
                                 @click="confirmRestoreSelectedUsers"
                                 v-tooltip.top="$t('admin.users.table.restore_selected_tooltip')"
+                                data-cy="btn-restore-selected-users"
                                 ><Icon
                                     icon="material-symbols:restore-from-trash-outline-rounded"
                                     width="24"
@@ -313,6 +317,7 @@ watch(hasSelectedUsers, (newValue) => {
                                 variant="text"
                                 severity="danger"
                                 @click="toggleShowUsersDeleted"
+                                data-cy="btn-toggle-deleted-users"
                                 v-tooltip.top="
                                     tableComponent.showUsersDeleted
                                         ? $t('admin.users.table.hide_deleted_tooltip')
@@ -334,6 +339,7 @@ watch(hasSelectedUsers, (newValue) => {
                                     :placeholder="$t('admin.users.table.search_placeholder')"
                                     @input="onFilterChange"
                                     class="rounded-lg!"
+                                    data-cy="input-search-users"
                                 />
                             </IconField>
                         </div>
@@ -395,6 +401,7 @@ watch(hasSelectedUsers, (newValue) => {
                             severity="warn"
                             class="mr-1 hover:bg-orange-50!"
                             @click="editUser(slotProps.data)"
+                            :data-cy="`btn-edit-user-${slotProps.data.username}`"
                             ><Icon
                                 icon="material-symbols:edit-outline"
                                 width="24"
@@ -410,6 +417,7 @@ watch(hasSelectedUsers, (newValue) => {
                                 severity="success"
                                 class="mr-1 hover:bg-green-50!"
                                 @click="confirmRestore(slotProps.data)"
+                                :data-cy="`btn-restore-user-${slotProps.data.username}`"
                                 ><Icon
                                     icon="material-symbols:restore-from-trash-outline-rounded"
                                     width="24"
@@ -426,6 +434,7 @@ watch(hasSelectedUsers, (newValue) => {
                                 severity="danger"
                                 class="hover:bg-red-50!"
                                 @click="confirmDelete(slotProps.data)"
+                                :data-cy="`btn-delete-user-${slotProps.data.username}`"
                                 ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
                             </Button>
                         </template>
@@ -456,6 +465,7 @@ watch(hasSelectedUsers, (newValue) => {
             :style="{ width: '60vw', maxWidth: '800px' }"
             modal
             :draggable="false"
+            data-cy="dialog-user-form"
         >
             <UserForm :userSelected="itemSelected" @user-success="onUserSaved" />
         </Dialog>
@@ -464,21 +474,25 @@ watch(hasSelectedUsers, (newValue) => {
             v-model:visible="displayDeleteUserModal"
             :itemSelected="itemSelected"
             @user-success="onModalSuccess"
+            data-cy="dialog-delete-user"
         />
         <DeleteUsersDialog
             v-model:visible="displayDeleteUsersModal"
             :itemSelected="itemSelected"
             @user-success="onModalSuccess"
+            data-cy="dialog-delete-users"
         />
         <RestoreUserDialog
             v-model:visible="displayRestoreUserModal"
             :itemSelected="itemSelected"
             @user-success="onModalSuccess"
+            data-cy="dialog-restore-user"
         />
         <RestoreUsersDialog
             v-model:visible="displayRestoreUsersModal"
             :itemSelected="itemSelected"
             @user-success="onModalSuccess"
+            data-cy="dialog-restore-users"
         />
         <AddRolesDialog
             v-model:visible="displayAddRoleModal"
@@ -486,6 +500,7 @@ watch(hasSelectedUsers, (newValue) => {
             :isAllSelected="isAllSelected"
             :onlyUsersDeleted="tableComponent.showUsersDeleted"
             @user-success="onModalAddRolesSuccess"
+            data-cy="dialog-add-roles-to-users"
         />
     </div>
 </template>

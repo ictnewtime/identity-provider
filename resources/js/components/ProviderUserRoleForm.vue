@@ -208,7 +208,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
+    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2" data-cy="provider-user-role-form">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1 md:col-span-2">
                 <label for="user_id" class="font-medium text-surface-900">
@@ -225,6 +225,7 @@ onMounted(() => {
                     :loading="loadingData"
                     filter
                     fluid
+                    data-cy="select-provider-user-role-user"
                 />
                 <Message v-if="errors.user_id" severity="error" size="small" variant="simple">
                     {{ errors.user_id }}
@@ -247,6 +248,7 @@ onMounted(() => {
                     @change="onProviderChange"
                     filter
                     fluid
+                    data-cy="select-provider-user-role-provider"
                 />
                 <Message v-if="errors.provider_id" severity="error" size="small" variant="simple">
                     {{ errors.provider_id }}
@@ -268,6 +270,7 @@ onMounted(() => {
                     :loading="loadingRoles"
                     :disabled="!form.provider_id || loadingRoles"
                     fluid
+                    data-cy="select-provider-user-role-role"
                 />
                 <Message v-if="errors.role_id" severity="error" size="small" variant="simple">
                     {{ errors.role_id }}
@@ -284,12 +287,14 @@ onMounted(() => {
                 icon="pi pi-refresh"
                 @click="resetForm"
                 :disabled="loadingSubmit"
+                data-cy="btn-reset-provider-user-role-form"
             />
             <Button
                 type="submit"
                 :label="isEditMode ? $t('common.save_changes') : $t('admin.provider_user_roles.form.btn_create')"
                 icon="pi pi-check"
                 :loading="loadingSubmit"
+                data-cy="btn-submit-provider-user-role-form"
             />
         </div>
     </form>

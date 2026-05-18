@@ -174,7 +174,7 @@ onMounted(() => {
 </script>
 
 <template>
-    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
+    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2" data-cy="role-form">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
                 <label for="name" class="font-medium text-surface-900">
@@ -186,6 +186,7 @@ onMounted(() => {
                     :invalid="!!errors.name"
                     :placeholder="$t('admin.roles.form.name_placeholder')"
                     fluid
+                    data-cy="input-role-name"
                 />
                 <Message v-if="errors.name" severity="error" size="small" variant="simple">
                     {{ errors.name }}
@@ -207,6 +208,7 @@ onMounted(() => {
                     :loading="loadingProviders"
                     fluid
                     filter
+                    data-cy="select-role-provider"
                 />
                 <Message v-if="errors.provider_id" severity="error" size="small" variant="simple">
                     {{ errors.provider_id }}
@@ -223,12 +225,14 @@ onMounted(() => {
                 icon="pi pi-refresh"
                 @click="resetForm"
                 :disabled="loading"
+                data-cy="btn-reset-role-form"
             />
             <Button
                 type="submit"
                 :label="isEditMode ? $t('common.save_changes') : $t('admin.roles.form.btn_create')"
                 icon="pi pi-check"
                 :loading="loading"
+                data-cy="btn-submit-role-form"
             />
         </div>
     </form>

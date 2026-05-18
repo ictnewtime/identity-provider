@@ -29,7 +29,7 @@ const handleAddRoleClick = () => {
 <template>
     <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-surface-900 tracking-tight">
+            <h1 class="text-2xl font-bold text-surface-900 tracking-tight" data-cy="page-title-users">
                 {{ $t("admin.users.title") }}
             </h1>
         </div>
@@ -40,15 +40,22 @@ const handleAddRoleClick = () => {
                 icon="pi pi-plus"
                 @click="handleAddRoleClick"
                 class="shadow-sm"
+                data-cy="btn-add-role-relations"
             />
             <Button
                 :label="$t('admin.users.new_user')"
                 icon="pi pi-plus"
                 @click="handleNewUserClick"
                 class="shadow-sm"
+                data-cy="btn-new-user"
             />
         </div>
     </div>
 
-    <UserTable ref="tableRef" :users="users" @selection-changed="handleSelectionChange" />
+    <UserTable
+        ref="tableRef"
+        :users="users"
+        @selection-changed="handleSelectionChange"
+        data-cy="users-table-component"
+    />
 </template>

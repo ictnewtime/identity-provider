@@ -181,7 +181,7 @@ onMounted(() => {
 
 <template>
     <div>
-        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
+        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6" data-cy="roles-container">
             <DataTable
                 :value="pagination.data"
                 :loading="loading"
@@ -191,6 +191,7 @@ onMounted(() => {
                 :lazy="true"
                 @sort="onSort"
                 :sortOrder="sortParams.order"
+                data-cy="roles-table"
             >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
@@ -202,6 +203,7 @@ onMounted(() => {
                                 variant="text"
                                 severity="danger"
                                 @click="toggleShowRolesDeleted"
+                                data-cy="btn-toggle-deleted-roles"
                                 v-tooltip.top="
                                     tableComponent.showRolesDeleted
                                         ? $t('admin.roles.table.hide_deleted_tooltip')
@@ -222,6 +224,7 @@ onMounted(() => {
                                     :placeholder="$t('admin.roles.table.search_placeholder')"
                                     @input="onFilterChange"
                                     class="rounded-lg!"
+                                    data-cy="input-search-roles"
                                 />
                             </IconField>
                         </div>
@@ -283,6 +286,7 @@ onMounted(() => {
                             severity="warn"
                             class="mr-1 hover:!bg-orange-50"
                             @click="editRole(slotProps.data)"
+                            :data-cy="`btn-edit-role-${slotProps.data.id}`"
                             ><Icon
                                 icon="material-symbols:edit-outline"
                                 width="24"
@@ -299,6 +303,7 @@ onMounted(() => {
                                 severity="success"
                                 class="mr-1 hover:!bg-green-50"
                                 @click="confirmRestore(slotProps.data)"
+                                :data-cy="`btn-restore-role-${slotProps.data.id}`"
                                 ><Icon
                                     icon="material-symbols:restore-from-trash-outline-rounded"
                                     width="24"
@@ -315,6 +320,7 @@ onMounted(() => {
                                 severity="danger"
                                 class="hover:!bg-red-50"
                                 @click="confirmDelete(slotProps.data)"
+                                :data-cy="`btn-delete-role-${slotProps.data.id}`"
                                 ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
                             </Button>
                         </template>
@@ -347,6 +353,7 @@ onMounted(() => {
             :style="{ width: '60vw', maxWidth: '800px' }"
             modal
             :draggable="false"
+            data-cy="dialog-role-form"
         >
             <RoleForm :roleSelected="roleSelected" @item-saved="onRoleSaved" />
         </Dialog>
@@ -357,6 +364,7 @@ onMounted(() => {
             :style="{ width: '450px' }"
             modal
             :draggable="false"
+            data-cy="dialog-delete-role"
         >
             <div class="flex items-center gap-4 pt-2">
                 <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
@@ -368,13 +376,20 @@ onMounted(() => {
             </div>
 
             <template #footer>
-                <Button :label="$t('common.cancel')" icon="pi pi-times" @click="displayDeleteModal = false" text />
+                <Button
+                    :label="$t('common.cancel')"
+                    icon="pi pi-times"
+                    @click="displayDeleteModal = false"
+                    text
+                    data-cy="btn-cancel-delete"
+                />
                 <Button
                     :label="$t('common.delete')"
                     icon="pi pi-check"
                     severity="danger"
                     @click="deleteRole"
                     autofocus
+                    data-cy="btn-confirm-delete"
                 />
             </template>
         </Dialog>
@@ -384,6 +399,7 @@ onMounted(() => {
             :style="{ width: '450px' }"
             modal
             :draggable="false"
+            data-cy="dialog-restore-role"
         >
             <div class="flex items-center gap-4 pt-2">
                 <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
@@ -395,13 +411,20 @@ onMounted(() => {
             </div>
 
             <template #footer>
-                <Button :label="$t('common.cancel')" icon="pi pi-times" @click="displayRestoreModal = false" text />
+                <Button
+                    :label="$t('common.cancel')"
+                    icon="pi pi-times"
+                    @click="displayRestoreModal = false"
+                    text
+                    data-cy="btn-cancel-restore"
+                />
                 <Button
                     :label="$t('common.restore')"
                     icon="pi pi-check"
                     severity="primary"
                     @click="restoreRole"
                     autofocus
+                    data-cy="btn-confirm-restore"
                 />
             </template>
         </Dialog>

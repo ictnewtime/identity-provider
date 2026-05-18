@@ -60,13 +60,20 @@ const deleteProviderUserRoles = (ids) => {
             </span>
         </div>
         <template #footer>
-            <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="$emit('update:visible', false)" />
+            <Button
+                :label="$t('common.cancel')"
+                icon="pi pi-times"
+                text
+                @click="$emit('update:visible', false)"
+                data-cy="btn-cancel-delete-selected-provider-user-roles"
+            />
             <Button
                 :label="$t('common.delete')"
                 icon="pi pi-check"
                 severity="danger"
                 @click="deleteProviderUserRoles(itemSelected.ids)"
                 autofocus
+                data-cy="btn-confirm-delete-selected-provider-user-roles"
             />
         </template>
     </Dialog>

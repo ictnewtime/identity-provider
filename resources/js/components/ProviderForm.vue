@@ -234,7 +234,7 @@ const generateSecret = () => {
 </script>
 
 <template>
-    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
+    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2" data-cy="provider-form">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
                 <label for="name" class="font-medium text-surface-900">{{
@@ -246,6 +246,7 @@ const generateSecret = () => {
                     :invalid="!!errors.name"
                     :placeholder="$t('admin.providers.form.name_placeholder')"
                     fluid
+                    data-cy="input-provider-name"
                 />
                 <Message v-if="errors.name" severity="error" size="small" variant="simple">
                     {{ errors.name }}
@@ -270,12 +271,14 @@ const generateSecret = () => {
                         v-model="form.url"
                         class="flex-grow"
                         :placeholder="$t('admin.providers.form.url_placeholder')"
+                        data-cy="input-provider-url"
                     />
                     <Button
                         icon="pi pi-sparkles"
                         severity="secondary"
                         @click="parseUrlAndFill"
                         v-tooltip.top="$t('admin.providers.form.url_btn_tooltip')"
+                        data-cy="btn-parse-url"
                     />
                 </InputGroup>
                 <Message v-if="errors.url" severity="error" size="small" variant="simple">
@@ -293,6 +296,7 @@ const generateSecret = () => {
                     :invalid="!!errors.domain"
                     :placeholder="$t('admin.providers.form.domain_placeholder')"
                     fluid
+                    data-cy="input-provider-domain"
                 />
                 <Message v-if="errors.domain" severity="error" size="small" variant="simple">
                     {{ errors.domain }}
@@ -308,6 +312,7 @@ const generateSecret = () => {
                     v-model="form.protocol"
                     :placeholder="$t('admin.providers.form.protocol_placeholder')"
                     fluid
+                    data-cy="input-provider-protocol"
                 />
             </div>
 
@@ -329,6 +334,7 @@ const generateSecret = () => {
                     :invalid="!!errors.logoutUrl"
                     :placeholder="(form.protocol || 'https') + '://' + (form.domain || 'dominio') + '/logout'"
                     fluid
+                    data-cy="input-provider-logout-url"
                 />
                 <Message v-if="errors.logoutUrl" severity="error" size="small" variant="simple">
                     {{ errors.logoutUrl }}
@@ -372,6 +378,7 @@ const generateSecret = () => {
                                 },
                             },
                         }"
+                        data-cy="input-provider-secret-key"
                     />
                     <InputGroupAddon class="p-0 border-none">
                         <Button
@@ -380,6 +387,7 @@ const generateSecret = () => {
                             :icon="formItems.secret_key.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
                             v-tooltip.top="null"
                             @click="toggleSignatureVisibility"
+                            data-cy="btn-toggle-secret-visibility"
                         />
                     </InputGroupAddon>
                     <InputGroupAddon>
@@ -388,6 +396,7 @@ const generateSecret = () => {
                             severity="secondary"
                             @click="generateSecret"
                             v-tooltip.top="$t('admin.providers.form.secret_key_btn_tooltip')"
+                            data-cy="btn-generate-secret"
                         >
                             <template #icon>
                                 <Icon icon="mdi:dice-multiple-outline" width="24" height="24" />
@@ -411,12 +420,14 @@ const generateSecret = () => {
                 icon="pi pi-refresh"
                 @click="resetForm"
                 :disabled="loading"
+                data-cy="btn-reset-provider-form"
             />
             <Button
                 type="submit"
                 :label="isEditMode ? $t('common.save_changes') : $t('admin.providers.form.btn_create')"
                 icon="pi pi-check"
                 :loading="loading"
+                data-cy="btn-submit-provider-form"
             />
         </div>
     </form>

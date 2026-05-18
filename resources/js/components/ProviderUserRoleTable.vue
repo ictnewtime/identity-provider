@@ -173,7 +173,10 @@ onMounted(() => {
 
 <template>
     <div>
-        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
+        <div
+            class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6"
+            data-cy="provider-user-roles-container"
+        >
             <DataTable
                 v-model:selection="selectedProviderUserRoles"
                 :value="pagination.data"
@@ -185,6 +188,7 @@ onMounted(() => {
                 :lazy="true"
                 @sort="onSort"
                 :sortOrder="sortParams.order"
+                data-cy="provider-user-roles-table"
             >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
@@ -198,6 +202,7 @@ onMounted(() => {
                                 severity="danger"
                                 @click="confirmDeleteSelectedProviderUserRoles"
                                 v-tooltip.top="$t('admin.provider_user_roles.table.delete_selected_tooltip')"
+                                data-cy="btn-delete-selected-provider-user-roles"
                                 ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
                             </Button>
                             <Button
@@ -206,6 +211,7 @@ onMounted(() => {
                                 severity="warn"
                                 @click="confirmRestoreSelectedProviderUserRoles"
                                 v-tooltip.top="$t('admin.provider_user_roles.table.restore_selected_tooltip')"
+                                data-cy="btn-restore-selected-provider-user-roles"
                                 ><Icon
                                     icon="material-symbols:restore-from-trash-outline-rounded"
                                     width="24"
@@ -216,6 +222,7 @@ onMounted(() => {
                             <Button
                                 variant="text"
                                 @click="toggleShowRecordsDeleted"
+                                data-cy="btn-toggle-deleted-provider-user-roles"
                                 v-tooltip.top="
                                     tableComponent.showRecordsDeleted
                                         ? $t('admin.provider_user_roles.table.hide_deleted_tooltip')
@@ -236,6 +243,7 @@ onMounted(() => {
                                     :placeholder="$t('admin.provider_user_roles.table.search_placeholder')"
                                     @input="onFilterChange"
                                     class="rounded-lg!"
+                                    data-cy="input-provider-user-roles-search"
                                 />
                             </IconField>
                         </div>
@@ -311,7 +319,12 @@ onMounted(() => {
 
                 <Column :header="$t('common.actions')" :exportable="false" style="min-width: 8rem">
                     <template #body="slotProps">
-                        <Button text rounded class="mr-1 hover:!bg-orange-50" @click="editItem(slotProps.data)"
+                        <Button
+                            text
+                            rounded
+                            class="mr-1 hover:!bg-orange-50"
+                            @click="editItem(slotProps.data)"
+                            data-cy="btn-edit-provider-user-role"
                             ><Icon
                                 icon="material-symbols:edit-outline"
                                 width="24"
@@ -326,6 +339,7 @@ onMounted(() => {
                                 severity="warn"
                                 class="hover:!bg-red-50"
                                 @click="confirmRestore(slotProps.data)"
+                                data-cy="btn-restore-provider-user-role"
                                 ><Icon
                                     icon="material-symbols:restore-from-trash-outline-rounded"
                                     width="24"
@@ -341,6 +355,7 @@ onMounted(() => {
                                 severity="danger"
                                 class="hover:!bg-red-50"
                                 @click="confirmDelete(slotProps.data)"
+                                data-cy="btn-delete-provider-user-role"
                                 ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
                             </Button>
                         </template>
@@ -362,6 +377,7 @@ onMounted(() => {
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"
+                data-cy="paginator-provider-user-roles"
             />
         </div>
 
@@ -375,6 +391,7 @@ onMounted(() => {
             :style="{ width: '60vw', maxWidth: '800px' }"
             modal
             :draggable="false"
+            data-cy="dialog-provider-user-role-form"
         >
             <ProviderUserRoleForm :itemSelected="itemSelected" @item-success="onItemSaved" />
         </Dialog>
@@ -383,21 +400,25 @@ onMounted(() => {
             v-model:visible="displayDeleteItemModal"
             :itemSelected="itemSelected"
             @item-success="onModalSuccess"
+            data-cy="dialog-delete-provider-user-role"
         />
         <RestoreProviderUserRoleDialog
             v-model:visible="displayRestoreItemModal"
             :itemSelected="itemSelected"
             @item-success="onModalSuccess"
+            data-cy="dialog-restore-provider-user-role"
         />
         <DeleteProviderUserRolesDialog
             v-model:visible="displayDeleteItemsModal"
             :itemSelected="itemSelected"
             @item-success="onModalSuccess"
+            data-cy="dialog-delete-selected-provider-user-roles"
         />
         <RestoreProviderUserRolesDialog
             v-model:visible="displayRestoreItemsModal"
             :itemSelected="itemSelected"
             @item-success="onModalSuccess"
+            data-cy="dialog-restore-selected-provider-user-roles"
         />
     </div>
 </template>

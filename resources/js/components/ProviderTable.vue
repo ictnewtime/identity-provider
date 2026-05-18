@@ -184,7 +184,7 @@ onMounted(() => {
 
 <template>
     <div>
-        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
+        <div data-cy="providers-container" class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
             <DataTable
                 :value="pagination.data"
                 :loading="loading"
@@ -194,6 +194,7 @@ onMounted(() => {
                 :lazy="true"
                 @sort="onSort"
                 :sortOrder="sortParams.order"
+                data-cy="providers-table"
             >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
@@ -205,6 +206,7 @@ onMounted(() => {
                                 variant="text"
                                 severity="danger"
                                 @click="toggleShowProvidersDeleted"
+                                data-cy="btn-toggle-deleted"
                                 v-tooltip.top="
                                     tableComponent.showProvidersDeleted
                                         ? $t('admin.providers.table.hide_deleted_tooltip')
@@ -225,6 +227,7 @@ onMounted(() => {
                                     :placeholder="$t('admin.providers.table.search_placeholder')"
                                     @input="onFilterChange"
                                     class="rounded-lg!"
+                                    data-cy="input-search-providers"
                                 />
                             </IconField>
                         </div>
@@ -280,6 +283,7 @@ onMounted(() => {
                             severity="warn"
                             class="mr-1 hover:!bg-orange-50"
                             @click="editProvider(slotProps.data)"
+                            :data-cy="`btn-edit-provider-${slotProps.data.id}`"
                             ><Icon
                                 icon="material-symbols:edit-outline"
                                 width="24"
@@ -295,6 +299,7 @@ onMounted(() => {
                                 severity="success"
                                 class="mr-1 hover:!bg-green-50"
                                 @click="confirmRestore(slotProps.data)"
+                                :data-cy="`btn-restore-provider-${slotProps.data.id}`"
                                 ><Icon
                                     icon="material-symbols:restore-from-trash-outline-rounded"
                                     width="24"
@@ -311,6 +316,7 @@ onMounted(() => {
                                 severity="danger"
                                 class="hover:!bg-red-50"
                                 @click="confirmDelete(slotProps.data)"
+                                :data-cy="`btn-delete-provider-${slotProps.data.id}`"
                                 ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
                             </Button>
                         </template>

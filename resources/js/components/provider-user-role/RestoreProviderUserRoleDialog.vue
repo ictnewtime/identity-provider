@@ -61,13 +61,20 @@ const restoreProviderUserRole = (id) => {
             </span>
         </div>
         <template #footer>
-            <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="$emit('update:visible', false)" />
+            <Button
+                :label="$t('common.cancel')"
+                icon="pi pi-times"
+                text
+                @click="$emit('update:visible', false)"
+                data-cy="btn-cancel-restore-provider-user-role"
+            />
             <Button
                 :label="$t('common.restore')"
                 icon="pi pi-check"
                 severity="primary"
                 @click="restoreProviderUserRole(itemSelected.id)"
                 autofocus
+                data-cy="btn-confirm-restore-provider-user-role"
             />
         </template>
     </Dialog>

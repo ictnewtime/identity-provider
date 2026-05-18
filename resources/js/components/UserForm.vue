@@ -248,13 +248,19 @@ watch(
 </script>
 
 <template>
-    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
+    <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2" data-cy="user-form">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1">
                 <label for="username" class="font-medium text-surface-900">{{
                     $t("admin.users.form.username_label")
                 }}</label>
-                <InputText id="username" v-model="form.username" :invalid="!!errors.username" fluid />
+                <InputText
+                    id="username"
+                    v-model="form.username"
+                    :invalid="!!errors.username"
+                    fluid
+                    data-cy="input-user-username"
+                />
                 <Message v-if="errors.username" severity="error" size="small" variant="simple">
                     {{ errors.username }}
                 </Message>
@@ -262,7 +268,14 @@ watch(
 
             <div class="flex flex-col gap-1">
                 <label for="email" class="font-medium text-surface-900">{{ $t("admin.users.form.email_label") }}</label>
-                <InputText id="email" type="email" v-model="form.email" :invalid="!!errors.email" fluid />
+                <InputText
+                    id="email"
+                    type="email"
+                    v-model="form.email"
+                    :invalid="!!errors.email"
+                    fluid
+                    data-cy="input-user-email"
+                />
                 <Message v-if="errors.email" severity="error" size="small" variant="simple">
                     {{ errors.email }}
                 </Message>
@@ -270,7 +283,7 @@ watch(
 
             <div class="flex flex-col gap-1">
                 <label for="name" class="font-medium text-surface-900">{{ $t("admin.users.form.name_label") }}</label>
-                <InputText id="name" v-model="form.name" :invalid="!!errors.name" fluid />
+                <InputText id="name" v-model="form.name" :invalid="!!errors.name" fluid data-cy="input-user-name" />
                 <Message v-if="errors.name" severity="error" size="small" variant="simple">
                     {{ errors.name }}
                 </Message>
@@ -280,7 +293,13 @@ watch(
                 <label for="surname" class="font-medium text-surface-900">{{
                     $t("admin.users.form.surname_label")
                 }}</label>
-                <InputText id="surname" v-model="form.surname" :invalid="!!errors.surname" fluid />
+                <InputText
+                    id="surname"
+                    v-model="form.surname"
+                    :invalid="!!errors.surname"
+                    fluid
+                    data-cy="input-user-surname"
+                />
                 <Message v-if="errors.surname" severity="error" size="small" variant="simple">
                     {{ errors.surname }}
                 </Message>
@@ -304,6 +323,7 @@ watch(
                             style="cursor: pointer; font-size: 0.875rem"
                             v-tooltip.top="{ value: $t('admin.users.form.btn_clear'), escape: true }"
                             @click="clearPasswords"
+                            data-cy="btn-clear-passwords"
                         ></i>
                     </div>
                 </div>
@@ -318,6 +338,7 @@ watch(
                         :invalid="!!errors.password"
                         :feedback="true"
                         fluid
+                        data-cy="input-user-password"
                         :pt="{
                             pcInputText: {
                                 root: {
@@ -421,6 +442,7 @@ watch(
                             :icon="formItems.password.visible ? 'pi pi-eye-slash' : 'pi pi-eye'"
                             v-tooltip.top="null"
                             @click="togglePasswordVisibility"
+                            data-cy="btn-toggle-password-visibility"
                         />
                     </InputGroupAddon>
                     <InputGroupAddon class="p-0 border-none">
@@ -429,6 +451,7 @@ watch(
                             severity="secondary"
                             @click="handleGeneratePassword"
                             v-tooltip.top="$t('auth.generate_random_btn')"
+                            data-cy="btn-generate-password"
                         >
                             <template #icon>
                                 <Icon icon="mdi:dice-multiple-outline" width="24" height="24" />
@@ -455,6 +478,7 @@ watch(
                         :invalid="!!errors.password_confirmation"
                         :feedback="false"
                         fluid
+                        data-cy="input-user-password-confirmation"
                         :pt="{
                             pcInputText: {
                                 root: {
@@ -488,6 +512,7 @@ watch(
                         v-model="form.password_expires_at"
                         :invalid="!!errors.password_expires_at"
                         :showIcon="true"
+                        data-cy="input-user-password-expires"
                     />
                 </InputGroup>
                 <Message v-if="errors.password_expires_at" severity="error" size="small" variant="simple">
@@ -499,7 +524,7 @@ watch(
                 <label for="enabled" class="font-medium text-surface-900">{{
                     $t("admin.users.form.enabled_label")
                 }}</label>
-                <ToggleSwitch id="enabled" v-model="form.enabled" />
+                <ToggleSwitch id="enabled" v-model="form.enabled" data-cy="toggle-user-enabled" />
             </div>
         </div>
 
@@ -516,12 +541,14 @@ watch(
                 icon="pi pi-refresh"
                 @click="resetForm"
                 :disabled="loading"
+                data-cy="btn-reset-user-form"
             />
             <Button
                 type="submit"
                 :label="isEditMode ? $t('common.save_changes') : $t('admin.users.form.btn_create')"
                 icon="pi pi-check"
                 :loading="loading"
+                data-cy="btn-submit-user-form"
             />
         </div>
     </form>

@@ -24,7 +24,12 @@ const handleNewProviderClick = () => {
                 {{ $t("admin.providers.title") }}
             </h1>
         </div>
-        <Button :label="$t('admin.providers.new_provider')" icon="pi pi-plus" @click="handleNewProviderClick" />
+        <Button
+            :label="$t('admin.providers.new_provider')"
+            icon="pi pi-plus"
+            @click="handleNewProviderClick"
+            data-cy="btn-new-provider"
+        />
     </div>
 
     <ProviderTable ref="tableRef" :providers="providers" />

@@ -20,12 +20,17 @@ const handleNewRoleClick = () => {
 <template>
     <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-surface-900 tracking-tight">
+            <h1 class="text-2xl font-bold text-surface-900 tracking-tight" data-cy="page-title-roles">
                 {{ $t("admin.roles.title") }}
             </h1>
         </div>
-        <Button :label="$t('admin.roles.new_role')" icon="pi pi-plus" @click="handleNewRoleClick" />
+        <Button
+            :label="$t('admin.roles.new_role')"
+            icon="pi pi-plus"
+            @click="handleNewRoleClick"
+            data-cy="btn-new-role"
+        />
     </div>
 
-    <RoleTable ref="tableRef" :roles="roles" />
+    <RoleTable ref="tableRef" :roles="roles" data-cy="roles-table-component" />
 </template>
