@@ -112,6 +112,9 @@ Route::prefix("admin")
             Route::put("users/{id}", [UserController::class, "update"])->whereNumber("id");
             Route::delete("users/{id}", [UserController::class, "delete"])->whereNumber("id");
             Route::patch("users/{id}/restore", [UserController::class, "restore"])->whereNumber("id");
+            Route::delete("users/bulk-delete", [UserController::class, "bulkDelete"]);
+            Route::patch("users/bulk-restore", [UserController::class, "bulkRestore"]);
+            Route::get("users/{id}/roles", [UserController::class, "getUserRoles"])->whereNumber("id");
 
             // provider-user-roles
             Route::get("provider-user-roles", [ProviderUserRoleController::class, "all"]);
@@ -120,12 +123,13 @@ Route::prefix("admin")
             Route::put("provider-user-roles/{id}", [ProviderUserRoleController::class, "update"])->whereNumber("id");
             Route::delete("provider-user-roles/{id}", [ProviderUserRoleController::class, "delete"])->whereNumber("id");
             Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
-            Route::delete("provider-user-roles/bulk-delete", [ProviderUserRoleController::class, "bulk_delete"]);
+            Route::delete("provider-user-roles/bulk-delete", [ProviderUserRoleController::class, "bulkDelete"]);
             Route::patch("provider-user-roles/{id}/restore", [
                 ProviderUserRoleController::class,
                 "restore",
             ])->whereNumber("id");
-            Route::patch("provider-user-roles/bulk-restore", [ProviderUserRoleController::class, "bulk_restore"]);
+            Route::patch("provider-user-roles/bulk-restore", [ProviderUserRoleController::class, "bulkRestore"]);
+            Route::post("provider-user-roles/bulk-add", [ProviderUserRoleController::class, "bulkAddRolesToUsers"]);
 
             // sessions
             Route::get("sessions", [SessionController::class, "all"]);
