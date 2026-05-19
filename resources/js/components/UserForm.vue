@@ -512,7 +512,7 @@ watch(
                         v-model="form.password_expires_at"
                         :invalid="!!errors.password_expires_at"
                         :showIcon="true"
-                        data-cy="input-user-password-expires"
+                        data-cy="input-expiration-date"
                     />
                 </InputGroup>
                 <Message v-if="errors.password_expires_at" severity="error" size="small" variant="simple">

@@ -2,8 +2,9 @@
 
 describe("Scenari di CRUD per i Providers", () => {
     // Generiamo un timestamp per avere dati di test sempre univoci e non sporcare il DB
+    const adminUser = Cypress.env("adminUser");
     const timestamp = new Date().getTime();
-    const secretKey = Cypress.env("nonAdminPassword") || "secretKey";
+    const secretKey = Cypress.env("secretKey") || "secretKey";
     const newProvider = {
         name: `localhost-${timestamp}`,
         domain: `localhost`,
@@ -11,7 +12,7 @@ describe("Scenari di CRUD per i Providers", () => {
         url: `http://localhost:8002`,
         protocol: "http",
         logoutUrl: "http://localhost:8002/logout",
-        secret_key: secretKey,
+        secretKey: secretKey,
     };
 
     // Funzioni Helper
@@ -25,7 +26,7 @@ describe("Scenari di CRUD per i Providers", () => {
     // SETUP
     beforeEach(() => {
         // Usiamo i Custom Command creati in precedenza
-        cy.login(Cypress.env("adminUsername") || "admin", Cypress.env("adminPassword") || "password");
+        cy.login(adminUser, adminUser.password);
         cy.visit("/admin/providers");
 
         // Assicuriamoci che la tabella sia visibile prima di iniziare il test
@@ -55,7 +56,7 @@ describe("Scenari di CRUD per i Providers", () => {
         cy.get('[data-cy="input-provider-domain"]').should("have.value", newProvider.domain);
         cy.get('[data-cy="input-provider-logout-url"]').should("have.value", newProvider.logoutUrl);
 
-        // 4. Inseriamo la secret_key (visto che l'hai definita nei mock data)
+        // 4. Inseriamo la secretKey (visto che l'hai definita nei mock data)
         // Nota: se il Password component di PrimeVue nasconde l'input, aggiungiamo ' input' al selettore
         // Clicchiamo sul bottone del "dado" per generare una password automatica
         cy.get('[data-cy="btn-generate-secret"]').click();
@@ -64,10 +65,10 @@ describe("Scenari di CRUD per i Providers", () => {
         cy.get('[data-cy="input-provider-secret-key"] input').invoke("val").should("have.length", 32);
 
         // Puliamo il campo generato automaticamente e inseriamo la nostra chiave mockata
-        cy.get('[data-cy="input-provider-secret-key"] input').clear().type(newProvider.secret_key);
+        cy.get('[data-cy="input-provider-secret-key"] input').clear().type(newProvider.secretKey);
 
         // (Opzionale ma consigliato) Verifichiamo che il valore finale sia quello che abbiamo digitato
-        cy.get('[data-cy="input-provider-secret-key"] input').should("have.value", newProvider.secret_key);
+        cy.get('[data-cy="input-provider-secret-key"] input').should("have.value", newProvider.secretKey);
 
         // Submit form
         cy.get('[data-cy="btn-submit-provider-form"]').click();

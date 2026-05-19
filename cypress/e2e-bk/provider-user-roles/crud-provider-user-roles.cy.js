@@ -3,6 +3,7 @@
 describe("Scenari di CRUD per Provider User Roles", () => {
     // Definizione dei dati di test.
     // Essendo relazioni, diamo per scontato che nel DB esistano già questi record base.
+    const adminUser = Cypress.env("adminUser");
     const testData = {
         username: "admin",
         providerName: "localhost",
@@ -27,7 +28,7 @@ describe("Scenari di CRUD per Provider User Roles", () => {
     // SETUP
     beforeEach(() => {
         // Login come admin
-        cy.login(Cypress.env("adminUsername") || "admin", Cypress.env("adminPassword") || "password");
+        cy.login(adminUser.username, adminUser.password);
         cy.visit("/admin/provider-user-roles"); // Adegua l'URL alla tua route effettiva
 
         // Assicuriamoci che la tabella sia visibile prima di iniziare il test

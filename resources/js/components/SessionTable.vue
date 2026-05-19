@@ -123,7 +123,7 @@ onMounted(() => {
 
 <template>
     <div>
-        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
+        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6" data-cy="sessions-container">
             <DataTable
                 :value="pagination.data"
                 :loading="loading"
@@ -133,6 +133,7 @@ onMounted(() => {
                 :lazy="true"
                 @sort="onSort"
                 :sortOrder="sortParams.order"
+                data-cy="sessions-table"
             >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
@@ -146,6 +147,7 @@ onMounted(() => {
                                 :placeholder="$t('admin.sessions.table.search_placeholder')"
                                 @input="onFilterChange"
                                 class="!rounded-lg"
+                                data-cy="input-sessions-search"
                             />
                         </IconField>
                     </div>
@@ -241,6 +243,7 @@ onMounted(() => {
                             class="hover:!bg-red-50"
                             @click="confirmDelete(slotProps.data)"
                             v-tooltip.top="$t('admin.sessions.table.terminate')"
+                            data-cy="btn-delete-session"
                         />
                     </template>
                 </Column>
@@ -260,6 +263,7 @@ onMounted(() => {
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"
+                data-cy="paginator-sessions"
             />
         </div>
 
@@ -269,6 +273,7 @@ onMounted(() => {
             :style="{ width: '450px' }"
             modal
             :draggable="false"
+            data-cy="dialog-delete-session"
         >
             <div class="flex items-center gap-4 pt-2">
                 <i class="pi pi-exclamation-triangle text-red-500 text-4xl"></i>
@@ -286,13 +291,20 @@ onMounted(() => {
                 </span>
             </div>
             <template #footer>
-                <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="displayDeleteModal = false" />
+                <Button
+                    :label="$t('common.cancel')"
+                    icon="pi pi-times"
+                    text
+                    @click="displayDeleteModal = false"
+                    data-cy="btn-cancel-delete-session"
+                />
                 <Button
                     :label="$t('admin.sessions.delete.btn_terminate')"
                     icon="pi pi-power-off"
                     severity="danger"
                     @click="deleteSession"
                     autofocus
+                    data-cy="btn-confirm-delete-session"
                 />
             </template>
         </Dialog>

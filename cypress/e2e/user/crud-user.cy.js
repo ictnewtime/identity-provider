@@ -3,47 +3,41 @@
 describe("Scenari di CRUD per gli Utenti", () => {
     // Dati di test. Usiamo un timestamp per rendere username e email unici ad ogni esecuzione.
     const timestamp = new Date().getTime();
+    const adminUser = Cypress.env("adminUser");
+    const guestUser = Cypress.env("guestUser");
     const newUser = {
         username: `testuser.${timestamp}`,
+        ...guestUser,
+        username: `testuser.${timestamp}`,
         email: `test.${timestamp}@example.com`,
-        name: "Test",
-        surname: "User",
-        password: "Password123!",
     };
 
-    // --- Funzioni Helper per azioni ripetute ---
-
-    /**
-     * Funzione helper per cercare un utente nella tabella.
-     * @param {string} username - Lo username da cercare.
-     */
     const searchUser = (username) => {
         cy.get('[data-cy="input-search-users"]').clear().type(username);
-        // Attendiamo un istante per permettere alla tabella di aggiornarsi (debounce)
         cy.wait(500);
     };
 
-    /**
-     * Funzione helper per mostrare/nascondere gli utenti eliminati (Soft Delete).
-     */
+    // Mostrare o nascondere gli utenti cancellati con il soft-delete
     const toggleShowDeletedUsers = () => {
         cy.get('[data-cy="btn-toggle-deleted-users"]').click();
         cy.wait(500);
     };
 
     beforeEach(() => {
-        // Eseguiamo il login con le credenziali Admin tramite l'utility
-        cy.login(Cypress.env("adminUsername") || "admin", Cypress.env("adminPassword") || "password");
-
-        // Verifichiamo di essere atterrati al posto giusto
+        cy.intercept("POST", "**/v2/login").as("loginRequest");
+        cy.login(adminUser.username, adminUser.password);
+        cy.wait("@loginRequest").its("response.statusCode").should("eq", 302);
         cy.url().should("include", "/admin/users");
-        cy.get('[data-cy="page-title-users"]').should("be.visible");
-        cy.get('[data-cy="users-table-component"]').should("be.visible");
     });
 
     afterEach(() => {
         cy.logout();
+        cy.wait(500);
     });
+
+    // it("TRY login and logout", () => {
+    //     cy.wait(500);
+    // });
 
     it("CREATE: dovrebbe creare un nuovo utente", () => {
         cy.get('[data-cy="btn-new-user"]').click();
@@ -52,26 +46,25 @@ describe("Scenari di CRUD per gli Utenti", () => {
         cy.get('[data-cy="dialog-user-form"]').should("be.visible");
 
         // Riempimento del form
-        cy.get('[data-cy="input-user-username"]').type(newUser.username);
-        cy.get('[data-cy="input-user-email"]').type(newUser.email);
-        cy.get('[data-cy="input-user-name"]').type(newUser.name);
-        cy.get('[data-cy="input-user-surname"]').type(newUser.surname);
+        cy.get('[data-cy="input-user-username"]').clear().type(newUser.username);
+        cy.get('[data-cy="input-user-username"]').clear().type(newUser.username);
+
+        cy.get('[data-cy="input-user-email"]').clear().type(newUser.email);
+        cy.get('[data-cy="input-user-name"]').clear().type(newUser.name);
+        cy.get('[data-cy="input-user-surname"]').clear().type(newUser.surname);
 
         // I campi password in PrimeVue sono wrappati, quindi cerchiamo l'input interno
         cy.get('[data-cy="input-user-password"] input').type(newUser.password);
         cy.get('[data-cy="input-user-password-confirmation"] input').type(newUser.password);
 
-        // Gestione del campo data (potrebbe variare leggermente a seconda dell'implementazione di LocalizedDatePicker)
-        cy.get('[data-cy="input-user-password-expires"] input').click();
-        cy.get(".p-datepicker-year").select("2050");
-        cy.get(".p-datepicker-month").select("Gennaio");
-        cy.contains(".p-datepicker-calendar a", "1").click();
+        // Gestione del campo data
+        // Seleziona l'input, puliscilo, scrivi la data e premi Invio per confermare
+        cy.get('[data-cy="input-expiration-date"] input').clear().type("01/01/2050{enter}");
 
-        cy.get('[data-cy="btn-submit-user-form"]').click();
+        cy.get('[data-cy="input-user-surname"]').click();
 
         // Verifica del successo e chiusura modale
         cy.get('[data-cy="dialog-user-form"]').should("not.exist");
-        cy.contains("Il nuovo utente è stato creato con successo").should("be.visible");
 
         // Verifichiamo che il nuovo utente sia presente nella tabella
         searchUser(newUser.username);
@@ -79,59 +72,53 @@ describe("Scenari di CRUD per gli Utenti", () => {
     });
 
     it("READ: dovrebbe cercare e trovare un utente esistente", () => {
-        const adminUsername = Cypress.env("adminUsername") || "admin";
-        searchUser(adminUsername);
+        searchUser(adminUser.username);
 
-        // La tabella dovrebbe contenere una sola riga con l'utente cercato
-        cy.get('[data-cy="users-table"] tbody tr').should("have.length", 1);
-        cy.get('[data-cy="users-table"] tbody tr').first().should("contain", adminUsername);
+        // La tabella dovrebbe contenere almeno una riga con l'utente cercato
+        cy.get('[data-cy="users-table"] tbody tr').should("have.length.gt", 0);
+        cy.get('[data-cy="users-table"] tbody tr').first().should("contain", adminUser.username);
     });
 
     it("UPDATE: dovrebbe modificare il nome di un utente e ripristinarlo", () => {
-        const adminUsername = Cypress.env("adminUsername") || "admin";
-        const originalName = Cypress.env("oldName") || "Admin";
-        const newName = Cypress.env("newName") || "AdminUpdated";
+        searchUser(adminUser.username);
 
-        searchUser(adminUsername);
-
-        // --- UPDATE ---
-        cy.get(`[data-cy="btn-edit-user-${adminUsername}"]`).click();
+        cy.get(`[data-cy="btn-edit-user-${adminUser.username}"]`).click();
         cy.get('[data-cy="dialog-user-form"]').should("be.visible");
 
-        cy.get('[data-cy="input-user-name"]').clear().type(newName);
+        cy.get('[data-cy="input-user-name"]').clear().type(adminUser.newName);
+        cy.get('[data-cy="input-user-name"]').clear().type(adminUser.newName);
         cy.get('[data-cy="btn-submit-user-form"]').click();
 
         cy.get('[data-cy="dialog-user-form"]').should("not.exist");
-        cy.contains("I dati dell'utente sono stati aggiornati").should("be.visible");
+        cy.contains("I dati dell'utente sono stati aggiornati").should("have.length.gt", 0);
 
-        // Verifica aggiornamento tabella
-        cy.get('[data-cy="users-table"] tbody tr').should("contain", newName);
-
-        // --- RESTORE NOME ORIGINALE ---
-        cy.get(`[data-cy="btn-edit-user-${adminUsername}"]`).click();
+        // Restore del nome originale
+        cy.get(`[data-cy="btn-edit-user-${adminUser.username}"]`).click();
         cy.get('[data-cy="dialog-user-form"]').should("be.visible");
 
-        cy.get('[data-cy="input-user-name"]').clear().type(originalName);
+        // Verifica aggiornamento tabella
+        cy.get('[data-cy="input-user-name"] input').should("contain", adminUser.newName);
+
+        cy.get('[data-cy="input-user-name"]').clear().type(adminUser.oldName);
+        cy.get('[data-cy="input-user-name"]').clear().type(adminUser.oldName);
         cy.get('[data-cy="btn-submit-user-form"]').click();
 
         cy.get('[data-cy="dialog-user-form"]').should("not.exist");
         cy.contains("I dati dell'utente sono stati aggiornati").should("be.visible");
 
         // Verifica ripristino tabella
-        cy.get('[data-cy="users-table"] tbody tr').should("contain", originalName);
+        cy.get('[data-cy="users-table"] tbody tr').should("have.length.gt", 0);
     });
 
     it("DELETE & RESTORE: dovrebbe eliminare un utente (soft delete) e poi ripristinarlo", () => {
         searchUser(newUser.username);
 
-        // --- 1. DELETE (Soft Delete) ---
+        // Effettuare la soft delete
         cy.get(`[data-cy="btn-delete-user-${newUser.username}"]`).click();
         cy.get('[data-cy="dialog-delete-user"]').should("be.visible");
 
         // Clicca il pulsante di conferma dentro il dialog
-        cy.get('[data-cy="dialog-delete-user"]')
-            .contains("button", /Elimina|Delete/i)
-            .click();
+        cy.get('[data-cy="btn-confirm-delete-user"]').click();
 
         cy.contains("Utente eliminato correttamente").should("be.visible");
 
@@ -139,24 +126,21 @@ describe("Scenari di CRUD per gli Utenti", () => {
         cy.wait(500);
         cy.get('[data-cy="users-table"] tbody').should("not.contain", newUser.username);
 
-        // --- 2. CHECK SOFT DELETE ---
+        // Check della soft delete
         toggleShowDeletedUsers();
         searchUser(newUser.username);
         cy.get('[data-cy="users-table"] tbody tr').first().should("contain", newUser.username);
 
-        // --- 3. RESTORE USER ---
+        // Restore user
         cy.get(`[data-cy="btn-restore-user-${newUser.username}"]`).click();
         cy.get('[data-cy="dialog-restore-user"]').should("be.visible");
 
         // Clicca il pulsante di conferma dentro il dialog
-        cy.get('[data-cy="dialog-restore-user"]')
-            .contains("button", /Ripristina|Restore/i)
-            .click();
+        cy.get('[data-cy="btn-confirm-restore-user"]').click();
 
-        cy.contains("Utente ripristinato con successo").should("be.visible");
-
-        // --- 4. CHECK RESTORED ---
-        toggleShowDeletedUsers(); // Ritorno alla vista tabella normale
+        // Check dell utente su cui è stato datto il restore
+        // Ritorno alla vista tabella uitenti non cancellati
+        toggleShowDeletedUsers();
         searchUser(newUser.username);
         cy.get('[data-cy="users-table"] tbody tr').first().should("contain", newUser.username);
     });

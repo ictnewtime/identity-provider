@@ -1,6 +1,9 @@
 /// <reference types="cypress" />
 
 describe("Scenari di Autenticazione (Login/Logout)", () => {
+    const adminUser = Cypress.env("adminUser");
+    const guestUser = Cypress.env("guestUser");
+
     beforeEach(() => {
         cy.visit("/loginForm");
     });
@@ -34,8 +37,8 @@ describe("Scenari di Autenticazione (Login/Logout)", () => {
     it("should allow an admin user to log in and then log out", () => {
         // Inseriamo le credenziali dell'amministratore.
         // Utilizziamo Cypress.env() per recuperare le credenziali in modo sincrono.
-        cy.get('input[name="username"]').type(Cypress.env("adminUsername") || "admin");
-        cy.get('input[name="password"]').type(Cypress.env("adminPassword") || "password");
+        cy.get('input[name="username"]').type(adminUser.username);
+        cy.get('input[name="password"]').type(adminUser.password);
 
         // Sottomettiamo il form
         cy.get("form").submit();
@@ -64,11 +67,11 @@ describe("Scenari di Autenticazione (Login/Logout)", () => {
      * Per questo test è necessario un utente specifico nel database.
      * L'utente 'user' con password 'password' esiste ma non ha ruoli sull'IdP.
      */
-    it("should redirect a non-admin user to the unauthorized page", () => {
+    it.skip("should redirect a non-admin user to the unauthorized page", () => {
         // Il test è marcato come .skip perché richiede dati specifici nel DB.
         // Rimuovi .skip quando l'utente 'user' è stato creato.
-        cy.get('input[name="username"]').type(Cypress.env("nonAdminUsername") || "user");
-        cy.get('input[name="password"]').type(Cypress.env("nonAdminPassword") || "password");
+        cy.get('input[name="username"]').type(guestUser.username);
+        cy.get('input[name="password"]').type(guestUser.password);
         cy.get("form").submit();
 
         // Verifichiamo il reindirizzamento alla pagina di "Accesso Negato".

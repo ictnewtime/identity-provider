@@ -64,13 +64,20 @@ const deleteUser = (id) => {
             </span>
         </div>
         <template #footer>
-            <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="$emit('update:visible', false)" />
+            <Button
+                :label="$t('common.cancel')"
+                icon="pi pi-times"
+                text
+                @click="$emit('update:visible', false)"
+                data-cy="btn-cancel-delete-user"
+            />
             <Button
                 :label="$t('common.delete')"
                 icon="pi pi-check"
                 severity="danger"
                 @click="deleteUser(itemSelected.id)"
                 autofocus
+                data-cy="btn-confirm-delete-user"
             />
         </template>
     </Dialog>

@@ -5,6 +5,7 @@
 describe("Scenari di CRUD per i Ruoli (Roles)", () => {
     // Generiamo un timestamp per avere dati di test sempre univoci e non sporcare il DB
     const timestamp = new Date().getTime();
+    const adminUser = Cypress.env("adminUser");
 
     const newRole = {
         roleName: `admin-${timestamp}`,
@@ -25,7 +26,7 @@ describe("Scenari di CRUD per i Ruoli (Roles)", () => {
     // --- SETUP ---
     beforeEach(() => {
         // Usiamo i Custom Command creati in precedenza
-        cy.login(Cypress.env("adminUsername") || "admin", Cypress.env("adminPassword") || "password");
+        cy.login(adminUser.username, adminUser.password);
         cy.visit("/admin/roles");
 
         // Assicuriamoci che la tabella sia visibile prima di iniziare il test

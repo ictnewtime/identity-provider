@@ -105,7 +105,7 @@ onMounted(() => {
 
 <template>
     <div>
-        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
+        <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6" data-cy="audits-container">
             <DataTable
                 :value="pagination.data"
                 :loading="loading"
@@ -115,6 +115,7 @@ onMounted(() => {
                 :lazy="true"
                 @sort="onSort"
                 :sortOrder="sortParams.order"
+                data-cy="audits-table"
             >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
@@ -128,6 +129,7 @@ onMounted(() => {
                                 :placeholder="$t('admin.audits.table.search_placeholder')"
                                 @input="onFilterChange"
                                 class="!rounded-lg"
+                                data-cy="input-audits-search"
                             />
                         </IconField>
                     </div>
@@ -204,6 +206,7 @@ onMounted(() => {
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"
+                data-cy="paginator-audits"
             />
         </div>
 
@@ -213,6 +216,7 @@ onMounted(() => {
             :style="{ width: '700px', maxWidth: '90vw' }"
             modal
             :draggable="false"
+            data-cy="dialog-audit-details"
         >
             <div v-if="selectedAudit" class="pt-2">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -224,7 +228,7 @@ onMounted(() => {
                         >
                             <i class="pi pi-minus-circle"></i> {{ $t("admin.audits.modal.old_values") }}
                         </h4>
-                        <pre class="text-xs m-0 font-mono leading-relaxed">{{
+                        <pre class="text-xs m-0 font-mono leading-relaxed" data-cy="audit-old-values">{{
                             selectedAudit.old_values && Object.keys(selectedAudit.old_values).length > 0
                                 ? JSON.stringify(selectedAudit.old_values, null, 2)
                                 : $t("admin.audits.modal.no_old_data")
@@ -239,7 +243,7 @@ onMounted(() => {
                         >
                             <i class="pi pi-plus-circle"></i> {{ $t("admin.audits.modal.new_values") }}
                         </h4>
-                        <pre class="text-xs m-0 font-mono leading-relaxed">{{
+                        <pre class="text-xs m-0 font-mono leading-relaxed" data-cy="audit-new-values">{{
                             selectedAudit.new_values && Object.keys(selectedAudit.new_values).length > 0
                                 ? JSON.stringify(selectedAudit.new_values, null, 2)
                                 : $t("admin.audits.modal.no_new_data")
