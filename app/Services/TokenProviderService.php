@@ -28,6 +28,11 @@ class TokenProviderService
         return (int) Parameter::where("key", "jwt-exp-time-seconds")->first()->value ?? $this->ttlInSeconds;
     }
 
+    public function getMasterTokenExpiredAt(): int
+    {
+        return (int) Parameter::where("key", "master-token-exp-time-seconds")->first()->value ?? $this->ttlInSeconds;
+    }
+
     /**
      * Genera un token JWT.
      * Se viene passato un $redirectUrl (dominio), cerca il provider e applica la logica custom (Secret Key, Ruoli, TTL).
@@ -75,6 +80,7 @@ class TokenProviderService
                     "jti" => bin2hex(random_bytes(10)),
                     "sub" => (string) $user->id,
                     "prv" => $provider->id,
+                    "aud" => $provider->domain,
                 ],
                 ["payload" => $payload],
             );
@@ -108,7 +114,7 @@ class TokenProviderService
 
     public function generateMasterToken(User $user)
     {
-        $jwt_exp_seconds = $this->getExpiredAt();
+        $jwt_exp_seconds = $this->getMasterTokenExpiredAt();
         $expiration_seconds = time() + $jwt_exp_seconds;
 
         $payload = [
@@ -134,9 +140,14 @@ class TokenProviderService
 
     public function cookieCretion(string $token, string $provider_id, $cookie_name = null)
     {
+        $master_token_name = config("idp.jwt.master_token_name");
+        $expiration_seconds = $this->getExpiredAt();
         // creo un cookie con il token
         if (empty($cookie_name)) {
             $cookie_name = "idp_token_" . $provider_id;
+        }
+        if ($cookie_name == $master_token_name) {
+            $expiration_seconds = $this->getMasterTokenExpiredAt();
         }
         $provider = Provider::where("id", $provider_id)->first();
         $domain = $provider->domain;
@@ -144,7 +155,7 @@ class TokenProviderService
         $cookie = cookie(
             $cookie_name, // Nome del cookie
             $token, // Il token JWT stringa
-            $this->getExpiredAt(), // Durata in secondi
+            $expiration_seconds, // Durata in secondi
             "/", // Path
             $domain, // Domain (null = automatico)
             $is_https, // Secure (true = solo HTTPS)

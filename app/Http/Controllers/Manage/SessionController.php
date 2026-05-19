@@ -175,7 +175,9 @@ class SessionController extends Controller
         if (!$appToken) {
             return response()->json(
                 [
-                    "message" => "Access denied: User disabled or missing roles for Provider {$providerId}.",
+                    "message" => __("session.error.access_denied.userdisabled_or_missing_roles", [
+                        "providerId" => $providerId,
+                    ]),
                 ],
                 403,
             );

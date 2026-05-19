@@ -49,7 +49,7 @@ class RedirectIfAuthenticated
             }
 
             Log::warning("Accesso negato: Utente loggato ma nessun provider_id richiesto.");
-            return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.password_same_as_old"));
+            return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.no_application_specified"));
         }
         // Se non c'è master token (idp-master-token)
         // fare forceLogoutAndShowLogin
@@ -58,7 +58,7 @@ class RedirectIfAuthenticated
         $hasQueuedMasterToken = Cookie::hasQueued($master_token_name);
         if (!$hasRequestMasterToken && !$hasQueuedMasterToken) {
             Log::warning("Master Token assente per l'utente loggato ({$user->id}). Effettuare Logout");
-            return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.no_application_specified"));
+            return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.missing_master_token"));
         }
         return redirect()->away($redirectTo);
     }
@@ -116,16 +116,17 @@ class RedirectIfAuthenticated
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        $master_token_name = config("idp.jwt.master_token_name");
         $provider_idp = Provider::find(config("idp.provider_id"));
 
         Cookie::queue(Cookie::forget($cookieName, "/"));
         Cookie::queue(Cookie::forget("token", "/"));
-        Cookie::queue(Cookie::forget("idp-master-token", "/"));
+        Cookie::queue(Cookie::forget($master_token_name, "/"));
 
         if ($provider_idp && $provider_idp->domain) {
             Cookie::queue(Cookie::forget($cookieName, "/", $provider_idp->domain));
             Cookie::queue(Cookie::forget("token", "/", $provider_idp->domain));
-            Cookie::queue(Cookie::forget("idp-master-token", "/", $provider_idp->domain));
+            Cookie::queue(Cookie::forget($master_token_name, "/", $provider_idp->domain));
         }
 
         // Ricarichiamo la pagina di login

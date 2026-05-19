@@ -24,10 +24,14 @@ class VerifyMasterToken
 
         try {
             $publicKeyPath = storage_path("app/keys/public.key");
-            if (!File::exists($publicKeyPath)) {
-                throw new Exception("File della chiave pubblica non trovato sul server.");
-            }
-            $publicKeyPem = File::get($publicKeyPath);
+            $publicKeyPem = cache()->remember("idp_public_key_pem", now()->addDays(30), function () use (
+                $publicKeyPath,
+            ) {
+                if (!File::exists($publicKeyPath)) {
+                    throw new Exception("File della chiave pubblica non trovato sul server.");
+                }
+                return File::get($publicKeyPath);
+            });
 
             $decodedPayload = JWT::decode($tokenString, new Key($publicKeyPem, "RS256"));
 

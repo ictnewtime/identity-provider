@@ -194,7 +194,8 @@ class LoginController extends Controller
 
         if ($userId) {
             $sessions = Session::where("user_id", $userId)->get();
-
+            // Lascaire foreach se si vuole avere l' audit di ogni sessione cancellata
+            // riga per riga
             foreach ($sessions as $session) {
                 $session->delete();
             }
@@ -207,6 +208,7 @@ class LoginController extends Controller
         $master_token_name = config("idp.jwt.master_token_name");
         $cookiesToForget = [
             Cookie::forget($dynamicCookieName, "/", $cookieDomain),
+            Cookie::forget($master_token_name, "/", $cookieDomain),
             Cookie::forget("token", "/", $cookieDomain),
             Cookie::forget("laravel_session", "/", $cookieDomain),
             // Fallback per localhost

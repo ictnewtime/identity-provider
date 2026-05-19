@@ -51,6 +51,7 @@
     "auth.req_match": "Passwords match",
     "auth.password_same_as_old": "The new password cannot be the same as the current one.",
     "auth.no_application_specified": "No application specified.",
+    "auth.missing_master_token": "Missing master token.",
     "auth.sso_not_found_or_corrupted": "Global SSO session not found or corrupt. Please log in again.",
 
     "jwks.public_key_not_found": "Public key not fouind.",
@@ -364,6 +365,7 @@
     "admin.sessions.delete.this_user": "this user",
     "admin.sessions.delete.on_domain": " on the domain ",
     "admin.sessions.delete.btn_terminate": "Terminate",
+    "session.error.access_denied.user_disabled_or_missing_roles": "Access denied: User disabled or missing roles for Provider :providerId.",
 
     "admin.audits.title": "Audit Log Management",
 

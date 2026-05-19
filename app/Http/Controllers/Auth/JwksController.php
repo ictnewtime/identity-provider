@@ -9,36 +9,38 @@ class JwksController extends Controller
 {
     public function index()
     {
-        $publicKeyPath = storage_path("app/keys/public.key");
+        $jwks = cache()->remember("idp_jwks", now()->addDays(7), function () {
+            $publicKeyPath = storage_path("app/keys/public.key");
 
-        if (!File::exists($publicKeyPath)) {
-            return response()->json(["error" => __("jwks.public_key_not_found")], 404);
-        }
+            if (!File::exists($publicKeyPath)) {
+                abort(404, __("jwks.public_key_not_found"));
+            }
 
-        $publicKeyPem = File::get($publicKeyPath);
-        $publicKey = openssl_pkey_get_public($publicKeyPem);
-        $keyDetails = openssl_pkey_get_details($publicKey);
+            $publicKeyPem = File::get($publicKeyPath);
+            $publicKey = openssl_pkey_get_public($publicKeyPem);
+            $keyDetails = openssl_pkey_get_details($publicKey);
 
-        if (!$keyDetails || !isset($keyDetails["rsa"])) {
-            return response()->json(["error" => __("jwks.unable_to_extract_public_key_rsa")], 500);
-        }
+            if (!$keyDetails || !isset($keyDetails["rsa"])) {
+                abort(500, __("jwks.unable_to_extract_public_key_rsa"));
+            }
 
-        $base64UrlEncode = function ($data) {
-            return rtrim(strtr(base64_encode($data), "+/", "-_"), "=");
-        };
+            $base64UrlEncode = function ($data) {
+                return rtrim(strtr(base64_encode($data), "+/", "-_"), "=");
+            };
 
-        $jwks = [
-            "keys" => [
-                [
-                    "kty" => "RSA",
-                    "alg" => "RS256",
-                    "use" => "sig",
-                    "kid" => config("idp.jwt.master_key_id"),
-                    "n" => $base64UrlEncode($keyDetails["rsa"]["n"]),
-                    "e" => $base64UrlEncode($keyDetails["rsa"]["e"]),
+            return [
+                "keys" => [
+                    [
+                        "kty" => "RSA", // Key Type
+                        "alg" => "RS256", // Algorithm
+                        "use" => "sig", // Public Key Use
+                        "kid" => config("idp.jwt.master_key_id"), // Key ID
+                        "n" => $base64UrlEncode($keyDetails["rsa"]["n"]), // Modulus
+                        "e" => $base64UrlEncode($keyDetails["rsa"]["e"]), // Exponent
+                    ],
                 ],
-            ],
-        ];
+            ];
+        });
 
         return response()->json($jwks, 200, [
             "Content-Type" => "application/json",

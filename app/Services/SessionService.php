@@ -99,6 +99,7 @@ class SessionService
             return null;
         }
 
+        // TODO gestire l' espiration con il token e non con getExpiredAt()
         $ttlInSeconds = $tokenService->getExpiredAt();
         $expiresAt = now()->addSeconds($ttlInSeconds);
 
