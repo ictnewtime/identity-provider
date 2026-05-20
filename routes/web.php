@@ -17,9 +17,7 @@ use App\Http\Controllers\Manage\ParametersController;
 use Laravel\Socialite\Facades\Socialite;
 
 // Redirect Home -> Login
-Route::get("/", function () {
-    return redirect()->route("loginForm");
-});
+Route::get("/", [LoginController::class, "showLoginForm"])->name("loginForm");
 
 // Lingua
 Route::get("lang/{locale}", function ($locale) {
@@ -31,10 +29,6 @@ Route::get("lang/{locale}", function ($locale) {
 
 // Autenticazione
 Route::middleware("guest")->group(function () {
-    Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
-    Route::get("login", function () {
-        return redirect()->route("loginForm");
-    })->name("login");
     Route::get("/forgot-password", [PasswordResetController::class, "create"])->name("password.request");
     Route::post("/forgot-password", [PasswordResetController::class, "store"])->name("password.email");
     Route::get("/reset-password/{token}", [PasswordResetController::class, "edit"])->name("password.reset");

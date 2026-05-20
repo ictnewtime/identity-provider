@@ -50,10 +50,10 @@ class SessionService
                 "last_activity" => now(),
             ]);
 
-            // INTEGRAZIONE LOG ESTERNO (GRAPHQL)
-            $provider = Provider::find($provider_id);
-            $user = User::find($user_id);
-            LogExternal::logToLogService($user->username, "login", $ip_address, $provider->name);
+            // TODO da gestire
+            // $provider = Provider::find($provider_id);
+            // $user = User::find($user_id);
+            // LogExternal::logToLogService($user->username, "login", $ip_address, $provider->name);
         }
 
         return $session;
@@ -99,9 +99,8 @@ class SessionService
             return null;
         }
 
-        // TODO gestire l' espiration con il token e non con getExpiredAt()
-        $ttlInSeconds = $tokenService->getExpiredAt();
-        $expiresAt = now()->addSeconds($ttlInSeconds);
+        $expirationTimeInSeconds = $tokenService->getAppToeknExpiredAt();
+        $expiresAt = now()->addSeconds($expirationTimeInSeconds);
 
         $this->upsertSession($user->id, $provider_id, $ip_address, $user_agent, $token, null, $expiresAt);
 

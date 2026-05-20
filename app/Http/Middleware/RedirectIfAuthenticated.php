@@ -18,6 +18,7 @@ class RedirectIfAuthenticated
     {
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
+        // $cookieName = config("idp.jwt.master_token_name");
 
         $user = $this->resolveAuthenticatedUser($request, $guard, $idpProviderId, $cookieName);
 
@@ -32,7 +33,10 @@ class RedirectIfAuthenticated
 
         // check scadenza Password
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
-            Log::warning("Seamless SSO bloccato: Utente {$user->username} ha la password scaduta.");
+            Log::warning("Seamless SSO bloccato: Utente {$user->username} ha la password scaduta.", [
+                "provider_id" => $providerId,
+                "redirect_to" => $redirectTo,
+            ]);
 
             if ($providerId) {
                 $request->session()->put("pending_sso_provider_id", $providerId);
@@ -45,10 +49,12 @@ class RedirectIfAuthenticated
         // Check provider_id e autorizzazioni base
         if (empty($providerId)) {
             if ($user->isAdmin()) {
-                return redirect()->route("admin-home");
+                return redirect()->to("admin-home");
             }
 
-            Log::warning("Accesso negato: Utente loggato ma nessun provider_id richiesto.");
+            Log::warning(
+                "Accesso negato: Utente {$user->username} loggato, non admin, ma nessun provider_id richiesto. Force logout.",
+            );
             return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.no_application_specified"));
         }
         // Se non c'è master token (idp-master-token)
@@ -57,10 +63,19 @@ class RedirectIfAuthenticated
         $hasRequestMasterToken = $request->hasCookie($master_token_name);
         $hasQueuedMasterToken = Cookie::hasQueued($master_token_name);
         if (!$hasRequestMasterToken && !$hasQueuedMasterToken) {
-            Log::warning("Master Token assente per l'utente loggato ({$user->id}). Effettuare Logout");
+            Log::warning(
+                "Master Token assente (né in request né in coda) per l'utente loggato ({$user->username}). Effettuare Logout.",
+            );
             return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.missing_master_token"));
         }
-        return redirect()->away($redirectTo);
+
+        $provider = Provider::find($providerId);
+        $redirectUrl = $provider->url;
+        // LOG 3: Uscita con successo
+        Log::info("Controlli SSO superati per utente {$user->username}. Redirect finale.", [
+            "redirect_away_url" => $redirectUrl,
+        ]);
+        return redirect()->away($redirectUrl);
     }
 
     /**
@@ -97,8 +112,22 @@ class RedirectIfAuthenticated
                             Auth::login($user);
                             return $user;
                         }
+                    } else {
+                        Log::warning(
+                            "resolveAuthenticatedUser: Token JWT valido ma utente non trovato o sessione su DB inesistente.",
+                            [
+                                "user_id_in_payload" => $userId,
+                                "session_exists" => Session::where("token", $tokenString)->exists(),
+                            ],
+                        );
                     }
+                } else {
+                    Log::warning("resolveAuthenticatedUser: Token JWT scaduto o payload non valido.");
                 }
+            } else {
+                Log::warning("resolveAuthenticatedUser: Provider IDP non trovato o secret_key mancante.", [
+                    "idp_provider_id" => $idpProviderId,
+                ]);
             }
         } catch (\Exception $e) {
             Log::error("JWT IdP non valido durante redirect SSO: " . $e->getMessage());

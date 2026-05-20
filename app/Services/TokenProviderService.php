@@ -15,22 +15,24 @@ use Illuminate\Support\Facades\File;
 class TokenProviderService
 {
     protected $providerUserRoleService;
-    protected $ttlInSeconds;
+    protected $expirationTimeInSeconds;
 
     public function __construct()
     {
         $this->providerUserRoleService = new ProviderUserRoleService();
-        $this->ttlInSeconds = (int) env("JWT_TTL", 24 * 60 * 60); // default 24 ore
+        $this->expirationTimeInSeconds = (int) env("JWT_TTL", 24 * 60 * 60); // default 24 ore
     }
 
-    public function getExpiredAt(): int
+    public function getAppToeknExpiredAt(): int
     {
-        return (int) Parameter::where("key", "jwt-exp-time-seconds")->first()->value ?? $this->ttlInSeconds;
+        return (int) Parameter::where("key", "app-token-exp-time-seconds")->first()->value ??
+            $this->expirationTimeInSeconds;
     }
 
     public function getMasterTokenExpiredAt(): int
     {
-        return (int) Parameter::where("key", "master-token-exp-time-seconds")->first()->value ?? $this->ttlInSeconds;
+        return (int) Parameter::where("key", "master-token-exp-time-seconds")->first()->value ??
+            $this->expirationTimeInSeconds;
     }
 
     /**
@@ -41,7 +43,7 @@ class TokenProviderService
      */
     public function generateAppToken(User $user, ?string $redirectId = null)
     {
-        $jwt_exp_seconds = $this->getExpiredAt();
+        $jwt_exp_seconds = $this->getAppToeknExpiredAt();
         $ttlInMinutes = $jwt_exp_seconds / 60;
 
         // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
@@ -73,7 +75,7 @@ class TokenProviderService
 
             $payloadData = array_merge(
                 [
-                    "iss" => url("/"),
+                    "iss" => $provider->url,
                     "iat" => $currentTime,
                     "exp" => $expirationTime,
                     "nbf" => $currentTime,
@@ -94,7 +96,7 @@ class TokenProviderService
             // Creiamo il provider specifico al volo
             $customProvider = new Lcobucci($provider->secret_key, $algo, $keys);
 
-            // Firmiamo il token usando ESCLUSIVAMENTE questo provider temporaneo
+            // Firmiamo il token usando esclusivamente questo provider temporaneo
             $token = $customProvider->encode($payloadData);
         } catch (\Exception $e) {
             Log::error(
@@ -141,7 +143,7 @@ class TokenProviderService
     public function cookieCretion(string $token, string $provider_id, $cookie_name = null)
     {
         $master_token_name = config("idp.jwt.master_token_name");
-        $expiration_seconds = $this->getExpiredAt();
+        $expiration_seconds = $this->getAppToeknExpiredAt();
         // creo un cookie con il token
         if (empty($cookie_name)) {
             $cookie_name = "idp_token_" . $provider_id;
