@@ -49,7 +49,7 @@ class RedirectIfAuthenticated
         // Check provider_id e autorizzazioni base
         if (empty($providerId)) {
             if ($user->isAdmin()) {
-                return redirect()->to("admin-home");
+                return redirect()->route("admin-home");
             }
 
             Log::warning(
@@ -71,10 +71,10 @@ class RedirectIfAuthenticated
 
         $provider = Provider::find($providerId);
         $redirectUrl = $provider->url;
-        // LOG 3: Uscita con successo
         Log::info("Controlli SSO superati per utente {$user->username}. Redirect finale.", [
             "redirect_away_url" => $redirectUrl,
         ]);
+
         return redirect()->away($redirectUrl);
     }
 

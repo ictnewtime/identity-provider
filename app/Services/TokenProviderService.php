@@ -25,14 +25,16 @@ class TokenProviderService
 
     public function getAppToeknExpiredAt(): int
     {
-        return (int) Parameter::where("key", "app-token-exp-time-seconds")->first()->value ??
-            $this->expirationTimeInSeconds;
+        $parameter = Parameter::where("key", "app-token-exp-time-seconds")->first();
+        $seconds = $parameter ? $parameter->value : $this->expirationTimeInSeconds;
+        return (int) $seconds;
     }
 
     public function getMasterTokenExpiredAt(): int
     {
-        return (int) Parameter::where("key", "master-token-exp-time-seconds")->first()->value ??
-            $this->expirationTimeInSeconds;
+        $parameter = Parameter::where("key", "master-token-exp-time-seconds")->first();
+        $seconds = $parameter ? $parameter->value : $this->expirationTimeInSeconds;
+        return (int) $seconds;
     }
 
     /**

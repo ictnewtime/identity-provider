@@ -74,7 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             // Il redirect di default per gli utenti loggati (cambialo con la tua rotta home)
-            return "/admin-home";
+            return "/";
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {

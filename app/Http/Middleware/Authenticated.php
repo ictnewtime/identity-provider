@@ -20,20 +20,12 @@ class Authenticated
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
 
-        // LOG 1: Stato iniziale della richiesta in entrata all'IDP
-        Log::debug("IDP: Middleware di validazione token attivato.", [
-            "url_richiesto" => $request->fullUrl(),
-            "tutti_i_cookie_ricevuti" => array_keys($request->cookies->all()), // Vediamo TUTTI i cookie inviati dal browser
-            "ha_bearer_token" => $request->hasHeader("Authorization") ? "SI" : "NO",
-        ]);
-
         // Estrazione del token
         $cookieToken = $request->cookie($cookieName);
         $bearerToken = $request->bearerToken();
         $tokenString = $cookieToken ?? $bearerToken;
 
         if (empty($tokenString)) {
-            // LOG 2: Fallimento dettagliato
             Log::warning("Fallimento: Nessun token trovato nel cookie [{$cookieName}] o nell'header Bearer.", [
                 "cookie_specifico_cercato" => $cookieName,
                 "cookie_specifico_valore" => $cookieToken ? "Presente (ma vuoto?)" : "Totalmente Assente",
@@ -44,13 +36,6 @@ class Authenticated
 
             return $this->forceLogoutAndRedirect($request, "Token assente. Effettua il login.");
         }
-
-        // LOG 3: Token trovato, procediamo al parsing
-        Log::info("Token individuato con successo nell'IDP. Avvio ricerca Provider.", [
-            "sorgente" => $cookieToken ? "Cookie" : "Bearer Header",
-            "lunghezza_token" => strlen($tokenString),
-            "idp_provider_id_config" => $idpProviderId,
-        ]);
 
         try {
             $provider = Provider::find($idpProviderId);
@@ -96,7 +81,7 @@ class Authenticated
 
             if (!$sessionExists) {
                 Log::critical(
-                    "ACCESSO NEGATO: Il token è valido crittograficamente MA la sessione è stata ELIMINATA dal database!",
+                    "Accesso negato: Il token è valido crittograficamente ma la sessione è stata eliminata dal database",
                 );
                 return $this->forceLogoutAndRedirect(
                     $request,

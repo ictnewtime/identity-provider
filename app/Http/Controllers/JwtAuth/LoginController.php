@@ -26,23 +26,12 @@ class LoginController extends Controller
      */
     public function showLoginForm()
     {
-        return Inertia::render("Auth/Login", [
-            // 'status' => session('status'),
-        ]);
+        return Inertia::render("Auth/Login", []);
     }
 
     public function login(LoginRequest $request)
     {
         $credentials = $request->only("username", "password");
-
-        // DEBUG INGRESSO: Cosa vede Laravel prima di autenticare?
-        Log::debug("[DEBUG LOGIN] 1. Richiesta arrivata al controller di Login", [
-            "URL_Request_Completo" => $request->fullUrl(),
-            "Host_da_Header" => $request->getHttpHost(),
-            "Server_Port_PHP" => $_SERVER["SERVER_PORT"] ?? "non definita",
-            "HTTP_HOST_Raw" => $_SERVER["HTTP_HOST"] ?? "non definita",
-            "APP_URL_Configurato" => config("app.url"),
-        ]);
 
         if (!Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]])) {
             Log::warning("[DEBUG LOGIN] Check Credenziali fallito per " . $credentials["username"]);
@@ -50,11 +39,6 @@ class LoginController extends Controller
         }
 
         $user = Auth::user();
-
-        Log::info("[DEBUG LOGIN] 2. Autenticazione Auth::attempt riuscita", [
-            "User_ID" => $user->id,
-            "Username" => $user->username,
-        ]);
 
         return $this->processSsoRedirect($request, $user);
     }
@@ -167,16 +151,6 @@ class LoginController extends Controller
 
             $appCookie = $tokenService->cookieCretion($appToken, $idpProviderId);
             Cookie::queue($appCookie);
-
-            $rotta_admin_home_assoluta = route("admin-home");
-            $rotta_admin_home_relativa = route("admin-home", [], false);
-
-            Log::info("[DEBUG LOGIN] 3. Pronto a emettere il redirect finale da processSsoRedirect", [
-                "Funzione_route_assoluta" => $rotta_admin_home_assoluta,
-                "Funzione_route_relativa" => $rotta_admin_home_relativa,
-                "Host_corrente_Request" => $request->getHttpHost(),
-                "APP_URL_Config" => config("app.url"),
-            ]);
 
             return redirect()->route("admin-home");
         }
