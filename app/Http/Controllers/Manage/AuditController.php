@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Manage;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use OwenIt\Auditing\Models\Audit;
+use Laravel\Passport\Client as PassportClient;
 
 class AuditController extends Controller
 {
@@ -27,16 +29,15 @@ class AuditController extends Controller
                     ->orWhere("event", "like", $searchTerm)
                     ->orWhere("auditable_type", "like", $searchTerm)
 
-                    ->orWhereHasMorph("user", [\App\Models\User::class, \Laravel\Passport\Client::class], function (
-                        $q,
-                        $type,
-                    ) use ($searchTerm) {
+                    ->orWhereHasMorph("user", [User::class, PassportClient::class], function ($q, $type) use (
+                        $searchTerm,
+                    ) {
                         // Se la riga appartiene a web, cerca per username
-                        if ($type === \App\Models\User::class) {
+                        if ($type === User::class) {
                             $q->where("username", "like", $searchTerm);
                         }
                         // Se la riga appartiene a Passport, cerca per nome del client
-                        elseif ($type === \Laravel\Passport\Client::class) {
+                        elseif ($type === PassportClient::class) {
                             $q->where("name", "like", $searchTerm);
                         }
                     });
@@ -70,7 +71,7 @@ class AuditController extends Controller
             ->paginate($perPage)
             ->through(function ($audit) {
                 // Se la relazione 'user' esiste ed è un Client di Passport
-                if ($audit->user instanceof \Laravel\Passport\Client) {
+                if ($audit->user instanceof PassportClient) {
                     // Iniettiamo la proprietà username al volo per Vue
                     $audit->user->username = $audit->user->name;
                 }

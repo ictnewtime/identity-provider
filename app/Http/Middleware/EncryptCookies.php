@@ -16,6 +16,11 @@ class EncryptCookies extends Middleware
         parent::__construct($encrypter);
 
         try {
+            // Master Token
+            $master_token_name = config("idp.jwt.master_token_name");
+            $this->except[] = $master_token_name;
+
+            // App2
             $providerIds = Provider::pluck("id");
             foreach ($providerIds as $id) {
                 $this->except[] = "idp_token_" . $id;

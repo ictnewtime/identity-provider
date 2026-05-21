@@ -49,8 +49,13 @@
     "auth.req_number": "Un numero",
     "auth.req_special": "Un carattere speciale",
     "auth.req_match": "Le password coincidono",
-
     "auth.password_same_as_old": "La nuova password non può essere uguale a quella attuale.",
+    "auth.no_application_specified": "Nessuna applicazione specificata.",
+    "auth.missing_master_token": "Master token assente.",
+    "auth.sso_not_found_or_corrupted": "Sessione globale SSO non trovata o corrotta. Effettua nuovamente il login.",
+
+    "jwks.public_key_not_found": "Public key non trovata.",
+    "jwks.unable_to_extract_public_key_rsa": "Impossibile estrarre i dettagli RSA dalla public key.",
 
     "common.id": "ID",
     "common.actions": "Azioni",
@@ -137,6 +142,12 @@
     "admin.users.form.validate.surname.mandatory": "Il cognome è obbligatorio",
     "admin.users.form.validate.password.mandatory": "La password è obbligatoria per i nuovi utenti",
     "admin.users.form.validate.password_confirmation.mandatory": "Le password non coincidono",
+
+    "users.validation.email_required": "Email è obbligatoria",
+    "users.validation.email_invalid": "Email non è valida",
+    "users.validation.email_unique": "Email è già in uso",
+    "users.validation.username_required": "Username è obbligatorio",
+    "users.validation.username_unique": "Username è già in uso",
 
     "admin.users.toast.load_user_error": "Impossibile caricare i dati dell'utente selezionato",
     "admin.users.toast.submit_error": "Si è verificato un errore durante il salvataggio dell'utente",
@@ -361,6 +372,7 @@
     "admin.sessions.delete.this_user": "questo utente",
     "admin.sessions.delete.on_domain": " sul dominio ",
     "admin.sessions.delete.btn_terminate": "Termina",
+    "session.error.access_denied.user_disabled_or_missing_roles": "Accesso negato: Utente disabilitato o ruoli mancanti per il Provider :providerId.",
 
     "admin.audits.title": "Gestione Log di Sistema",
 

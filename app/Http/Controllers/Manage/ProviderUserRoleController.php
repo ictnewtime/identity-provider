@@ -21,8 +21,8 @@ class ProviderUserRoleController extends Controller
     #[
         OA\Get(
             path: "/api/v1/provider-user-roles",
-            summary: "list of provider user roles",
-            description: "Returns the entire list of provider user roles",
+            summary: "Get list of provider user roles",
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.all",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
@@ -66,8 +66,8 @@ class ProviderUserRoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -139,7 +139,7 @@ class ProviderUserRoleController extends Controller
         OA\Post(
             path: "/api/v1/provider-user-roles",
             summary: "Create a new provider user role",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.create",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
@@ -160,18 +160,18 @@ class ProviderUserRoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 201,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 422,
-                    description: "Unprocessable Entity",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_UNPROCESSABLE_ENTITY,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Internal Server Error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -192,7 +192,7 @@ class ProviderUserRoleController extends Controller
         OA\Get(
             path: "/api/v1/provider-user-roles/{id}",
             summary: "Returns provider user role by id",
-            description: "Returns provider user role details by id",
+            description: self::OA_DESC_MSG_SUCCESS,
             operationId: "ProviderUserRole.find",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
@@ -208,15 +208,15 @@ class ProviderUserRoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
     ]
     public function find($id)
     {
-        $providerUserRole = ProviderUserRole::find($id);
+        $providerUserRole = ProviderUserRole::withTrashed()->find($id);
         if (empty($providerUserRole)) {
             return response()->json(["message" => "Provider user role not found"], 404);
         }
@@ -227,7 +227,7 @@ class ProviderUserRoleController extends Controller
         OA\Put(
             path: "/api/v1/provider-user-roles/{id}",
             summary: "Update provider user role by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.update",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
@@ -262,23 +262,23 @@ class ProviderUserRoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 422,
-                    description: "Unprocessable Entity",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_UNPROCESSABLE_ENTITY,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Internal Server Error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -299,7 +299,7 @@ class ProviderUserRoleController extends Controller
         OA\Delete(
             path: "/api/v1/provider-user-roles/{id}",
             summary: "Delete provider user role by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.delete",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
@@ -315,13 +315,13 @@ class ProviderUserRoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 204,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),

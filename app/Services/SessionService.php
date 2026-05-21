@@ -50,10 +50,10 @@ class SessionService
                 "last_activity" => now(),
             ]);
 
-            // INTEGRAZIONE LOG ESTERNO (GRAPHQL)
-            $provider = Provider::find($provider_id);
-            $user = User::find($user_id);
-            LogExternal::logToLogService($user->username, "login", $ip_address, $provider->name);
+            // TODO da gestire
+            // $provider = Provider::find($provider_id);
+            // $user = User::find($user_id);
+            // LogExternal::logToLogService($user->username, "login", $ip_address, $provider->name);
         }
 
         return $session;
@@ -93,14 +93,14 @@ class SessionService
         }
 
         // Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
-        $token = $tokenService->tokenCretion($user, $provider_id);
+        $token = $tokenService->generateAppToken($user, $provider_id);
 
         if (!$token) {
             return null;
         }
 
-        $ttlInSeconds = $tokenService->getExpiredAt();
-        $expiresAt = now()->addSeconds($ttlInSeconds);
+        $expirationTimeInSeconds = $tokenService->getAppToeknExpiredAt();
+        $expiresAt = now()->addSeconds($expirationTimeInSeconds);
 
         $this->upsertSession($user->id, $provider_id, $ip_address, $user_agent, $token, null, $expiresAt);
 
