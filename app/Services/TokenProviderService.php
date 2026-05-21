@@ -210,6 +210,43 @@ class TokenProviderService
         return $redirect_url;
     }
 
+    public function resolveCrossDomainRedirect(
+        ?Provider $provider,
+        ?Provider $masterProvider,
+        ?string $redirectUrl,
+        ?string $masterToken,
+    ): array {
+        $isSameDomainZone = false;
+
+        // Se non c'è un redirectUrl, l'utente rimane sull'IDP
+        if (empty($redirectUrl)) {
+            $isSameDomainZone = true;
+        } elseif ($provider && $masterProvider) {
+            $targetDomain = strtolower(trim($provider->domain, "."));
+            $masterDomain = strtolower(trim($masterProvider->domain, "."));
+
+            if (
+                $targetDomain === $masterDomain ||
+                str_contains($masterDomain, $targetDomain) ||
+                str_contains($targetDomain, $masterDomain)
+            ) {
+                $isSameDomainZone = true;
+            }
+        }
+
+        $finalUrl = $redirectUrl;
+
+        // Se siamo in Cross-Domain e abbiamo un token, lo appendiamo all'URL
+        if (!$isSameDomainZone && !empty($masterToken) && !empty($finalUrl)) {
+            $finalUrl = $this->appendTokenIfLocalUrl($finalUrl, $masterToken);
+        }
+
+        return [
+            "isSameDomainZone" => $isSameDomainZone,
+            "redirectUrl" => $finalUrl,
+        ];
+    }
+
     // Esempio di funzione unificata da mettere in un Service o in un Trait
     public static function respondWithSsoRedirect($user, $providerId, $request, $redirectToParam = null)
     {
