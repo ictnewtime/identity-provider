@@ -109,9 +109,13 @@ class LoginController extends Controller
         $tokenService = new TokenProviderService();
         $masterToken = $tokenService->generateMasterToken($user);
         $idpProviderId = (string) config("idp.provider_id");
+        $providerIdMasterCookie = $idpProviderId;
+        if (app()->environment(["local", "staging"]) && !empty($provider_id)) {
+            $providerIdMasterCookie = (string) $provider_id;
+        }
         $master_token_name = config("idp.jwt.master_token_name");
 
-        $masterCookie = $tokenService->cookieCretion($masterToken, $idpProviderId, $master_token_name);
+        $masterCookie = $tokenService->cookieCretion($masterToken, $providerIdMasterCookie, $master_token_name);
         Cookie::queue($masterCookie);
 
         if ($provider_id) {
