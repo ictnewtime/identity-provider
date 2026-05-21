@@ -38,9 +38,12 @@ class LoginController extends Controller
             return back()->withErrors(["login" => __("auth.err-login")]);
         }
 
-        $user = Auth::user();
-
-        return $this->processSsoRedirect($request, $user);
+        return $this->processSsoRedirect(
+            $request,
+            Auth::user(),
+            $request->input("provider_id"),
+            $request->input("redirect_to"),
+        );
     }
 
     public function redirectToGoogle(Request $request)
@@ -95,6 +98,34 @@ class LoginController extends Controller
         $provider_id = $request->input("provider_id");
         $redirect_to = $request->input("redirect_to");
 
+        $user = User::where("google_id", $googleUser->getId())->first();
+        if (!$user) {
+            $user = User::where("email", $googleUser->getEmail())->first();
+
+            if ($user) {
+                // L' user esiste, ma è la prima volta che usa Google.
+                $user->update([
+                    "google_id" => $googleUser->getId(),
+                ]);
+            } else {
+                // L' user non esiste allinterno dell applicazione IDP.
+                return redirect()
+                    ->route("login")
+                    ->withErrors(["login" => __("auth.google_login_without_account")]);
+            }
+        }
+
+        Auth::login($user);
+        // Recuperia i parametri salvati prima del redirect a Google
+        $provider_id = $request->session()->pull("sso_provider_id");
+        $redirect_to = $request->session()->pull("sso_redirect_to");
+
+        $request->merge(["provider_id" => $provider_id, "redirect_to" => $redirect_to]);
+        return $this->processSsoRedirect($request, $user, $provider_id, $redirect_to);
+    }
+
+    private function processSsoRedirect($request, $user, $provider_id, $redirect_to)
+    {
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
             Log::warning("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
             if ($provider_id) {
