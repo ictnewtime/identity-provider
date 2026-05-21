@@ -49,8 +49,13 @@
     "auth.req_number": "One number",
     "auth.req_special": "One special character",
     "auth.req_match": "Passwords match",
-
     "auth.password_same_as_old": "The new password cannot be the same as the current one.",
+    "auth.no_application_specified": "No application specified.",
+    "auth.missing_master_token": "Missing master token.",
+    "auth.sso_not_found_or_corrupted": "Global SSO session not found or corrupt. Please log in again.",
+
+    "jwks.public_key_not_found": "Public key not fouind.",
+    "jwks.unable_to_extract_public_key_rsa": "Unable to extract public key RSA.",
 
     "common.id": "ID",
     "common.actions": "Actions",
@@ -137,6 +142,12 @@
     "admin.users.form.validate.surname.mandatory": "Last name is required",
     "admin.users.form.validate.password.mandatory": "Password is required for new users",
     "admin.users.form.validate.password_confirmation.mandatory": "Passwords do not match",
+
+    "users.validation.email_required": "Email is required",
+    "users.validation.email_invalid": "Email is invalid",
+    "users.validation.email_unique": "Email is taken",
+    "users.validation.username_required": "Username is required",
+    "users.validation.username_unique": "Username is taken",
 
     "admin.users.toast.load_user_error": "Unable to load data for the selected user",
     "admin.users.toast.submit_error": "An error occurred while saving the user",
@@ -360,6 +371,7 @@
     "admin.sessions.delete.this_user": "this user",
     "admin.sessions.delete.on_domain": " on the domain ",
     "admin.sessions.delete.btn_terminate": "Terminate",
+    "session.error.access_denied.user_disabled_or_missing_roles": "Access denied: User disabled or missing roles for Provider :providerId.",
 
     "admin.audits.title": "Audit Log Management",
 

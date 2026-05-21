@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\JwksController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
@@ -15,11 +16,6 @@ use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Manage\ParametersController;
 use Laravel\Socialite\Facades\Socialite;
 
-// Redirect Home -> Login
-Route::get("/", function () {
-    return redirect()->route("loginForm");
-});
-
 // Lingua
 Route::get("lang/{locale}", function ($locale) {
     $availableLocales = ["it", "en"];
@@ -30,10 +26,8 @@ Route::get("lang/{locale}", function ($locale) {
 
 // Autenticazione
 Route::middleware("guest")->group(function () {
-    Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
-    Route::get("login", function () {
-        return redirect()->route("loginForm");
-    })->name("login");
+    // Redirect Home -> Login
+    Route::get("/", [LoginController::class, "showLoginForm"])->name("loginForm");
     Route::get("/forgot-password", [PasswordResetController::class, "create"])->name("password.request");
     Route::post("/forgot-password", [PasswordResetController::class, "store"])->name("password.email");
     Route::get("/reset-password/{token}", [PasswordResetController::class, "edit"])->name("password.reset");
@@ -54,6 +48,8 @@ Route::middleware(["auth"])->group(function () {
         "password.force-update",
     );
 });
+
+Route::get("/.well-known/jwks.json", [JwksController::class, "index"]);
 
 /********* ADMIN ROUTES ************/
 Route::prefix("admin")

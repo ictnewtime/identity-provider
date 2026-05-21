@@ -62,7 +62,7 @@ class ParametersController extends Controller
 
     public function find($id)
     {
-        $parameter = Parameter::find($id);
+        $parameter = Parameter::withTrashed()->find($id);
         if (empty($parameter)) {
             return response()->json(["message" => __("parameter.error.not_found")], 404);
         }

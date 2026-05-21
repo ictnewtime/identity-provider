@@ -42,4 +42,16 @@ class UserRequest extends FormRequest
             "enabled" => "sometimes|boolean",
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            "email.required" => __("users.validation.email_required"),
+            "email.email" => __("users.validation.email_invalid"),
+            "email.unique" => __("users.validation.email_unique"),
+
+            "username.required" => __("users.validation.username_required"),
+            "username.unique" => __("users.validation.username_unique"),
+        ];
+    }
 }
