@@ -110,7 +110,7 @@ class LoginController extends Controller
         $masterToken = $tokenService->generateMasterToken($user);
         $idpProviderId = (string) config("idp.provider_id");
         $providerIdMasterCookie = $idpProviderId;
-        if (app()->environment("local") && !empty($provider_id)) {
+        if (app()->environment(["local", "staging"]) && !empty($provider_id)) {
             $providerIdMasterCookie = (string) $provider_id;
         }
         $master_token_name = config("idp.jwt.master_token_name");
