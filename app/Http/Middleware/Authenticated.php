@@ -21,10 +21,19 @@ class Authenticated
         $cookieName = "idp_token_" . $idpProviderId;
 
         // Estrazione del token
-        $tokenString = $request->cookie($cookieName) ?? $request->bearerToken();
+        $cookieToken = $request->cookie($cookieName);
+        $bearerToken = $request->bearerToken();
+        $tokenString = $cookieToken ?? $bearerToken;
 
         if (empty($tokenString)) {
-            Log::warning("Fallimento: Nessun token trovato nel cookie [{$cookieName}] o nell'header Bearer.");
+            Log::warning("Fallimento: Nessun token trovato nel cookie [{$cookieName}] o nell'header Bearer.", [
+                "cookie_specifico_cercato" => $cookieName,
+                "cookie_specifico_valore" => $cookieToken ? "Presente (ma vuoto?)" : "Totalmente Assente",
+                "bearer_token_valore" => $bearerToken ? "Presente (ma vuoto?)" : "Totalmente Assente",
+                "user_agent" => $request->userAgent(),
+                "ip_client" => $request->ip(),
+            ]);
+
             return $this->forceLogoutAndRedirect($request, "Token assente. Effettua il login.");
         }
 
@@ -72,7 +81,7 @@ class Authenticated
 
             if (!$sessionExists) {
                 Log::critical(
-                    "ACCESSO NEGATO: Il token è valido crittograficamente MA la sessione è stata ELIMINATA dal database!",
+                    "Accesso negato: Il token è valido crittograficamente ma la sessione è stata eliminata dal database",
                 );
                 return $this->forceLogoutAndRedirect(
                     $request,

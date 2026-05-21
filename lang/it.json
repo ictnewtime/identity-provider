@@ -17,6 +17,9 @@
     "auth.verification.errors.delete_failed": "Account attivato, ma impossibile rimuovere il codice di sicurezza.",
 
     "auth.forgot_password": "Password dimenticata?",
+    "auth.login_with_google": "Accedi con Google",
+    "auth.google_login_failed": "Si è verificato un errore durante il login con Google.",
+    "auth.google_login_without_account": "Utente non autorizzato o inesistente.",
     "auth.recover_password_title": "Recupera Password",
     "auth.recover_password_body": "Inserisci il tuo username. Ti invieremo un link di recupero all'indirizzo email associato al tuo profilo.",
     "auth.send_recovery_link": "Invia Link di Recupero",
@@ -46,8 +49,13 @@
     "auth.req_number": "Un numero",
     "auth.req_special": "Un carattere speciale",
     "auth.req_match": "Le password coincidono",
-
     "auth.password_same_as_old": "La nuova password non può essere uguale a quella attuale.",
+    "auth.no_application_specified": "Nessuna applicazione specificata.",
+    "auth.missing_master_token": "Master token assente.",
+    "auth.sso_not_found_or_corrupted": "Sessione globale SSO non trovata o corrotta. Effettua nuovamente il login.",
+
+    "jwks.public_key_not_found": "Public key non trovata.",
+    "jwks.unable_to_extract_public_key_rsa": "Impossibile estrarre i dettagli RSA dalla public key.",
 
     "common.id": "ID",
     "common.actions": "Azioni",
@@ -358,6 +366,7 @@
     "admin.sessions.delete.this_user": "questo utente",
     "admin.sessions.delete.on_domain": " sul dominio ",
     "admin.sessions.delete.btn_terminate": "Termina",
+    "session.error.access_denied.user_disabled_or_missing_roles": "Accesso negato: Utente disabilitato o ruoli mancanti per il Provider :providerId.",
 
     "admin.audits.title": "Gestione Log di Sistema",
 

@@ -135,6 +135,62 @@ class SessionController extends Controller
         );
     }
 
+    public function get_token(Request $request): JsonResponse
+    {
+        $userId = $request->attributes->get("jwt_user_id");
+
+        if (!$userId) {
+            return response()->json(["message" => "Master Token claims missing"], 401);
+        }
+
+        $validated = $request->validate([
+            "provider_id" => "required|string",
+            "ip_address" => "nullable|string",
+            "user_agent" => "nullable|string",
+        ]);
+
+        $providerId = $validated["provider_id"];
+
+        $user = User::find($userId);
+
+        if (!$user) {
+            return response()->json(["message" => "User not found"], 404);
+        }
+
+        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
+            return response()->json(["message" => "Password expired."], 401);
+        }
+
+        $tokenService = new TokenProviderService();
+        $sessionService = $this->sessionService ?? new SessionService();
+
+        $appToken = $sessionService->getValidProviderToken(
+            $user,
+            $providerId,
+            $validated["ip_address"] ?? $request->ip(),
+            $validated["user_agent"] ?? $request->userAgent(),
+            $tokenService,
+        );
+
+        if (!$appToken) {
+            return response()->json(
+                [
+                    "message" => __("session.error.access_denied.userdisabled_or_missing_roles", [
+                        "providerId" => $providerId,
+                    ]),
+                ],
+                403,
+            );
+        }
+
+        return response()->json(
+            [
+                "token" => $appToken,
+            ],
+            200,
+        );
+    }
+
     /**
      * Chiamata API M2M da App esterne per innescare il Single Logout (SLO).
      */

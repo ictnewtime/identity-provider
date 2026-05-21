@@ -37,6 +37,7 @@ class User extends Authenticatable
         "is_verified",
         "enabled",
         "password_expires_at",
+        "google_id",
     ];
 
     /**
