@@ -34,16 +34,13 @@ class LoginController extends Controller
         $credentials = $request->only("username", "password");
 
         if (!Auth::attempt(["username" => $credentials["username"], "password" => $credentials["password"]])) {
-            Log::warning("[DEBUG LOGIN] Check Credenziali fallito per " . $credentials["username"]);
+            Log::warning("[LOGIN] Check Credenziali fallito per " . $credentials["username"]);
             return back()->withErrors(["login" => __("auth.err-login")]);
         }
 
-        return $this->processSsoRedirect(
-            $request,
-            Auth::user(),
-            $request->input("provider_id"),
-            $request->input("redirect_to"),
-        );
+        $user = Auth::user();
+
+        return $this->processSsoRedirect($request, $user);
     }
 
     public function redirectToGoogle(Request $request)
@@ -94,38 +91,9 @@ class LoginController extends Controller
 
     private function processSsoRedirect($request, $user)
     {
-        // Meglio usare $request->input() per coerenza e sicurezza
         $provider_id = $request->input("provider_id");
         $redirect_to = $request->input("redirect_to");
 
-        $user = User::where("google_id", $googleUser->getId())->first();
-        if (!$user) {
-            $user = User::where("email", $googleUser->getEmail())->first();
-
-            if ($user) {
-                // L' user esiste, ma è la prima volta che usa Google.
-                $user->update([
-                    "google_id" => $googleUser->getId(),
-                ]);
-            } else {
-                // L' user non esiste allinterno dell applicazione IDP.
-                return redirect()
-                    ->route("login")
-                    ->withErrors(["login" => __("auth.google_login_without_account")]);
-            }
-        }
-
-        Auth::login($user);
-        // Recuperia i parametri salvati prima del redirect a Google
-        $provider_id = $request->session()->pull("sso_provider_id");
-        $redirect_to = $request->session()->pull("sso_redirect_to");
-
-        $request->merge(["provider_id" => $provider_id, "redirect_to" => $redirect_to]);
-        return $this->processSsoRedirect($request, $user, $provider_id, $redirect_to);
-    }
-
-    private function processSsoRedirect($request, $user, $provider_id, $redirect_to)
-    {
         if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
             Log::warning("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
             if ($provider_id) {
@@ -140,7 +108,7 @@ class LoginController extends Controller
         // solo quando sono nella App2 chiedo i ruoli in un token-JWT
         $tokenService = new TokenProviderService();
         $masterToken = $tokenService->generateMasterToken($user);
-        $idpProviderId = config("idp.provider_id");
+        $idpProviderId = (string) config("idp.provider_id");
         $master_token_name = config("idp.jwt.master_token_name");
 
         $masterCookie = $tokenService->cookieCretion($masterToken, $idpProviderId, $master_token_name);
