@@ -116,13 +116,14 @@ class TokenProviderService
         return $token;
     }
 
-    public function generateMasterToken(User $user)
+    public function generateMasterToken(User $user, $providerId)
     {
         $jwt_exp_seconds = $this->getMasterTokenExpiredAt();
         $expiration_seconds = time() + $jwt_exp_seconds;
+        $provider = Provider::where("id", $providerId)->first();
 
         $payload = [
-            "iss" => config("app.url"),
+            "iss" => $provider->url,
             "iat" => time(),
             "exp" => $expiration_seconds,
             "sub" => (string) $user->id,
