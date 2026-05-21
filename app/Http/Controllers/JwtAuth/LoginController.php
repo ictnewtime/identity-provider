@@ -107,22 +107,26 @@ class LoginController extends Controller
         // creo il master-token e se dovevo fare una redirect, la effettuo
         // solo quando sono nella App2 chiedo i ruoli in un token-JWT
         $tokenService = new TokenProviderService();
-        $masterToken = $tokenService->generateMasterToken($user);
         $idpProviderId = (string) config("idp.provider_id");
-        $providerIdMasterCookie = $idpProviderId;
-        if (app()->environment(["local", "staging"]) && !empty($provider_id)) {
-            $providerIdMasterCookie = (string) $provider_id;
-        }
-        $master_token_name = config("idp.jwt.master_token_name");
+        $masterProvider = Provider::find($idpProviderId);
 
-        $masterCookie = $tokenService->cookieCretion($masterToken, $providerIdMasterCookie, $master_token_name);
-        Cookie::queue($masterCookie);
+        $masterToken = $tokenService->generateMasterToken($user, $masterProvider->id);
+        $provider = Provider::find($provider_id);
+        // se il providerIdMaster->domain contiene il provider->doamin allora posso creare il cookie
+        // altrimenti usare appendTokenIfLocalUrl( redirect_url, token)
+        // così l' idp-extensio prenderà il token e lo trasformerà in cookie
+        $redirectUrl = $redirect_to ?? ($provider ? $provider->url : null);
+
+        $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
+        $redirectUrl = $ssoData["redirectUrl"];
+        if ($ssoData["isSameDomainZone"]) {
+            $master_token_name = config("idp.jwt.master_token_name");
+            $masterCookie = $tokenService->cookieCretion($masterToken, $masterProvider->id, $master_token_name);
+            Cookie::queue($masterCookie);
+        }
 
         if ($provider_id) {
             // devo semplicemente ottenere l' url e redirigere l' user
-            $provider = Provider::find($provider_id);
-            $redirectUrl = $redirect_to ?? ($provider ? $provider->url : null);
-
             return Inertia::location($redirectUrl);
         }
 

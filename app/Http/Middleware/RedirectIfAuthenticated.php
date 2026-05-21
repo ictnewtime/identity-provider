@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use App\Models\User;
 use App\Models\Provider;
+use App\Services\TokenProviderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -69,10 +70,22 @@ class RedirectIfAuthenticated
             return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.missing_master_token"));
         }
 
+        $tokenService = app(TokenProviderService::class);
+        $idpProviderIdMaster = config("idp.provider_id");
+        $masterProvider = Provider::find($idpProviderIdMaster);
         $provider = Provider::find($providerId);
         $redirectUrl = $provider->url;
+        $ssoData = $tokenService->resolveCrossDomainRedirect(
+            $provider,
+            $masterProvider,
+            $redirectUrl,
+            $master_token_name,
+        );
+        $redirectUrl = $ssoData["redirectUrl"];
+
         Log::info("Controlli SSO superati per utente {$user->username}. Redirect finale.", [
-            "redirect_away_url" => $redirectUrl,
+            "redirect_away_url" => $ssoData["redirectUrl"],
+            "is_cross_domain" => !$ssoData["isSameDomainZone"],
         ]);
 
         return redirect()->away($redirectUrl);
