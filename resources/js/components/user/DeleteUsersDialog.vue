@@ -4,7 +4,6 @@ import { trans } from "laravel-vue-i18n";
 
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
-import { Icon } from "@iconify/vue";
 
 const props = defineProps({
     visible: { type: Boolean, required: true },

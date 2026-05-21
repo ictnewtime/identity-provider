@@ -7,10 +7,10 @@ use League\OAuth2\Server\ResourceServer;
 use Illuminate\Auth\AuthenticationException;
 use Symfony\Bridge\PsrHttpMessage\Factory\DiactorosFactory;
 use App\Repositories\ClientRepositoryInterface;
+use Laravel\Passport\Exceptions\OAuthServerException;
 
 class CheckClientRole
 {
-
     /**
      * The Client Repository Interface.
      *
@@ -46,21 +46,24 @@ class CheckClientRole
      */
     public function handle($request, Closure $next, string $roles)
     {
-        $psr = (new DiactorosFactory)->createRequest($request);
+        $psr = (new DiactorosFactory())->createRequest($request);
 
         try {
             $psr = $this->server->validateAuthenticatedRequest($psr);
-            $clientReqId = $psr->getAttribute('oauth_client_id');
+            $clientReqId = $psr->getAttribute("oauth_client_id");
             $client = $this->clientRepository->find($clientReqId);
             $check = !empty($client->roles) && !array_diff([$roles], json_decode($client->roles));
         } catch (OAuthServerException $e) {
-            throw new AuthenticationException;
+            throw new AuthenticationException();
         }
 
         if (!$check) {
-            return response()->json([
-                'message' => 'You are not authorized to use this resource'
-            ], 403);
+            return response()->json(
+                [
+                    "message" => "You are not authorized to use this resource",
+                ],
+                403,
+            );
         }
         return $next($request);
     }

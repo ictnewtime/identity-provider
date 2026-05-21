@@ -143,6 +143,12 @@
     "admin.users.form.validate.password.mandatory": "La password è obbligatoria per i nuovi utenti",
     "admin.users.form.validate.password_confirmation.mandatory": "Le password non coincidono",
 
+    "users.validation.email_required": "Email è obbligatoria",
+    "users.validation.email_invalid": "Email non è valida",
+    "users.validation.email_unique": "Email è già in uso",
+    "users.validation.username_required": "Username è obbligatorio",
+    "users.validation.username_unique": "Username è già in uso",
+
     "admin.users.toast.load_user_error": "Impossibile caricare i dati dell'utente selezionato",
     "admin.users.toast.submit_error": "Si è verificato un errore durante il salvataggio dell'utente",
     "admin.users.toast.detail_created": "Il nuovo utente è stato creato con successo",

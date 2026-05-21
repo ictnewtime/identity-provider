@@ -143,6 +143,12 @@
     "admin.users.form.validate.password.mandatory": "Password is required for new users",
     "admin.users.form.validate.password_confirmation.mandatory": "Passwords do not match",
 
+    "users.validation.email_required": "Email is required",
+    "users.validation.email_invalid": "Email is invalid",
+    "users.validation.email_unique": "Email is taken",
+    "users.validation.username_required": "Username is required",
+    "users.validation.username_unique": "Username is taken",
+
     "admin.users.toast.load_user_error": "Unable to load data for the selected user",
     "admin.users.toast.submit_error": "An error occurred while saving the user",
     "admin.users.toast.detail_created": "The new user has been successfully created",

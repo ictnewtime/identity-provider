@@ -449,7 +449,7 @@ watch(
 
                 <InputGroup>
                     <Password
-                        id="password_confirmation"
+                        inputId="password_confirmation"
                         v-model="form.password_confirmation"
                         autocomplete="new-password"
                         :invalid="!!errors.password_confirmation"
@@ -484,7 +484,7 @@ watch(
                 </label>
                 <InputGroup>
                     <LocalizedDatePicker
-                        id="password_expires_at"
+                        inputId="password_expires_at"
                         v-model="form.password_expires_at"
                         :invalid="!!errors.password_expires_at"
                         :showIcon="true"
