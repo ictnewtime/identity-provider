@@ -114,9 +114,6 @@ class User extends Authenticatable
      */
     public function hasAccessToProvider($providerId): bool
     {
-        // Logghiamo lo stato esatto della colonna enabled
-        $enabledStatus = isset($this->enabled) ? ($this->enabled ? "true" : "false") : "null";
-
         if (isset($this->enabled) && !$this->enabled) {
             Log::warning("Bloccato: L'utente è disabilitato (enabled = false).");
             return false;
