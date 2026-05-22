@@ -103,6 +103,23 @@ class LoginController extends Controller
             return redirect()->route("password.expired");
         }
 
+        // Check Utente Disabilitato
+        if (!$user->enabled) {
+            Log::warning("SSO bloccato: Utente {$user->username} è disabilitato.", [
+                "is_enabled" => $user->enabled,
+            ]);
+            Auth::logout();
+            return redirect()->route("sso.unauthorized");
+        }
+
+        // Risoluzione Provider e Check Autorizzazioni
+        // Se provider_id è null, significa che stà facendo acesso al IDP
+        $targetProviderId = $provider_id ?? config("idp.provider_id");
+        if (!$user->hasAccessToProvider($targetProviderId)) {
+            Log::warning("SSO bloccato: Utente {$user->username} non ha accesso al provider ID: {$targetProviderId}.");
+            return redirect()->route("sso.unauthorized");
+        }
+
         // dopo essermi autenticato con la login classica o con socialite/google
         // creo il master-token e se dovevo fare una redirect, la effettuo
         // solo quando sono nella App2 chiedo i ruoli in un token-JWT
