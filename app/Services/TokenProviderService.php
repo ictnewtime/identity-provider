@@ -127,7 +127,7 @@ class TokenProviderService
             "iat" => time(),
             "exp" => $expiration_seconds,
             "sub" => (string) $user->id,
-            "paylaod" => [
+            "payload" => [
                 "user" => [
                     "id" => $user->id,
                     "username" => $user->username,
@@ -237,7 +237,7 @@ class TokenProviderService
         $finalUrl = $redirectUrl;
 
         // Se siamo in Cross-Domain e abbiamo un token, lo appendiamo all'URL
-        if (!$isSameDomainZone && !empty($masterToken) && !empty($finalUrl)) {
+        if (!$isSameDomainZone && !empty($masterToken) && !empty($redirectUrl)) {
             $finalUrl = $this->appendTokenIfLocalUrl($finalUrl, $masterToken);
         }
 
