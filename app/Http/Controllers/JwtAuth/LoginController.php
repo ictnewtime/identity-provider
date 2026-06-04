@@ -144,7 +144,7 @@ class LoginController extends Controller
 
         if ($provider_id) {
             // devo semplicemente ottenere l' url e redirigere l' user
-            return redirect()->away($redirectUrl);
+            return Inertia::location($redirectUrl);
         }
 
         // solo se il provider id è vouto, creo il token App2

@@ -53,29 +53,7 @@ const isFormValid = computed(() => {
 
 const submit = () => {
     if (!isFormValid.value) return;
-    const formElement = document.createElement("form");
-    formElement.method = "POST";
-    formElement.action = "/v2/login";
-
-    const fields = {
-        username: form.username,
-        password: form.password,
-        provider_id: form.provider_id,
-        redirect_to: form.redirect_to,
-    };
-
-    for (const [key, value] of Object.entries(fields)) {
-        if (value) {
-            const input = document.createElement("input");
-            input.type = "hidden";
-            input.name = key;
-            input.value = value;
-            formElement.appendChild(input);
-        }
-    }
-
-    document.body.appendChild(formElement);
-    formElement.submit();
+    form.post("/v2/login");
 };
 
 const togglePasswordVisibility = () => {
