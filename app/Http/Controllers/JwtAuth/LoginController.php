@@ -198,8 +198,18 @@ class LoginController extends Controller
      */
     public function logout_sso(Request $request)
     {
-        // Se App2 ci passa un URL di ritorno, lo usiamo, altrimenti andiamo al login
-        $redirectTo = $request->query("redirect_to", route("loginForm"));
+        // Se App2 ci passa URL di ritorno, lo usiamo
+        // se ci  passa un provider_id troviamo l' URL e lo usiamo, altrimenti andiamo al login
+        $redirectTo = $request->query("redirect_to");
+        if (empty($redirectTo) && $request->has("provider_id")) {
+            $provider = Provider::find($request->query("provider_id"));
+            if ($provider && !empty($provider->url)) {
+                $redirectTo = $provider->url;
+            }
+        }
+        if (empty($redirectTo)) {
+            $redirectTo = route("loginForm");
+        }
 
         return $this->performLogout($request, $redirectTo);
     }
@@ -208,8 +218,8 @@ class LoginController extends Controller
     {
         $idpProviderId = config("idp.provider_id");
         $dynamicCookieName = "idp_token_" . $idpProviderId;
-        $provider = Provider::find(config("idp.provider_id"));
-        $cookieDomain = $provider->domain; // es. .miosito.it (o null per localhost)
+        $provider = Provider::find($idpProviderId);
+        $cookieDomain = $provider ? $provider->domain : null; // es. .miosito.it (o null per localhost)
 
         // Prima proviamo con Auth, poi con il cookie (per sicurezza)
         $userId = Auth::id();
