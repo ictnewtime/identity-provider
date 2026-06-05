@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\JwksController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
@@ -13,12 +14,7 @@ use App\Http\Controllers\Manage\SessionController;
 use App\Http\Controllers\Manage\AuditController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Manage\ParametersController;
-use Illuminate\Support\Facades\Log;
-
-// Redirect Home -> Login
-Route::get("/", function () {
-    return redirect()->route("loginForm");
-});
+use Laravel\Socialite\Facades\Socialite;
 
 // Lingua
 Route::get("lang/{locale}", function ($locale) {
@@ -30,10 +26,8 @@ Route::get("lang/{locale}", function ($locale) {
 
 // Autenticazione
 Route::middleware("guest")->group(function () {
-    Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
-    Route::get("login", function () {
-        return redirect()->route("loginForm");
-    })->name("login");
+    // Redirect Home -> Login
+    Route::get("/", [LoginController::class, "showLoginForm"])->name("loginForm");
     Route::get("/forgot-password", [PasswordResetController::class, "create"])->name("password.request");
     Route::post("/forgot-password", [PasswordResetController::class, "store"])->name("password.email");
     Route::get("/reset-password/{token}", [PasswordResetController::class, "edit"])->name("password.reset");
@@ -44,6 +38,9 @@ Route::post("v2/login", [LoginController::class, "login"]);
 Route::post("logout", [LoginController::class, "logout_web"])->name("logout_web");
 Route::get("/sso/logout", [LoginController::class, "logout_sso"])->name("logout_sso");
 
+Route::get("/auth/google/redirect", [LoginController::class, "redirectToGoogle"])->name("google.redirect");
+Route::get("/auth/google/callback", [LoginController::class, "handleGoogleCallback"])->name("google.callback");
+
 Route::middleware(["auth"])->group(function () {
     Route::get("/password/expired", [PasswordResetController::class, "expired"])->name("password.expired");
 
@@ -51,6 +48,8 @@ Route::middleware(["auth"])->group(function () {
         "password.force-update",
     );
 });
+
+Route::get("/.well-known/jwks.json", [JwksController::class, "index"]);
 
 /********* ADMIN ROUTES ************/
 Route::prefix("admin")
@@ -112,6 +111,9 @@ Route::prefix("admin")
             Route::put("users/{id}", [UserController::class, "update"])->whereNumber("id");
             Route::delete("users/{id}", [UserController::class, "delete"])->whereNumber("id");
             Route::patch("users/{id}/restore", [UserController::class, "restore"])->whereNumber("id");
+            Route::delete("users/bulk-delete", [UserController::class, "bulkDelete"]);
+            Route::patch("users/bulk-restore", [UserController::class, "bulkRestore"]);
+            Route::get("users/{id}/roles", [UserController::class, "getUserRoles"])->whereNumber("id");
 
             // provider-user-roles
             Route::get("provider-user-roles", [ProviderUserRoleController::class, "all"]);
@@ -120,12 +122,13 @@ Route::prefix("admin")
             Route::put("provider-user-roles/{id}", [ProviderUserRoleController::class, "update"])->whereNumber("id");
             Route::delete("provider-user-roles/{id}", [ProviderUserRoleController::class, "delete"])->whereNumber("id");
             Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
-            Route::delete("provider-user-roles/bulk-delete", [ProviderUserRoleController::class, "bulk_delete"]);
+            Route::delete("provider-user-roles/bulk-delete", [ProviderUserRoleController::class, "bulkDelete"]);
             Route::patch("provider-user-roles/{id}/restore", [
                 ProviderUserRoleController::class,
                 "restore",
             ])->whereNumber("id");
-            Route::patch("provider-user-roles/bulk-restore", [ProviderUserRoleController::class, "bulk_restore"]);
+            Route::patch("provider-user-roles/bulk-restore", [ProviderUserRoleController::class, "bulkRestore"]);
+            Route::post("provider-user-roles/bulk-add", [ProviderUserRoleController::class, "bulkAddRolesToUsers"]);
 
             // sessions
             Route::get("sessions", [SessionController::class, "all"]);

@@ -14,7 +14,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(["item-saved", "item-error"]);
+const emit = defineEmits(["item-success", "item-error"]);
 const toast = useToast();
 
 const loadingSubmit = ref(false);
@@ -158,7 +158,7 @@ const submit = async () => {
                 : trans("admin.provider_user_roles.toast.detail_created"),
             life: 3000,
         });
-        emit("item-saved");
+        emit("item-success");
         resetForm();
     } catch (error) {
         toast.add({

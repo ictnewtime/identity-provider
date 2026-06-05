@@ -2,28 +2,39 @@
 
 namespace App\Services;
 
+use App\Models\Parameter;
 use App\Models\User;
 use App\Models\Provider;
-use Tymon\JWTAuth\Facades\JWTAuth;
 use App\Services\ProviderUserRoleService;
 use Illuminate\Support\Facades\Log;
+use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
-use Lcobucci\JWT\Configuration;
+use Firebase\JWT\JWT;
+use Illuminate\Support\Facades\File;
 
 class TokenProviderService
 {
     protected $providerUserRoleService;
-    protected $ttlInSeconds;
+    protected $expirationTimeInSeconds;
 
     public function __construct()
     {
         $this->providerUserRoleService = new ProviderUserRoleService();
-        $this->ttlInSeconds = (int) env("JWT_TTL", 24 * 60 * 60); // default 24 ore
+        $this->expirationTimeInSeconds = (int) env("JWT_TTL", 24 * 60 * 60); // default 24 ore
     }
 
-    public function getTtlInSeconds(): int
+    public function getAppToeknExpiredAt(): int
     {
-        return $this->ttlInSeconds;
+        $parameter = Parameter::where("key", "app-token-exp-time-seconds")->first();
+        $seconds = $parameter ? $parameter->value : $this->expirationTimeInSeconds;
+        return (int) $seconds;
+    }
+
+    public function getMasterTokenExpiredAt(): int
+    {
+        $parameter = Parameter::where("key", "master-token-exp-time-seconds")->first();
+        $seconds = $parameter ? $parameter->value : $this->expirationTimeInSeconds;
+        return (int) $seconds;
     }
 
     /**
@@ -32,9 +43,11 @@ class TokenProviderService
      * Altrimenti genera un token standard.
      * * @return string|null Ritorna il token stringa, o null se l'utente non è abilitato per quel provider.
      */
-    public function tokenCretion(User $user, ?string $redirectId = null)
+    public function generateAppToken(User $user, ?string $redirectId = null)
     {
-        $ttlInMinutes = $this->ttlInSeconds / 60;
+        $jwt_exp_seconds = $this->getAppToeknExpiredAt();
+        $ttlInMinutes = $jwt_exp_seconds / 60;
+
         // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
         JWTAuth::factory()->setTTL($ttlInMinutes);
         $provider = Provider::where("id", $redirectId)->first();
@@ -60,18 +73,18 @@ class TokenProviderService
             }
 
             $currentTime = time();
-            $calculatedTtl = $this->ttlInSeconds ?? 3600;
-            $expirationTime = $currentTime + $calculatedTtl;
+            $expirationTime = $currentTime + $jwt_exp_seconds;
 
             $payloadData = array_merge(
                 [
-                    "iss" => url("/"),
+                    "iss" => $provider->url,
                     "iat" => $currentTime,
                     "exp" => $expirationTime,
                     "nbf" => $currentTime,
                     "jti" => bin2hex(random_bytes(10)),
                     "sub" => (string) $user->id,
                     "prv" => $provider->id,
+                    "aud" => $provider->domain,
                 ],
                 ["payload" => $payload],
             );
@@ -85,7 +98,7 @@ class TokenProviderService
             // Creiamo il provider specifico al volo
             $customProvider = new Lcobucci($provider->secret_key, $algo, $keys);
 
-            // Firmiamo il token usando ESCLUSIVAMENTE questo provider temporaneo
+            // Firmiamo il token usando esclusivamente questo provider temporaneo
             $token = $customProvider->encode($payloadData);
         } catch (\Exception $e) {
             Log::error(
@@ -103,25 +116,76 @@ class TokenProviderService
         return $token;
     }
 
-    public function cookieCretion(string $token, string $provider_id)
+    public function generateMasterToken(User $user, $providerId)
     {
+        $jwt_exp_seconds = $this->getMasterTokenExpiredAt();
+        $expiration_seconds = time() + $jwt_exp_seconds;
+        $provider = Provider::where("id", $providerId)->first();
+
+        $payload = [
+            "iss" => $provider->url,
+            "iat" => time(),
+            "exp" => $expiration_seconds,
+            "sub" => (string) $user->id,
+            "payload" => [
+                "user" => [
+                    "id" => $user->id,
+                    "username" => $user->username,
+                    "email" => $user->email,
+                    "name" => $user->name,
+                    "surname" => $user->surname,
+                ],
+            ],
+        ];
+
+        $privateKey = File::get(storage_path("app/keys/private.key"));
+        $keyId = config("idp.jwt.master_key_id");
+        return JWT::encode($payload, $privateKey, "RS256", $keyId);
+    }
+
+    public function cookieCretion(string $token, string $provider_id, $cookie_name = null)
+    {
+        $master_token_name = config("idp.jwt.master_token_name");
+        $expiration_seconds = $this->getAppToeknExpiredAt();
         // creo un cookie con il token
-        $cookie_name = "idp_token_" . $provider_id;
+        if (empty($cookie_name)) {
+            $cookie_name = "idp_token_" . $provider_id;
+        }
+        if ($cookie_name == $master_token_name) {
+            $expiration_seconds = $this->getMasterTokenExpiredAt();
+        }
         $provider = Provider::where("id", $provider_id)->first();
         $domain = $provider->domain;
         $is_https = str_starts_with($provider->protocol, "https");
         $cookie = cookie(
             $cookie_name, // Nome del cookie
             $token, // Il token JWT stringa
-            $this->ttlInSeconds, // Durata in secondi
+            $expiration_seconds, // Durata in secondi
             "/", // Path
             $domain, // Domain (null = automatico)
-            $is_https, // Secure (true = solo HTTPS, metti env('APP_SECURE', false) per locale)
-            true, // HttpOnly (FONDAMENTALE: true = JS non può leggerlo)
+            $is_https, // Secure (true = solo HTTPS)
+            true, // HttpOnly (true = JS non può leggerlo)
             false, // Raw
             "Lax", // SameSite (Lax va bene per i redirect, Strict per API pure)
         );
         return $cookie;
+    }
+
+    public static function checkLocalHost($host): bool
+    {
+        $valid_hosts = ["localhost", "127.0.0.1", "::1"];
+        $valid_partial_hosts = ["192.168."];
+        foreach ($valid_hosts as $valid_host) {
+            if (str_contains($host, $valid_host)) {
+                return true;
+            }
+        }
+        foreach ($valid_partial_hosts as $valid_host) {
+            if (str_contains($host, $valid_host)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -134,9 +198,11 @@ class TokenProviderService
      */
     public function appendTokenIfLocalUrl(string $redirect_url, string $token): string
     {
+        $tokenService = new TokenProviderService();
         $host = parse_url($redirect_url, PHP_URL_HOST);
-
-        if (in_array($host, ["localhost", "127.0.0.1"]) || str_contains($host, "192.168.")) {
+        // in_array($host, ["localhost", "127.0.0.1"]) || str_contains($host, "192.168.")
+        // $tokenService->checkLocalHost($host);
+        if ($tokenService->checkLocalHost($host)) {
             $separator = parse_url($redirect_url, PHP_URL_QUERY) ? "&" : "?";
             return $redirect_url . $separator . "token=" . urlencode($token);
         }
@@ -144,11 +210,41 @@ class TokenProviderService
         return $redirect_url;
     }
 
-    public function appendTokenToUrl(string $redirect_url, string $token): string
-    {
-        // Accoda sempre il token in query string, che sia localhost o produzione
-        $separator = parse_url($redirect_url, PHP_URL_QUERY) ? "&" : "?";
-        return $redirect_url . $separator . "token=" . urlencode($token);
+    public function resolveCrossDomainRedirect(
+        ?Provider $provider,
+        ?Provider $masterProvider,
+        ?string $redirectUrl,
+        ?string $masterToken,
+    ): array {
+        $isSameDomainZone = false;
+
+        // Se non c'è un redirectUrl, l'utente rimane sull'IDP
+        if (empty($redirectUrl)) {
+            $isSameDomainZone = true;
+        } elseif ($provider && $masterProvider) {
+            $targetDomain = strtolower(trim($provider->domain, "."));
+            $masterDomain = strtolower(trim($masterProvider->domain, "."));
+
+            if (
+                $targetDomain === $masterDomain ||
+                str_contains($masterDomain, $targetDomain) ||
+                str_contains($targetDomain, $masterDomain)
+            ) {
+                $isSameDomainZone = true;
+            }
+        }
+
+        $finalUrl = $redirectUrl;
+
+        // Se siamo in Cross-Domain e abbiamo un token, lo appendiamo all'URL
+        if (!$isSameDomainZone && !empty($masterToken) && !empty($redirectUrl)) {
+            $finalUrl = $this->appendTokenIfLocalUrl($finalUrl, $masterToken);
+        }
+
+        return [
+            "isSameDomainZone" => $isSameDomainZone,
+            "redirectUrl" => $finalUrl,
+        ];
     }
 
     // Esempio di funzione unificata da mettere in un Service o in un Trait
@@ -179,12 +275,12 @@ class TokenProviderService
         // Gestione sicura del redirect_to
         if ($redirectToParam) {
             $parsedHost = parse_url($redirectToParam, PHP_URL_HOST);
-            if ($parsedHost === $provider->domain || in_array($parsedHost, ["localhost", "127.0.0.1"])) {
+            if (str_ends_with($parsedHost, $provider->domain) || $tokenService->checkLocalHost($parsedHost)) {
                 $redirectUrl = $redirectToParam;
             }
         }
 
-        $finalUrl = $tokenService->appendTokenToUrl($redirectUrl, $token);
+        $finalUrl = $tokenService->appendTokenIfLocalUrl($redirectUrl, $token);
         $cookie = $tokenService->cookieCretion($token, $providerId);
 
         return [

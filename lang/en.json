@@ -1,4 +1,15 @@
 {
+    "primevue.date_format": "mm/dd/yy",
+    "primevue.first_day_of_week": "0",
+    "primevue.day_names": "Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday",
+    "primevue.day_names_short": "Sun,Mon,Tue,Wed,Thu,Fri,Sat",
+    "primevue.day_names_min": "Su,Mo,Tu,We,Th,Fr,Sa",
+    "primevue.month_names": "January,February,March,April,May,June,July,August,September,October,November,December",
+    "primevue.month_names_short": "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec",
+    "primevue.today": "Today",
+    "primevue.clear": "Clear",
+
+    "validation.current_password": "Incorrect password",
     "auth.err-login": "Invalid credentials",
     "auth.verification.errors.invalid_code": "The verification code is invalid or has already been used.",
     "auth.verification.errors.user_not_found": "Unable to find the user associated with this code.",
@@ -6,6 +17,9 @@
     "auth.verification.errors.delete_failed": "Account activated, but unable to remove security code.",
 
     "auth.forgot_password": "Forgot Password?",
+    "auth.login_with_google": "Login with Google",
+    "auth.google_login_failed": "An error occurred during Google login.",
+    "auth.google_login_without_account": "Unauthorized or non-existent user.",
     "auth.recover_password_title": "Recover Password",
     "auth.recover_password_body": "Enter your username. We will send you a recovery link to the email address associated with your profile.",
     "auth.send_recovery_link": "Send Recovery Link",
@@ -35,8 +49,13 @@
     "auth.req_number": "One number",
     "auth.req_special": "One special character",
     "auth.req_match": "Passwords match",
-
     "auth.password_same_as_old": "The new password cannot be the same as the current one.",
+    "auth.no_application_specified": "No application specified.",
+    "auth.missing_master_token": "Missing master token.",
+    "auth.sso_not_found_or_corrupted": "Global SSO session not found or corrupt. Please log in again.",
+
+    "jwks.public_key_not_found": "Public key not fouind.",
+    "jwks.unable_to_extract_public_key_rsa": "Unable to extract public key RSA.",
 
     "common.id": "ID",
     "common.actions": "Actions",
@@ -52,6 +71,8 @@
     "common.close": "Close",
     "common.logout": "Logout",
     "common.restore": "Restore",
+    "common.loading": "Loading",
+    "common.no_records_found": "No records found",
 
     "admin.nav.users": "Users",
     "admin.nav.roles": "Roles",
@@ -62,6 +83,7 @@
     "admin.nav.parameters": "Parameters",
 
     "admin.users.title": "User Management",
+    "admin.users.add_role_relations": "Assign Roles",
     "admin.users.new_user": "New User",
 
     "admin.users.table.title": "User List",
@@ -76,15 +98,29 @@
     "admin.users.table.empty": "No users found in the system.",
     "admin.users.table.deleted_at": "Deleted At",
     "admin.users.table.show_deleted_tooltip": "Show Deleted Users",
+    "admin.users.table.delete_selected_tooltip": "Delete Selected Users",
+    "admin.users.table.restore_selected_tooltip": "Restore Selected Users",
+    "admin.users.table.hide_deleted_tooltip": "Hide Deleted Users",
+    "admin.users.table.select_all_label": "Select All",
+    "admin.users.table.deselect_all_label": "Deselect All",
+    "admin.roles.select_roles": "Select Roles",
+    "admin.users.roles.add_title": "Add roles for selected user",
+    "admin.roles.search_placeholder": "Search roles...",
+    "admin.users.roles.add_roles_from_user": "Add roles from selected user",
+    "admin.roles.form.user_placeholder": "Select User",
 
     "admin.users.form.title_create": "New User",
     "admin.users.form.title_edit": "Edit User",
 
     "admin.users.toast.load_error": "Unable to load user list",
     "admin.users.toast.delete_success": "User successfully deleted",
-    "admin.users.toast.delete_error": "An error occurred while deleting the user",
+    "admin.users.toast.delete_user_error": "An error occurred while deleting the user",
+    "admin.users.toast.delete_users_error": "An error occurred while deleting the users",
 
-    "admin.users.delete.prompt": "Are you sure you want to delete the user ",
+    "admin.users.delete.user_title": "Delete User",
+    "admin.users.delete.users_title": "Delete Users",
+    "admin.users.delete.prompt_user": "Are you sure you want to delete the user ",
+    "admin.users.delete.prompt_users": "Are you sure you want to delete the selected users with ids: ",
 
     "admin.users.form.username_label": "Username",
     "admin.users.form.email_label": "Email",
@@ -107,6 +143,12 @@
     "admin.users.form.validate.password.mandatory": "Password is required for new users",
     "admin.users.form.validate.password_confirmation.mandatory": "Passwords do not match",
 
+    "users.validation.email_required": "Email is required",
+    "users.validation.email_invalid": "Email is invalid",
+    "users.validation.email_unique": "Email is taken",
+    "users.validation.username_required": "Username is required",
+    "users.validation.username_unique": "Username is taken",
+
     "admin.users.toast.load_user_error": "Unable to load data for the selected user",
     "admin.users.toast.submit_error": "An error occurred while saving the user",
     "admin.users.toast.detail_created": "The new user has been successfully created",
@@ -114,7 +156,13 @@
 
     "user.error.not_found": "User not found",
     "user.delete_error": "Error during deleting user",
+    "user.delete_has_roles_error": "Unable to delete user because there are active roles associated with it",
     "user.restore_error": "Error during restoring user",
+    "user.bulk_delete_error": "Error deleting users",
+    "user.bulk_delete_success": "Users deleted successfully",
+    "users.bulk_restore_error": "Error on restore users",
+    "users.not_found_multiple": "Error on restore users. Mismatch on ids",
+    "users.bulk_restore_success": "Users restore successfully",
 
     "admin.roles.title": "Role Management",
     "admin.roles.new_role": "New Role",
@@ -136,6 +184,7 @@
     "admin.roles.form.title_edit": "Edit Role",
 
     "admin.roles.toast.load_error": "Unable to load role list",
+    "admin.roles.toast.load_user_role_error": "Unable to load roles from the selected user",
     "admin.roles.toast.delete_success": "Role successfully deleted",
     "admin.roles.toast.delete_error": "An error occurred while deleting the role",
     "admin.roles.delete.prompt": "Are you sure you want to permanently delete the role ",
@@ -159,11 +208,15 @@
     "admin.roles.toast.restore_error": "An error occurred while restoring the role",
     "admin.users.toast.restore_success": "User restored successfully",
     "admin.users.toast.restore_error": "An error occurred while restoring the user",
+    "admin.users.toast.add_roles_success": "Roles added successfully",
+    "admin.users.toast.add_roles_error": "An error occurred while adding roles",
 
     "admin.roles.form.error.domain.unique": "Il dominio del provider deve essere univoco",
     "admin.roles.form.error.domain.mandatory": "The provider domain cannot be empty",
     "admin.roles.form.error.logout_url.invalid": "The logout URL is invalid",
     "admin.roles.restore.prompt": "Are you sure you want to restore the role ",
+    "admin.roles.btn_add_roles": "Add Roles",
+    "admin.roles.items_selected": "{0} roles selected",
 
     "role.error.not_found": "Role not found",
     "role.error.restoring": "Error on restoring role",
@@ -174,7 +227,7 @@
     "admin.providers.table.search_placeholder": "Search domain...",
     "admin.providers.table.domain": "Domain",
     "admin.providers.table.name": "Name",
-    "admin.providers.table.logout_url": "Logout URL",
+    "admin.providers.table.unique_users_count": "Number of users",
     "admin.providers.table.default_url": "Default",
     "admin.providers.table.empty": "No providers found in the system.",
     "admin.providers.table.show_deleted_tooltip": "Show Deleted Providers",
@@ -183,7 +236,10 @@
     "admin.providers.table.hide_deleted_tooltip": "Hide Deleted Providers",
     "admin.providers.restore.title": "Restore Provider",
     "admin.providers.restore.prompt": "Are you sure you want to restore the provider ",
-    "admin.users.restore.prompt": "Are you sure you want to restore the user ",
+    "admin.users.restore.user_title": "Restore User",
+    "admin.users.restore.users_title": "Restore Users",
+    "admin.users.restore.prompt_user": "Are you sure you want to restore the user ",
+    "admin.users.restore.prompt_users": "Are you sure you want to restore the users with the following ids: ",
 
     "admin.providers.form.title_create": "New Provider",
     "admin.providers.form.title_edit": "Edit Provider",
@@ -192,7 +248,7 @@
     "admin.providers.form.btn_create": "Create Provider",
     "admin.providers.form.url_label": "Main App URL",
     "admin.providers.form.url_placeholder": "e.g., https://myapp.com or localhost:8000",
-    "admin.providers.form.url_tooltip": "Enter the URL and use the magic wand to auto-fill the fields below.",
+    "admin.providers.form.url_tooltip": "Enter the URL and use the magic stars to auto-fill the fields below.",
     "admin.providers.form.url_btn_tooltip": "Extract Domain, Protocol, and Logout URL",
     "admin.providers.form.domain_label": "Domain",
     "admin.providers.form.domain_placeholder": "idp.newtimegroup.it",
@@ -269,7 +325,8 @@
     "admin.provider_user_roles.toast.delete_success": "Association successfully deleted",
     "admin.provider_user_roles.toast.delete_error": "An error occurred while deleting the association",
 
-    "admin.provider_user_roles.delete.prompt": "Are you sure you want to remove the association for the user ",
+    "admin.provider_user_roles.delete.prompt_user": "Are you sure you want to remove the association between: ",
+    "admin.provider_user_roles.delete.prompt_users": "Are you sure you want to remove the association with ids: ",
     "admin.provider_user_roles.errors.unique_role": "This user already has this role for the provider selected.",
     "admin.provider_user_roles.errors.creation": "An error occurred while creating the association",
     "admin.provider_user_roles.table.show_deleted_tooltip": "Show deleted associations",
@@ -282,10 +339,12 @@
     "provider_user_roles.conflict_unique": "There is already an active Provider-user-role",
     "provider_user_roles.restore_success": "Provider user role restored",
 
-    "provider_user_roles.bulk_restore_error": "Unprocessable Entity",
-    "provider_user_roles.not_found_multiple": "Provider user roles not found",
+    "provider_user_roles.bulk_restore_error": "Erron on restore of provider-user-roles relations",
+    "provider_user_roles.not_found_multiple": "Roles for the provider not found",
     "provider_user_roles.conflict_unique_multiple": "There is already an active Provider-user-role for one or more selected items",
     "provider_user_roles.bulk_restore_success": "Provider user roles restored successfully",
+    "provider_user_roles.bulk_add_error": "Error adding provider user roles",
+    "provider_user_roles.bulk_add_success": "Provider user roles added successfully",
 
     "role.error.is_in_use": "This role is in use and cannot be deleted.",
 
@@ -312,6 +371,7 @@
     "admin.sessions.delete.this_user": "this user",
     "admin.sessions.delete.on_domain": " on the domain ",
     "admin.sessions.delete.btn_terminate": "Terminate",
+    "session.error.access_denied.user_disabled_or_missing_roles": "Access denied: User disabled or missing roles for Provider :providerId.",
 
     "admin.audits.title": "Audit Log Management",
 
@@ -349,6 +409,9 @@
     "auth.hide_password": "Hide password",
     "auth.show_password": "Show password",
     "auth.update_password_btn": "Save New Password",
+    "auth.token_missing": "Authorization token missing",
+    "auth.token_invalid": "Authorization token invalid",
+    "auth.provider_invalid": "Invalid provider",
 
     "admin.parameters.title": "System Parameters Management",
     "admin.parameters.new_parameter": "New Parameter",
@@ -386,6 +449,9 @@
     "admin.parameters.form.type_placeholder": "Select parameter type",
     "admin.parameters.form.value_label": "Value",
     "admin.parameters.form.value_placeholder": "Enter parameter value",
-    "admin.parameters.form.value_disabled_hint": "Value cannot be modified after creation",
-    "admin.parameters.form.btn_create": "Create Parameter"
+    "admin.parameters.form.btn_create": "Create Parameter",
+    "parameter.error.not_found": "Parameter not found",
+    "parameter.error.restoring": "An error occurred while restoring the parameter",
+    "parameter.error.updating": "An error occurred while updating the parameter",
+    "parameter.error.alredy_exists": "A parameter with the same key already exists"
 }

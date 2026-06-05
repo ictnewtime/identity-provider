@@ -21,7 +21,8 @@ const toast = useToast();
 
 const filter = ref("");
 const loading = ref(false);
-const pagination = ref({ data: [], total: 0, per_page: 10 });
+const pagination = ref({ data: [], total: 0, per_page: 25 });
+const sortParams = ref({ field: null, order: null });
 const displayModal = ref(false);
 const roleSelected = ref(null);
 const displayDeleteModal = ref(false);
@@ -33,7 +34,9 @@ const tableComponent = reactive({
 
 const loadRoles = (page = 1) => {
     loading.value = true;
-
+    let sort_dir = null;
+    if (sortParams.value.order === 1) sort_dir = "asc";
+    else if (sortParams.value.order === -1) sort_dir = "desc";
     window.axios
         .get("/admin/v1/roles", {
             params: {
@@ -41,6 +44,8 @@ const loadRoles = (page = 1) => {
                 per_page: pagination.value.per_page,
                 q: filter.value,
                 show_deleted: tableComponent.showRolesDeleted,
+                sort_by: sortParams.value.field,
+                sort_dir: sort_dir,
             },
         })
         .then((res) => {
@@ -62,7 +67,14 @@ const loadRoles = (page = 1) => {
 };
 
 const onPage = (event) => {
+    pagination.value.per_page = event.rows;
     loadRoles(event.page + 1);
+};
+
+const onSort = (event) => {
+    sortParams.value.field = event.sortField;
+    sortParams.value.order = event.sortOrder;
+    loadRoles();
 };
 
 const onFilterChange = () => {
@@ -170,7 +182,16 @@ onMounted(() => {
 <template>
     <div>
         <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
-            <DataTable :value="pagination.data" :loading="loading" responsiveLayout="scroll" stripedRows size="small">
+            <DataTable
+                :value="pagination.data"
+                :loading="loading"
+                responsiveLayout="scroll"
+                stripedRows
+                size="small"
+                :lazy="true"
+                @sort="onSort"
+                :sortOrder="sortParams.order"
+            >
                 <template #header>
                     <div class="flex flex-col sm:flex-row justify-between items-center pb-4 gap-4">
                         <h3 class="text-lg font-semibold m-0 text-surface-800">
@@ -207,19 +228,19 @@ onMounted(() => {
                     </div>
                 </template>
 
-                <Column field="id" :header="$t('common.id')" style="width: 5%">
+                <Column field="id" :header="$t('common.id')" style="width: 5%; padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="text-surface-500 text-sm">{{ slotProps.data.id }}</span>
                     </template>
                 </Column>
 
-                <Column field="name" :header="$t('admin.roles.table.name')">
+                <Column field="name" :header="$t('admin.roles.table.name')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span class="font-bold text-surface-900">{{ slotProps.data.name }}</span>
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.roles.table.provider')">
+                <Column field="provider.name" :header="$t('admin.roles.table.provider')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span v-if="slotProps.data.provider" class="text-surface-700 font-medium">
                             {{ slotProps.data.provider.name }}
@@ -230,7 +251,7 @@ onMounted(() => {
                     </template>
                 </Column>
 
-                <Column :header="$t('admin.roles.table.domain')">
+                <Column field="provider.domain" :header="$t('admin.roles.table.domain')" style="padding: 1rem" sortable>
                     <template #body="slotProps">
                         <span v-if="slotProps.data.provider" class="text-surface-600">
                             {{ slotProps.data.provider.domain }}
@@ -245,6 +266,8 @@ onMounted(() => {
                     field="deleted_at"
                     :header="$t('admin.roles.table.deleted_at')"
                     v-if="tableComponent.showRolesDeleted === true"
+                    style="padding: 1rem"
+                    sortable
                 >
                     <template #body="slotProps">
                         <span class="text-surface-600">{{ formatDate(slotProps.data.deleted_at) }}</span>
@@ -310,7 +333,8 @@ onMounted(() => {
 
             <Paginator
                 v-if="pagination.total > 0"
-                :rows="pagination.per_page"
+                :rows="25"
+                :rowsPerPageOptions="[25, 50, 75, 100]"
                 :totalRecords="pagination.total"
                 @page="onPage"
                 class="mt-4 border-t border-surface-100 pt-4"
@@ -375,7 +399,7 @@ onMounted(() => {
                 <Button
                     :label="$t('common.restore')"
                     icon="pi pi-check"
-                    severity="danger"
+                    severity="primary"
                     @click="restoreRole"
                     autofocus
                 />

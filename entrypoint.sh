@@ -1,9 +1,24 @@
 #!/bin/bash
 set -e
 
-# Sistema i permessi all'avvio (fondamentale per i volumi locali)
+# Sistema i permessi all'avvio
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache
+
+KEYS_DIR="/var/www/storage/app/keys"
+
+# Se la chiave privata non esiste, la genera
+if [ ! -f "$KEYS_DIR/private.key" ]; then
+    echo "Chiavi RSA non trovate. Generazione in corso..."
+    mkdir -p $KEYS_DIR
+    openssl genrsa -out $KEYS_DIR/private.key 2048
+    openssl rsa -in $KEYS_DIR/private.key -pubout -out $KEYS_DIR/public.key
+    chown -R www-data:www-data $KEYS_DIR
+    chmod 600 $KEYS_DIR/private.key
+    chmod 644 $KEYS_DIR/public.key
+    chmod 755 $KEYS_DIR
+    echo "Chiavi generate con successo!"
+fi
 
 echo "Attesa MariaDB..."
 for i in {1..30}; do
@@ -15,5 +30,4 @@ for i in {1..30}; do
   sleep 2
 done
 
-# Avvia Supervisor puntando al file principale
 exec /usr/bin/supervisord -n -c /etc/supervisord.conf

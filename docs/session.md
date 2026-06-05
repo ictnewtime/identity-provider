@@ -65,32 +65,8 @@ La UI è standardizzata su 4 entità principali: **Utenti, Provider, Ruoli, Asso
 
 ## 💡 Prossimi Step e TODO (Punti aperti da smarcare)
 
-Analizzando il codice scritto finora, ecco i punti fisiologici che mancano per chiudere il cerchio e rendere il sistema "production-ready":
-
 ### 1. Implementazione del `refresh_token`
 
 Nella migrazione abbiamo aggiunto la colonna `refresh_token` a database, ma attualmente il `SessionService` passa sempre `null` in fase di creazione.
 
 - **Cosa fare**: Generare una stringa sicura (es. `Str::random(60)`) nel `TokenProviderService`, salvarla nel DB e creare un endpoint API (`/api/refresh`) che i Provider possono chiamare per rinnovare il JWT scaduto senza costringere l'utente a passare per un redirect visivo all'IdP.
-
-### 2. Logica di Logout (Single Logout - SLO)
-
-Al momento abbiamo gestito perfettamente il Login. Ma cosa succede quando l'utente fa Logout?
-
-- **Cosa fare**: Creare una rotta di logout sull'IdP che:
-
-1. Distrugga la sessione Auth globale (Grant-Token).
-2. Cancelli **tutti** i record dell'utente dalla tabella `sessions`.
-3. (Opzionale ma consigliato) Invii una chiamata server-to-server (Back-Channel Logout) ai vari URL di `logoutUrl` dei Provider per avvisarli di invalidare i loro cookie locali.
-
-### 3. Pulizia automatica delle sessioni scadute (Garbage Collection)
-
-La tabella `sessions` continuerà a crescere all'infinito accumulando token scaduti.
-
-- **Cosa fare**: Creare un Laravel Console Command (es. `php artisan auth:clear-sessions`) che esegua un `Session::where('expires_at', '<', now())->delete();`. Questo comando andrà poi inserito nel file `routes/console.php` (o nel Kernel per versioni vecchie) per girare in automatico ogni ora (`->hourly()`).
-
-### 4. Generazione automatica della `Secret Key`
-
-Nel `ProviderForm.vue`, se l'admin non inserisce una Secret Key in creazione, il validatore lo blocca. Tuttavia, far inventare all'umano una chiave crittografica non è mai una buona idea.
-
-- **Cosa fare**: Aggiungere un bottone (es. icona "dado" o "refresh") di fianco al campo password nel Vue Form, che invochi una funzioncina JS capace di generare una stringa alfanumerica randomica di 32 o 64 caratteri da usare come Secret Key.

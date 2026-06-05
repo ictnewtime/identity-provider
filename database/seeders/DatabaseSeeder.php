@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Parameter;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -20,19 +21,39 @@ class DatabaseSeeder extends Seeder
         // Creiamo un Provider di default (es. il pannello di amministrazione stesso)
         $provider = Provider::create([
             "domain" => "localhost",
-            "url" => "http://localhost:8000",
+            "url" => "http://localhost:8001",
             "protocol" => "http",
             "secret_key" => Str::random(32),
-            "logoutUrl" => "http://localhost/logout",
+            "logoutUrl" => "http://localhost:8001/logout",
             "name" => "IDP",
         ]);
 
         // Creiamo i Ruoli base legati al Provider
-        Role::create([
+        $role = Role::create([
             "name" => "admin",
             "provider_id" => $provider->id,
         ]);
 
-        $this->command->info("Database popolato con successo! Utente: admin@admin.com / Password: password");
+        $user = User::create([
+            "username" => "admin.admin",
+            "password" => Hash::make("HtZhs96xZ%7LhF"),
+            "email" => "admin.admin@example.com",
+            "name" => "admin",
+            "surname" => "admin",
+            "is_verified" => 1,
+            "enabled" => 1,
+        ]);
+
+        ProviderUserRole::create([
+            "provider_id" => $provider->id,
+            "user_id" => $user->id,
+            "role_id" => $role->id,
+        ]);
+
+        Parameter::create(
+            ["key" => "password-force-reset-day", "value" => 90, "type" => "policy"],
+            ["key" => "master-token-exp-time-seconds", "value" => 28800, "type" => "token"],
+            ["key" => "app-token-exp-time-seconds", "value" => 1800, "type" => "token"],
+        );
     }
 }

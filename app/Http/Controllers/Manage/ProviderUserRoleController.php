@@ -5,9 +5,14 @@ namespace App\Http\Controllers\Manage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProviderUserRoleRequest;
 use App\Models\ProviderUserRole;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
+use OwenIt\Auditing\Models\Audit;
 
 class ProviderUserRoleController extends Controller
 {
@@ -16,16 +21,53 @@ class ProviderUserRoleController extends Controller
     #[
         OA\Get(
             path: "/api/v1/provider-user-roles",
-            summary: "list of provider user roles",
-            description: "Returns the entire list of provider user roles",
+            summary: "Get list of provider user roles",
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.all",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
+            parameters: [
+                new OA\Parameter(
+                    name: "q",
+                    in: "query",
+                    required: false,
+                    description: "Search term to filter provider user roles by user username, provider domain or name, role name",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "show_deleted",
+                    in: "query",
+                    required: false,
+                    description: "Whether to include deleted provider user roles in the results",
+                    schema: new OA\Schema(type: "boolean"),
+                ),
+                new OA\Parameter(
+                    name: "sort_by",
+                    in: "query",
+                    required: false,
+                    description: "Field to sort by (id, provider.name, user.username, role.name, deleted_at)",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "sort_dir",
+                    in: "query",
+                    required: false,
+                    description: "Sort direction (asc or desc)",
+                    schema: new OA\Schema(type: "string"),
+                ),
+                new OA\Parameter(
+                    name: "per_page",
+                    in: "query",
+                    required: false,
+                    description: "Number of items per page for pagination",
+                    schema: new OA\Schema(type: "integer", default: 10),
+                ),
+            ],
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -34,28 +76,62 @@ class ProviderUserRoleController extends Controller
     {
         $show_deleted = $request->boolean("show_deleted");
         $query = ProviderUserRole::with(["user:id,username", "provider:id,name", "role:id,name"]);
+        $baseTable = (new ProviderUserRole())->getTable();
 
         if ($request->filled("q")) {
             $searchTerm = "%" . $request->q . "%";
 
-            $query
-                ->whereHas("user", function ($q) use ($searchTerm) {
-                    $q->where("username", "like", $searchTerm);
-                })
-                ->orWhereHas("provider", function ($q) use ($searchTerm) {
-                    $q->where("domain", "like", $searchTerm);
-                })
-                ->orWhereHas("provider", function ($q) use ($searchTerm) {
-                    $q->where("name", "like", $searchTerm);
-                })
-                ->orWhereHas("role", function ($q) use ($searchTerm) {
-                    $q->where("name", "like", $searchTerm);
-                });
+            $query->where(function ($mainQuery) use ($searchTerm) {
+                $mainQuery
+                    ->whereHas("user", function ($q) use ($searchTerm) {
+                        $q->where("username", "like", $searchTerm);
+                    })
+                    ->orWhereHas("provider", function ($q) use ($searchTerm) {
+                        $q->where("domain", "like", $searchTerm);
+                    })
+                    ->orWhereHas("provider", function ($q) use ($searchTerm) {
+                        $q->where("name", "like", $searchTerm);
+                    })
+                    ->orWhereHas("role", function ($q) use ($searchTerm) {
+                        $q->where("name", "like", $searchTerm);
+                    });
+            });
         }
+
         if ($show_deleted) {
             $query->onlyTrashed();
         }
-        $perPage = $request->input("per_page", 10);
+
+        if ($request->filled("sort_by")) {
+            $field = $request->sort_by;
+            $direction = strtolower($request->sort_dir) === "desc" ? "desc" : "asc";
+            $allowedSorts = ["id", "provider.name", "user.username", "role.name", "deleted_at"];
+
+            if (in_array($field, $allowedSorts)) {
+                if ($field === "provider.name") {
+                    $query
+                        ->join("providers", "{$baseTable}.provider_id", "=", "providers.id")
+                        ->select("{$baseTable}.*")
+                        ->orderBy("providers.name", $direction);
+                } elseif ($field === "user.username") {
+                    $query
+                        ->join("users", "{$baseTable}.user_id", "=", "users.id")
+                        ->select("{$baseTable}.*")
+                        ->orderBy("users.username", $direction);
+                } elseif ($field === "role.name") {
+                    $query
+                        ->join("roles", "{$baseTable}.role_id", "=", "roles.id")
+                        ->select("{$baseTable}.*")
+                        ->orderBy("roles.name", $direction);
+                } else {
+                    $query->orderBy("{$baseTable}.{$field}", $direction);
+                }
+            }
+        } else {
+            $query->orderBy("id", "asc");
+        }
+
+        $perPage = $request->input("per_page", 25);
         return $query->paginate($perPage);
     }
 
@@ -63,7 +139,7 @@ class ProviderUserRoleController extends Controller
         OA\Post(
             path: "/api/v1/provider-user-roles",
             summary: "Create a new provider user role",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.create",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
@@ -84,18 +160,18 @@ class ProviderUserRoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 201,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 422,
-                    description: "Unprocessable Entity",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_UNPROCESSABLE_ENTITY,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Internal Server Error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -116,7 +192,7 @@ class ProviderUserRoleController extends Controller
         OA\Get(
             path: "/api/v1/provider-user-roles/{id}",
             summary: "Returns provider user role by id",
-            description: "Returns provider user role details by id",
+            description: self::OA_DESC_MSG_SUCCESS,
             operationId: "ProviderUserRole.find",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
@@ -132,15 +208,15 @@ class ProviderUserRoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
     ]
     public function find($id)
     {
-        $providerUserRole = ProviderUserRole::find($id);
+        $providerUserRole = ProviderUserRole::withTrashed()->find($id);
         if (empty($providerUserRole)) {
             return response()->json(["message" => "Provider user role not found"], 404);
         }
@@ -151,7 +227,7 @@ class ProviderUserRoleController extends Controller
         OA\Put(
             path: "/api/v1/provider-user-roles/{id}",
             summary: "Update provider user role by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.update",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
@@ -186,23 +262,23 @@ class ProviderUserRoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 200,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 422,
-                    description: "Unprocessable Entity",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_UNPROCESSABLE_ENTITY,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 500,
-                    description: "Internal Server Error",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_INTERNAL_SERVER_ERROR,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -223,7 +299,7 @@ class ProviderUserRoleController extends Controller
         OA\Delete(
             path: "/api/v1/provider-user-roles/{id}",
             summary: "Delete provider user role by id",
-            description: '__*Security:*__ __*can be used only by clients with \'admin\' role*__',
+            description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.delete",
             tags: ["Provider User Roles"],
             security: [["passport" => []]],
@@ -239,13 +315,13 @@ class ProviderUserRoleController extends Controller
             responses: [
                 new OA\Response(
                     response: 204,
-                    description: "Operation successful",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_SUCCESS,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
                 new OA\Response(
                     response: 404,
-                    description: "Not found",
-                    content: new OA\MediaType(mediaType: "application/json"),
+                    description: self::OA_DESC_MSG_NOT_FOUND,
+                    content: new OA\MediaType(mediaType: self::MEDIA_TYPE_JSON),
                 ),
             ],
         ),
@@ -260,36 +336,7 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => "Provider user role deleted"], 204);
     }
 
-    #[
-        OA\Delete(path: "/api/v1/provider-user-roles/bulk-delete", summary: "Delete provider user roles by ids"),
-        OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: "application/x-www-form-urlencoded",
-                schema: new OA\Schema(
-                    type: "object",
-                    properties: [new OA\Property(property: "ids", type: "array", items: new OA\Items(type: "integer"))],
-                ),
-            ),
-        ),
-        OA\Response(
-            response: 204,
-            description: "Operation successful",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(response: 404, description: "Not found", content: new OA\MediaType(mediaType: "application/json")),
-        OA\Response(
-            response: 422,
-            description: "Unprocessable Entity",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 500,
-            description: "Internal Server Error",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-    ]
-    public function bulk_delete(Request $request)
+    public function bulkDelete(Request $request)
     {
         $request->validate([
             "ids" => "required|array",
@@ -297,45 +344,20 @@ class ProviderUserRoleController extends Controller
         ]);
 
         try {
+            DB::beginTransaction();
             $rolesToDelete = ProviderUserRole::whereIn("id", $request->ids)->get();
             foreach ($rolesToDelete as $role) {
                 $role->delete();
             }
+            DB::commit();
         } catch (\Exception $e) {
+            DB::rollback();
             return response()->json(["message" => __("provider_user_roles.bulk_delete_error")], 500);
         }
 
         return response()->json(["message" => __("provider_user_roles.bulk_delete_success")], 204);
     }
 
-    #[
-        OA\Patch(path: "/api/v1/provider-user-roles/{id}/restore", summary: "Restore provider user role by id"),
-        OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: "application/x-www-form-urlencoded",
-                schema: new OA\Schema(
-                    type: "object",
-                    properties: [new OA\Property(property: "id", type: "integer", example: "1")],
-                ),
-            ),
-        ),
-        OA\Response(
-            response: 200,
-            description: "Operation successful",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 422,
-            description: "Unprocessable Entity",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 500,
-            description: "Internal Server Error",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-    ]
     public function restore(Request $request)
     {
         $providerUserRole = ProviderUserRole::withTrashed()->find($request->id);
@@ -353,38 +375,7 @@ class ProviderUserRoleController extends Controller
         return response()->json(["message" => __("provider_user_roles.restore_success")], 200);
     }
 
-    #[
-        OA\Patch(path: "/api/v1/provider-user-roles/bulk-restore", summary: "Restore provider user role by id"),
-        OA\RequestBody(
-            required: true,
-            content: new OA\MediaType(
-                mediaType: "application/x-www-form-urlencoded",
-                schema: new OA\Schema(
-                    type: "object",
-                    properties: [new OA\Property(property: "ids", type: "array", items: new OA\Items(type: "integer"))],
-                ),
-                example: [
-                    "ids" => [1, 2, 3],
-                ],
-            ),
-        ),
-        OA\Response(
-            response: 200,
-            description: "Operation successful",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 422,
-            description: "Unprocessable Entity",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-        OA\Response(
-            response: 500,
-            description: "Internal Server Error",
-            content: new OA\MediaType(mediaType: "application/json"),
-        ),
-    ]
-    public function bulk_restore(Request $request)
+    public function bulkRestore(Request $request)
     {
         $validator = Validator::make($request->all(), [
             "ids" => "required|array",
@@ -425,14 +416,94 @@ class ProviderUserRoleController extends Controller
         }
 
         try {
+            DB::beginTransaction();
             foreach ($rolesToRestore as $role) {
                 $role->restore();
             }
+            DB::commit();
         } catch (\Exception $e) {
+            DB::rollback();
             return response()->json(["message" => $e->getMessage()], 500);
         }
 
         return response()->json(["message" => __("provider_user_roles.bulk_restore_success")], 200);
+    }
+
+    public function bulkAddRolesToUsers(Request $request)
+    {
+        $request->validate([
+            "user_ids" => "required|array",
+            "user_ids.*" => "integer|exists:users,id",
+            "roles" => "required|array",
+            "roles.*.role_id" => "required|integer|exists:roles,id",
+            "roles.*.provider_id" => "required|integer|exists:providers,id",
+            "is_all_selected" => "required|boolean",
+            "only_user_deleted" => "required|boolean",
+        ]);
+
+        $userIds = [];
+        if ($request->is_all_selected) {
+            if ($request->only_user_deleted) {
+                $userIds = User::onlyTrashed()->pluck("id")->toArray();
+            } else {
+                $userIds = User::pluck("id")->toArray();
+            }
+        } else {
+            $userIds = $request->user_ids;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $insertData = [];
+            $now = now();
+
+            foreach ($userIds as $userId) {
+                foreach ($request->roles as $roleData) {
+                    $insertData[] = [
+                        "user_id" => $userId,
+                        "role_id" => $roleData["role_id"],
+                        "provider_id" => $roleData["provider_id"],
+                        "created_at" => $now,
+                        "updated_at" => $now,
+                    ];
+                }
+            }
+            foreach (array_chunk($insertData, 1000) as $chunk) {
+                ProviderUserRole::insertOrIgnore($chunk);
+            }
+
+            $userId = Auth::id();
+            $userType = $userId ? get_class(Auth::user()) : null;
+            Audit::create([
+                "event" => "bulk_assign_roles",
+                "auditable_type" => User::class,
+                "auditable_id" => 0,
+                "user_type" => $userType,
+                "user_id" => $userId,
+                "url" => request()->fullUrl(),
+                "ip_address" => request()->ip(),
+                "user_agent" => request()->userAgent(),
+                "old_values" => [],
+                "new_values" => [
+                    "assigned_roles" => $request->roles,
+                    "users_affected" => $userIds,
+                ],
+            ]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(
+                [
+                    "message" => __("provider_user_roles.bulk_add_error"),
+                    "error" => $e->getMessage(),
+                ],
+                500,
+            );
+        }
+
+        return response()->json(["message" => __("provider_user_roles.bulk_add_success")], 200);
     }
 
     public function hasRelation(Request $request)

@@ -37,6 +37,7 @@ class User extends Authenticatable
         "is_verified",
         "enabled",
         "password_expires_at",
+        "google_id",
     ];
 
     /**
@@ -51,7 +52,18 @@ class User extends Authenticatable
      */
     protected $auditExclude = ["password"];
 
+    /**
+     * Restituisce tutti i ruoli dell'utente per ogni provider
+     */
     public function roles()
+    {
+        return ProviderUserRole::where("user_id", $this->id)->with("role")->get();
+    }
+
+    /**
+     * Restituisce i ruoli dell'utente per l'IDP
+     */
+    public function idpRoles()
     {
         // $user_roles = $this->hasMany(UserRole::class, "user_id");
         $provider_id = config("app.provider_id");
@@ -102,9 +114,6 @@ class User extends Authenticatable
      */
     public function hasAccessToProvider($providerId): bool
     {
-        // Logghiamo lo stato esatto della colonna enabled
-        $enabledStatus = isset($this->enabled) ? ($this->enabled ? "true" : "false") : "null";
-
         if (isset($this->enabled) && !$this->enabled) {
             Log::warning("Bloccato: L'utente è disabilitato (enabled = false).");
             return false;
