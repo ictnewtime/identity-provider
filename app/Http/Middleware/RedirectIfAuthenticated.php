@@ -74,13 +74,27 @@ class RedirectIfAuthenticated
         $idpProviderIdMaster = config("idp.provider_id");
         $masterProvider = Provider::find($idpProviderIdMaster);
         $provider = Provider::find($providerId);
+
+        if (!$user->hasAccessToProvider($providerId)) {
+            Log::warning(
+                "Seamless SSO bloccato: Utente {$user->username} non ha accesso al provider ID: {$providerId}.",
+            );
+            return redirect()->route("sso.unauthorized");
+        }
+
         $redirectUrl = $provider->url;
-        $ssoData = $tokenService->resolveCrossDomainRedirect(
-            $provider,
-            $masterProvider,
-            $redirectUrl,
-            $master_token_name,
-        );
+        if ($redirectTo) {
+            $host = parse_url($redirectTo, PHP_URL_HOST);
+            $matchesProviderDomain = $host && !empty($provider->domain) && str_ends_with($host, $provider->domain);
+            if ($matchesProviderDomain || ($host && TokenProviderService::checkLocalHost($host))) {
+                $redirectUrl = $redirectTo;
+            }
+        }
+
+        $masterToken =
+            $request->cookie($master_token_name) ?: $tokenService->generateMasterToken($user, $masterProvider->id);
+
+        $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
 
         Log::info("Controlli SSO superati per utente {$user->username}. Redirect finale.", [
