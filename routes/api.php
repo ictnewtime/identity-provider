@@ -28,7 +28,6 @@ Route::prefix("v1")->group(function () {
         // providers
         Route::get("providers", [ProviderController::class, "all"]);
         Route::post("providers", [ProviderController::class, "create"]);
-        Route::get("providers/{id}", [ProviderController::class, "find"])->where(["id" => "[0-9]+"]);
         Route::put("providers/{id}", [ProviderController::class, "update"])->where(["id" => "[0-9]+"]);
         Route::delete("providers/{id}", [ProviderController::class, "delete"])->where(["id" => "[0-9]+"]);
 

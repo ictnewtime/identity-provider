@@ -45,7 +45,7 @@ class User extends Authenticatable
      *
      * @var array
      */
-    protected $hidden = ["password", "remember_token"];
+    protected $hidden = ["password", "remember_token", "google_id"];
 
     /**
      * The attributes that should be hiddend for auditing.
