@@ -102,7 +102,8 @@ class UserController extends Controller
         } else {
             $query->orderBy("created_at", "asc");
         }
-        $perPage = $request->input("per_page", 25);
+        // cap massimo per evitare payload/memory abuse (per_page=999999)
+        $perPage = min(max((int) $request->input("per_page", 25), 1), 100);
         $users = $query->paginate($perPage);
 
         return response()->json($users);
