@@ -99,7 +99,7 @@ class SessionService
             return null;
         }
 
-        $expirationTimeInSeconds = $tokenService->getAppToeknExpiredAt();
+        $expirationTimeInSeconds = $tokenService->getAppTokenExpiredAt();
         $expiresAt = now()->addSeconds($expirationTimeInSeconds);
 
         $this->upsertSession($user->id, $provider_id, $ip_address, $user_agent, $token, null, $expiresAt);
@@ -146,7 +146,7 @@ class SessionService
         return ["status" => 404];
     }
 
-    public function destroySession($userId, $providerId): bool
+    public function destroySession(int $userId, int $providerId): bool
     {
         $session = Session::where("user_id", $userId)->where("provider_id", $providerId)->first();
 
