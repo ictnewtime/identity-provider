@@ -50,10 +50,17 @@ class DatabaseSeeder extends Seeder
             "role_id" => $role->id,
         ]);
 
-        Parameter::create(
+        $parameters = [
             ["key" => "password-force-reset-day", "value" => 90, "type" => "policy"],
             ["key" => "master-token-exp-time-seconds", "value" => 28800, "type" => "token"],
             ["key" => "app-token-exp-time-seconds", "value" => 1800, "type" => "token"],
-        );
+        ];
+
+        foreach ($parameters as $parameter) {
+            Parameter::updateOrCreate(
+                ["key" => $parameter["key"]],
+                ["value" => $parameter["value"], "type" => $parameter["type"]],
+            );
+        }
     }
 }

@@ -133,6 +133,8 @@ Firmato con la `secret_key` del Provider (`IDP_SIGNATURE_KEY`). Contiene i ruoli
 
 Il nome del cookie è `idp_token_` seguito dall'ID del Provider (`IDP_CLIENT_ID`). Esempio: se il Provider ha ID `5`, il cookie si chiama `idp_token_5`.
 
+> **Valore di `?token=`**: è il **master token JWT** completo (RS256, verificabile via JWKS), non un identificativo o un nome simbolico. L'app deve trattarlo come master token — validarlo via JWKS e usarlo per il token exchange — esattamente come il valore del cookie.
+
 ---
 
 ## 6. Integrazione con idp-extension
@@ -269,6 +271,29 @@ Effettuare il login con un utente assegnato e verificare che il cookie `idp_toke
 ## 8. Endpoint di riferimento per l'integrazione
 
 Questi endpoint sono usati direttamente da idp-extension e raramente vanno invocati manualmente. Sono documentati qui per completezza e per chi integra su stack non supportati.
+
+### Avvio del flusso SSO (redirect di login)
+
+Il browser viene rediretto all'IDP con i parametri `provider_id` e `redirect_to` (è ciò che produce `IdpServiceClient.getLoginUrl()`):
+
+```
+GET {IDP_URL_WEB}?provider_id=5&redirect_to=https://app-x.example.com/auth/callback
+```
+
+| Parametro     | Descrizione                                                          |
+| ------------- | -------------------------------------------------------------------- |
+| `provider_id` | ID del Provider (`IDP_CLIENT_ID`).                                   |
+| `redirect_to` | URL dell'app a cui tornare dopo l'autenticazione (il nome è esatto). |
+
+Comportamento dell'IDP:
+
+- Se l'utente **non è autenticato**, mostra il form di login; dopo un login valido torna a `redirect_to`.
+- Se l'utente ha **già una sessione IDP attiva** (SSO seamless), viene rediretto subito a `redirect_to` senza nuovo login.
+- In entrambi i casi, alla URL di ritorno viene consegnato il **master token**: come cookie (produzione) o accodato in querystring `?token=<master_token>` (localhost). Vedi §5.
+
+> **Validazione di `redirect_to`**: l'IDP rimanda al valore del `redirect_to` solo se il suo host appartiene al `domain` registrato del Provider **oppure** è un host locale (`localhost`, `127.0.0.1`, `::1`, `192.168.*`). Altrimenti usa la `url` registrata del Provider. Registrare quindi su `url`/`domain` del Provider l'host di callback corretto.
+
+> **Autorizzazione**: l'utente deve avere **almeno un ruolo** assegnato per il Provider. In caso contrario l'IDP redirige alla pagina "non autorizzato" e il token exchange risponde `403` (vedi sotto).
 
 ### Login web
 

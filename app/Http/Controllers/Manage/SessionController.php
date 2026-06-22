@@ -204,7 +204,6 @@ class SessionController extends Controller
         $userId = $request->input("user_id");
 
         $sessions = Session::where("user_id", $userId)->get();
-        $deletedCount = $sessions->count();
 
         foreach ($sessions as $session) {
             $session->delete();
@@ -221,9 +220,17 @@ class SessionController extends Controller
     /**
      * Chiamata API CRUD dal Pannello Admin IdP.
      */
-    public function delete($id)
+    public function delete(string $id)
     {
-        Session::findOrFail($id)->delete();
-        return response()->json(null, 204);
+        $sessionById = Session::findOrFail($id);
+        $this->sessionService->destroyAllUserSessions($sessionById->user_id);
+
+        return response()->json(
+            [
+                "success" => true,
+                "message" => "Delete all session by userId",
+            ],
+            200,
+        );
     }
 }
