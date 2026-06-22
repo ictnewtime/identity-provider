@@ -157,4 +157,13 @@ class SessionService
 
         return false;
     }
+
+    public static function destroyAllUserSessions(int $userId)
+    {
+        $sessions = Session::where("user_id", $userId)->get();
+
+        foreach ($sessions as $session) {
+            $session->delete();
+        }
+    }
 }

@@ -223,11 +223,8 @@ class SessionController extends Controller
     public function delete(string $id)
     {
         $sessionById = Session::findOrFail($id);
-        $sessions = Session::where("user_id", $sessionById->user_id)->get();
+        $this->sessionService->destroyAllUserSessions($sessionById->user_id);
 
-        foreach ($sessions as $session) {
-            $session->delete();
-        }
         return response()->json(
             [
                 "success" => true,
