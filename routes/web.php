@@ -54,7 +54,7 @@ Route::get("/.well-known/jwks.json", [JwksController::class, "index"]);
 
 /********* ADMIN ROUTES ************/
 Route::prefix("admin")
-    ->middleware(["password.expiration", "authenticated", "role:admin"])
+    ->middleware(["authenticated", "role:admin"])
     ->group(function () {
         Route::get("/", function () {
             return redirect()->route("web-users");

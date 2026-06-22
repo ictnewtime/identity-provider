@@ -33,21 +33,6 @@ class RedirectIfAuthenticated
         $providerId = $request->input("provider_id");
         $redirectTo = $request->input("redirect_to");
 
-        // check scadenza Password
-        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
-            Log::warning("Seamless SSO bloccato: Utente {$user->username} ha la password scaduta.", [
-                "provider_id" => $providerId,
-                "redirect_to" => $redirectTo,
-            ]);
-
-            if ($providerId) {
-                $request->session()->put("pending_sso_provider_id", $providerId);
-                $request->session()->put("pending_sso_redirect_to", $redirectTo);
-            }
-
-            return redirect()->route("password.expired");
-        }
-
         // Check provider_id e autorizzazioni base
         if (empty($providerId)) {
             if ($user->isAdmin()) {
