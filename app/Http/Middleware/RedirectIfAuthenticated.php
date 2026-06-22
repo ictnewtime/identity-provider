@@ -6,11 +6,12 @@ use Closure;
 use App\Models\User;
 use App\Models\Provider;
 use App\Services\TokenProviderService;
+use App\Services\SessionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Session;
+use App\Models\Session;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
 
 class RedirectIfAuthenticated
@@ -91,8 +92,8 @@ class RedirectIfAuthenticated
             }
         }
 
-        $masterToken =
-            $request->cookie($master_token_name) ?: $tokenService->generateMasterToken($user, $masterProvider->id);
+        $masterToken = $request->cookie($master_token_name);
+        //  ?: $tokenService->generateMasterToken($user, $masterProvider->id)
 
         $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
@@ -168,6 +169,9 @@ class RedirectIfAuthenticated
      */
     private function forceLogoutAndShowLogin(Request $request, string $cookieName, string $errorMessage)
     {
+        // Catturiamo l'id PRIMA del logout, per poter eliminare le sue sessioni DB.
+        $userId = Auth::id();
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -183,6 +187,10 @@ class RedirectIfAuthenticated
             Cookie::queue(Cookie::forget($cookieName, "/", $provider_idp->domain));
             Cookie::queue(Cookie::forget("token", "/", $provider_idp->domain));
             Cookie::queue(Cookie::forget($master_token_name, "/", $provider_idp->domain));
+        }
+
+        if ($userId) {
+            SessionService::destroyAllUserSessions((int) $userId);
         }
 
         // Ricarichiamo la pagina di login
