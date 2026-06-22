@@ -86,7 +86,6 @@ class LoginController extends Controller
         $redirect_to = $request->session()->pull("sso_redirect_to");
 
         $request->merge(["provider_id" => $provider_id, "redirect_to" => $redirect_to]);
-        // Login con Google: la password non viene usata, quindi salto il check di scadenza password
         return $this->processSsoRedirect($request, $user, true);
     }
 
@@ -95,7 +94,10 @@ class LoginController extends Controller
         $provider_id = $request->input("provider_id");
         $redirect_to = $request->input("redirect_to");
 
-        if (!$skipPasswordExpiryCheck && (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at))) {
+        if (
+            !$skipPasswordExpiryCheck &&
+            (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at))
+        ) {
             Log::warning("Utente {$user->username} ha la password scaduta. Blocco generazione token.");
             if ($provider_id) {
                 $request->session()->put("pending_sso_provider_id", $provider_id);
