@@ -95,17 +95,6 @@ class SessionController extends Controller
             return response()->json(["valid" => false, "message" => "User not found"], 404);
         }
 
-        // Se la password è scaduta o deve essere forzata, terminiamo la sessione esterna
-        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
-            return response()->json(
-                [
-                    "valid" => false,
-                    "message" => "Password expired. User must authenticate and change password.",
-                ],
-                401,
-            );
-        }
-
         $validated = $request->validate([
             "user_agent" => "nullable|string",
             "is_api" => "nullable|boolean",
@@ -155,10 +144,6 @@ class SessionController extends Controller
 
         if (!$user) {
             return response()->json(["message" => "User not found"], 404);
-        }
-
-        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
-            return response()->json(["message" => "Password expired."], 401);
         }
 
         $tokenService = new TokenProviderService();
