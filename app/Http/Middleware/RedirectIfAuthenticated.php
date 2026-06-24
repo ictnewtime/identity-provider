@@ -6,11 +6,12 @@ use Closure;
 use App\Models\User;
 use App\Models\Provider;
 use App\Services\TokenProviderService;
+use App\Services\SessionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Session;
+use App\Models\Session;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
 
 class RedirectIfAuthenticated
@@ -31,21 +32,6 @@ class RedirectIfAuthenticated
         // Recuperiamo i parametri una volta sola per tutto il flusso
         $providerId = $request->input("provider_id");
         $redirectTo = $request->input("redirect_to");
-
-        // check scadenza Password
-        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
-            Log::warning("Seamless SSO bloccato: Utente {$user->username} ha la password scaduta.", [
-                "provider_id" => $providerId,
-                "redirect_to" => $redirectTo,
-            ]);
-
-            if ($providerId) {
-                $request->session()->put("pending_sso_provider_id", $providerId);
-                $request->session()->put("pending_sso_redirect_to", $redirectTo);
-            }
-
-            return redirect()->route("password.expired");
-        }
 
         // Check provider_id e autorizzazioni base
         if (empty($providerId)) {
@@ -74,13 +60,27 @@ class RedirectIfAuthenticated
         $idpProviderIdMaster = config("idp.provider_id");
         $masterProvider = Provider::find($idpProviderIdMaster);
         $provider = Provider::find($providerId);
+
+        if (!$user->hasAccessToProvider($providerId)) {
+            Log::warning(
+                "Seamless SSO bloccato: Utente {$user->username} non ha accesso al provider ID: {$providerId}.",
+            );
+            return redirect()->route("sso.unauthorized");
+        }
+
         $redirectUrl = $provider->url;
-        $ssoData = $tokenService->resolveCrossDomainRedirect(
-            $provider,
-            $masterProvider,
-            $redirectUrl,
-            $master_token_name,
-        );
+        if ($redirectTo) {
+            $host = parse_url($redirectTo, PHP_URL_HOST);
+            $matchesProviderDomain = $host && !empty($provider->domain) && str_ends_with($host, $provider->domain);
+            if ($matchesProviderDomain || ($host && TokenProviderService::checkLocalHost($host))) {
+                $redirectUrl = $redirectTo;
+            }
+        }
+
+        $masterToken = $request->cookie($master_token_name);
+        //  ?: $tokenService->generateMasterToken($user, $masterProvider->id)
+
+        $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
 
         Log::info("Controlli SSO superati per utente {$user->username}. Redirect finale.", [
@@ -154,6 +154,9 @@ class RedirectIfAuthenticated
      */
     private function forceLogoutAndShowLogin(Request $request, string $cookieName, string $errorMessage)
     {
+        // Catturiamo l'id PRIMA del logout, per poter eliminare le sue sessioni DB.
+        $userId = Auth::id();
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -169,6 +172,10 @@ class RedirectIfAuthenticated
             Cookie::queue(Cookie::forget($cookieName, "/", $provider_idp->domain));
             Cookie::queue(Cookie::forget("token", "/", $provider_idp->domain));
             Cookie::queue(Cookie::forget($master_token_name, "/", $provider_idp->domain));
+        }
+
+        if ($userId) {
+            SessionService::destroyAllUserSessions((int) $userId);
         }
 
         // Ricarichiamo la pagina di login

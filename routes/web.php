@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
 use App\Http\Controllers\JwtAuth\LoginController;
 use App\Http\Controllers\Manage\ProviderController;
+use App\Http\Controllers\Manage\Web\ProviderController as WebProviderController;
 use App\Http\Controllers\Manage\UserController;
 // use App\Http\Controllers\Manage\OauthClientsController;
 use App\Http\Controllers\Manage\ProviderUserRoleController;
@@ -53,7 +54,7 @@ Route::get("/.well-known/jwks.json", [JwksController::class, "index"]);
 
 /********* ADMIN ROUTES ************/
 Route::prefix("admin")
-    ->middleware(["password.expiration", "authenticated", "role:admin"])
+    ->middleware(["authenticated", "role:admin"])
     ->group(function () {
         Route::get("/", function () {
             return redirect()->route("web-users");
@@ -89,9 +90,10 @@ Route::prefix("admin")
 
         Route::prefix("v1")->group(function () {
             // providers
-            Route::get("providers", [ProviderController::class, "all"]);
+            // all/find usano il controller web: espongono "secret_key" (admin)
+            Route::get("providers", [WebProviderController::class, "all"]);
             Route::post("providers", [ProviderController::class, "create"]);
-            Route::get("providers/{id}", [ProviderController::class, "find"])->whereNumber("id");
+            Route::get("providers/{id}", [WebProviderController::class, "find"])->whereNumber("id");
             Route::put("providers/{id}", [ProviderController::class, "update"])->whereNumber("id");
             Route::delete("providers/{id}", [ProviderController::class, "delete"])->whereNumber("id");
             Route::patch("providers/{id}/restore", [ProviderController::class, "restore"])->whereNumber("id");

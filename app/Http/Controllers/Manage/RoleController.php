@@ -97,7 +97,9 @@ class RoleController extends Controller
     public function all(Request $request)
     {
         $show_deleted = $request->boolean("show_deleted");
-        $query = Role::with("provider");
+        // eager load nello scope: si serializzano solo i campi del provider usati dal
+        // frontend (name, domain) evitando di esporre l'intero oggetto provider
+        $query = Role::with("provider:id,name,domain");
 
         $provider_id = $request->input("provider_id");
 
@@ -140,7 +142,8 @@ class RoleController extends Controller
             $query->orderBy("id", "asc");
         }
 
-        $perPage = $request->input("per_page", 25);
+        // cap massimo per evitare payload/memory abuse (per_page=999999)
+        $perPage = min(max((int) $request->input("per_page", 25), 1), 100);
         return $query->paginate($perPage);
     }
 

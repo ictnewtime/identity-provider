@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Manage;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProviderRequest;
+use App\Http\Resources\ProviderResource;
 use App\Models\Provider;
 use App\Models\ProviderUserRole;
 
@@ -70,6 +71,21 @@ class ProviderController extends Controller
     ]
     public function all(Request $request)
     {
+        return $this->buildProvidersQuery($request)->through(
+            fn(Provider $provider) => new ProviderResource($provider),
+        );
+    }
+
+    /**
+     * Costruisce ed esegue la query paginata dei provider.
+     *
+     * Logica condivisa tra la rotta API (ProviderResource) e la rotta web admin
+     * (ProviderAdminResource): la differenza sta solo nella Resource applicata,
+     * non nella query. Restituisce il paginator nativo, così l'envelope di
+     * paginazione (current_page, total, per_page) resta a livello top-level.
+     */
+    protected function buildProvidersQuery(Request $request)
+    {
         $show_deleted = $request->boolean("show_deleted");
         $query = Provider::query();
         if ($request->filled("q")) {
@@ -99,7 +115,8 @@ class ProviderController extends Controller
             $query->orderBy("id", "asc");
         }
 
-        $perPage = $request->input("per_page", 25);
+        // cap massimo per evitare payload/memory abuse (per_page=999999)
+        $perPage = min(max((int) $request->input("per_page", 25), 1), 100);
         return $query->paginate($perPage);
     }
 

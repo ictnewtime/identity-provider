@@ -16,24 +16,30 @@ class TokenProviderService
 {
     protected $providerUserRoleService;
     protected $expirationTimeInSeconds;
+    protected $appTokenFallbackSeconds;
+    protected $masterTokenFallbackSeconds;
 
     public function __construct()
     {
         $this->providerUserRoleService = new ProviderUserRoleService();
         $this->expirationTimeInSeconds = (int) env("JWT_TTL", 24 * 60 * 60); // default 24 ore
+        // Fallback SEPARATI: se i Parameter a DB mancano, il master DEVE comunque
+        // durare piu' dell'app token, altrimenti il refresh silenzioso e' impossibile.
+        $this->appTokenFallbackSeconds = (int) env("JWT_APP_TTL", 1800); // 30 min
+        $this->masterTokenFallbackSeconds = (int) env("JWT_MASTER_TTL", 28800); // 8 ore
     }
 
-    public function getAppToeknExpiredAt(): int
+    public function getAppTokenExpiredAt(): int
     {
         $parameter = Parameter::where("key", "app-token-exp-time-seconds")->first();
-        $seconds = $parameter ? $parameter->value : $this->expirationTimeInSeconds;
+        $seconds = $parameter ? $parameter->value : $this->appTokenFallbackSeconds;
         return (int) $seconds;
     }
 
     public function getMasterTokenExpiredAt(): int
     {
         $parameter = Parameter::where("key", "master-token-exp-time-seconds")->first();
-        $seconds = $parameter ? $parameter->value : $this->expirationTimeInSeconds;
+        $seconds = $parameter ? $parameter->value : $this->masterTokenFallbackSeconds;
         return (int) $seconds;
     }
 
@@ -45,7 +51,7 @@ class TokenProviderService
      */
     public function generateAppToken(User $user, ?string $redirectId = null)
     {
-        $jwt_exp_seconds = $this->getAppToeknExpiredAt();
+        $jwt_exp_seconds = $this->getAppTokenExpiredAt();
         $ttlInMinutes = $jwt_exp_seconds / 60;
 
         // JWTAuth::factory()->setTTL accetta minuti, quindi convertiamo i secondi in minuti
@@ -146,7 +152,7 @@ class TokenProviderService
     public function cookieCretion(string $token, string $provider_id, $cookie_name = null)
     {
         $master_token_name = config("idp.jwt.master_token_name");
-        $expiration_seconds = $this->getAppToeknExpiredAt();
+        $expiration_seconds = $this->getAppTokenExpiredAt();
         // creo un cookie con il token
         if (empty($cookie_name)) {
             $cookie_name = "idp_token_" . $provider_id;
