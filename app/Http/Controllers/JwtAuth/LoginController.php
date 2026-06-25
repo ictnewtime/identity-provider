@@ -132,9 +132,9 @@ class LoginController extends Controller
 
         $masterToken = $tokenService->generateMasterToken($user, $masterProvider->id);
         $provider = Provider::find($provider_id);
-        // se il providerIdMaster->domain contiene il provider->doamin allora posso creare il cookie
-        // altrimenti usare appendTokenIfLocalUrl( redirect_url, token)
-        // così l' idp-extensio prenderà il token e lo trasformerà in cookie
+        // Se il dominio del provider master include quello del provider target creo il cookie
+        // (same-domain); altrimenti il master-token viaggia come header x-master-token sulla
+        // risposta e l'idp-extension lo trasforma in cookie sul dominio di destinazione.
         $redirectUrl = $redirect_to ?? ($provider ? $provider->url : null);
 
         $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
@@ -147,7 +147,16 @@ class LoginController extends Controller
 
         if ($provider_id) {
             // devo semplicemente ottenere l' url e redirigere l' user
-            return Inertia::location($redirectUrl);
+            $response = Inertia::location($redirectUrl);
+
+            // In cross-domain il master-token NON va piu' in query string: viaggia
+            // come header x-master-token sulla risposta SSO. Il client di destinazione
+            // lo legge e lo re-inoltra alla propria API (simmetrico a x-app-token).
+            if (!empty($ssoData["crossDomainMasterToken"])) {
+                $response->headers->set(config("idp.jwt.master_token_header"), $ssoData["crossDomainMasterToken"]);
+            }
+
+            return $response;
         }
 
         // solo se il provider id è vouto, creo il token App2

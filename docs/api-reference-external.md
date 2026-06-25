@@ -92,7 +92,7 @@ I seguenti endpoint sono accessibili con il Bearer token OAuth2. Per dettagli co
 | `url`        | string | Sì           | URL base dell'applicazione                                                                 |
 | `domain`     | string | Sì           | Dominio (es. `app-x.example.com`)                                                          |
 | `protocol`   | string | No           | `http` o `https`                                                                           |
-| `logoutUrl`  | string | Sì           | URL di logout dell'applicazione                                                            |
+| `logoutUrl`  | string | Sì           | URL di logout (verrà gestito in futuro) dell'applicazione                                  |
 | `secret_key` | string | Sì           | Stringa 32 caratteri per firma HS256. Comunicare al team esterno come `IDP_SIGNATURE_KEY`. |
 
 ### Roles

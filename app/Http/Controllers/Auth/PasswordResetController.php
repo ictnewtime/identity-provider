@@ -150,13 +150,29 @@ class PasswordResetController extends Controller
             $ssoData = TokenProviderService::respondWithSsoRedirect(
                 $user,
                 $pendingProviderId,
-                $request,
                 $pendingRedirectTo,
             );
 
             if ($ssoData) {
-                Cookie::queue($ssoData["cookie"]);
-                return Inertia::location($ssoData["url"]);
+                // Same-domain: master-token come cookie. Cross-domain: header x-master-token.
+                if ($ssoData["isSameDomainZone"]) {
+                    $masterCookie = (new TokenProviderService())->cookieCretion(
+                        $ssoData["masterToken"],
+                        config("idp.provider_id"),
+                        config("idp.jwt.master_token_name"),
+                    );
+                    Cookie::queue($masterCookie);
+                }
+
+                $response = Inertia::location($ssoData["url"]);
+                if (!empty($ssoData["crossDomainMasterToken"])) {
+                    $response->headers->set(
+                        config("idp.jwt.master_token_header"),
+                        $ssoData["crossDomainMasterToken"],
+                    );
+                }
+
+                return $response;
             }
         }
 

@@ -22,6 +22,7 @@ php artisan passport:install --force
 // per generare un nuovo utente passport
 php artisan passport:client --personal
 # per leggere le chaivi di passport
+# php artisan passport:keys
 chown -R www-data:www-data storage
 php artisan storage:link
 chmod -R 775 storage bootstrap/cache
