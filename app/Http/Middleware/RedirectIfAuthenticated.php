@@ -88,15 +88,7 @@ class RedirectIfAuthenticated
             "is_cross_domain" => !$ssoData["isSameDomainZone"],
         ]);
 
-        $response = redirect()->away($redirectUrl);
-
-        // In cross-domain il master-token NON va piu' in query string: viaggia come
-        // header x-master-token sulla risposta (handoff via fetch lato destinazione).
-        if (!empty($ssoData["crossDomainMasterToken"])) {
-            $response->headers->set(config("idp.jwt.master_token_header"), $ssoData["crossDomainMasterToken"]);
-        }
-
-        return $response;
+        return redirect()->away($redirectUrl);
     }
 
     /**

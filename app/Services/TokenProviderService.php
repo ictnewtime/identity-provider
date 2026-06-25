@@ -194,6 +194,28 @@ class TokenProviderService
         return false;
     }
 
+    /**
+     * Accoda il token all'URL se l'host di destinazione è un ambiente locale.
+     * Necessario per aggirare i blocchi dei cookie cross-domain in sviluppo.
+     *
+     * @param string $redirect_url
+     * @param string $token
+     * @return string
+     */
+    public function appendTokenIfLocalUrl(string $redirect_url, string $token): string
+    {
+        $tokenService = new TokenProviderService();
+        $host = parse_url($redirect_url, PHP_URL_HOST);
+        // in_array($host, ["localhost", "127.0.0.1"]) || str_contains($host, "192.168.")
+        // $tokenService->checkLocalHost($host);
+        if ($tokenService->checkLocalHost($host)) {
+            $separator = parse_url($redirect_url, PHP_URL_QUERY) ? "&" : "?";
+            return $redirect_url . $separator . "token=" . urlencode($token);
+        }
+
+        return $redirect_url;
+    }
+
     public function resolveCrossDomainRedirect(
         ?Provider $provider,
         ?Provider $masterProvider,
@@ -218,65 +240,58 @@ class TokenProviderService
             }
         }
 
-        // In cross-domain il master-token NON viene piu' appeso all'URL: viene
-        // restituito a parte e inoltrato dal controller come header x-master-token
-        // sulla risposta SSO (handoff via fetch lato client di destinazione).
-        $crossDomainMasterToken =
-            !$isSameDomainZone && !empty($masterToken) && !empty($redirectUrl) ? $masterToken : null;
+        $finalUrl = $redirectUrl;
+
+        // Se siamo in Cross-Domain e abbiamo un token, lo appendiamo all'URL
+        if (!$isSameDomainZone && !empty($masterToken) && !empty($redirectUrl)) {
+            $finalUrl = $this->appendTokenIfLocalUrl($finalUrl, $masterToken);
+        }
 
         return [
             "isSameDomainZone" => $isSameDomainZone,
-            "redirectUrl" => $redirectUrl,
-            "crossDomainMasterToken" => $crossDomainMasterToken,
+            "redirectUrl" => $finalUrl,
         ];
     }
 
-    /**
-     * Prepara il redirect SSO verso un provider riusando lo stesso handoff del login:
-     * genera il master-token e lo veicola via cookie (same-domain) o header
-     * x-master-token (cross-domain). L'app-token viene poi emesso dalla destinazione
-     * tramite l'exchange. Il master-token NON viene mai messo in query string.
-     *
-     * Ritorna null se il provider non esiste o l'utente non vi ha accesso.
-     */
-    public static function respondWithSsoRedirect($user, $providerId, $redirectToParam = null)
+    // Esempio di funzione unificata da mettere in un Service o in un Trait
+    public static function respondWithSsoRedirect($user, $providerId, $request, $redirectToParam = null)
     {
         $tokenService = new TokenProviderService();
+        $sessionService = new SessionService();
+
+        $token = $sessionService->getValidProviderToken(
+            $user,
+            $providerId,
+            $request->ip(),
+            $request->header("User-Agent"),
+            $tokenService,
+        );
+
+        if (!$token) {
+            return null; // L'utente non è autorizzato
+        }
 
         $provider = Provider::find($providerId);
         if (!$provider) {
             return null;
         }
 
-        // Autorizzazione utente sul provider di destinazione
-        if (!$user->hasAccessToProvider($providerId)) {
-            Log::warning("respondWithSsoRedirect: utente {$user->id} senza accesso al provider {$providerId}.");
-            return null;
-        }
-
-        // Master-token: l'app-token verra' emesso dalla destinazione via exchange.
-        $masterProviderId = (string) config("idp.provider_id");
-        $masterProvider = Provider::find($masterProviderId);
-        $masterToken = $tokenService->generateMasterToken($user, $masterProvider->id);
-
-        // Risoluzione sicura dell'URL di destinazione (deve appartenere al dominio del provider)
         $redirectUrl = $provider->url;
+
+        // Gestione sicura del redirect_to
         if ($redirectToParam) {
             $parsedHost = parse_url($redirectToParam, PHP_URL_HOST);
-            $matchesProviderDomain =
-                $parsedHost && !empty($provider->domain) && str_ends_with($parsedHost, $provider->domain);
-            if ($matchesProviderDomain || ($parsedHost && self::checkLocalHost($parsedHost))) {
+            if (str_ends_with($parsedHost, $provider->domain) || $tokenService->checkLocalHost($parsedHost)) {
                 $redirectUrl = $redirectToParam;
             }
         }
 
-        $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
+        $finalUrl = $tokenService->appendTokenIfLocalUrl($redirectUrl, $token);
+        $cookie = $tokenService->cookieCretion($token, $providerId);
 
         return [
-            "url" => $ssoData["redirectUrl"],
-            "isSameDomainZone" => $ssoData["isSameDomainZone"],
-            "masterToken" => $masterToken,
-            "crossDomainMasterToken" => $ssoData["crossDomainMasterToken"],
+            "url" => $finalUrl,
+            "cookie" => $cookie,
         ];
     }
 }
