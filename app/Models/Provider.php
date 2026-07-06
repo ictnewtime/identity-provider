@@ -13,6 +13,7 @@ use App\Traits\CustomAuditable;
  * @property string $domain
  * @property string $secret_key
  * @property string $logoutUrl
+ * @property bool $has_token_url
  */
 class Provider extends Model
 {
@@ -28,7 +29,16 @@ class Provider extends Model
      *
      * @var array
      */
-    protected $fillable = ["domain", "logoutUrl", "secret_key", "protocol", "url", "name"];
+    protected $fillable = ["domain", "logoutUrl", "secret_key", "protocol", "url", "name", "has_token_url"];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        "has_token_url" => "boolean",
+    ];
 
     /**
      * The attributes that should be hiddend for auditing.

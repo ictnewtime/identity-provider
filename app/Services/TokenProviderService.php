@@ -202,13 +202,13 @@ class TokenProviderService
      * @param string $token
      * @return string
      */
-    public function appendTokenIfLocalUrl(string $redirect_url, string $token): string
+    public function appendTokenIfLocalUrl(string $redirect_url, string $token, bool $has_token_url = false): string
     {
-        $tokenService = new TokenProviderService();
         $host = parse_url($redirect_url, PHP_URL_HOST);
-        // in_array($host, ["localhost", "127.0.0.1"]) || str_contains($host, "192.168.")
-        // $tokenService->checkLocalHost($host);
-        if ($tokenService->checkLocalHost($host)) {
+
+        // Accodiamo il token se il provider lo richiede esplicitamente (has_token_url)
+        // oppure se il redirect è verso un host locale/di sviluppo.
+        if ($has_token_url || self::checkLocalHost($host)) {
             $separator = parse_url($redirect_url, PHP_URL_QUERY) ? "&" : "?";
             return $redirect_url . $separator . "token=" . urlencode($token);
         }
@@ -241,10 +241,12 @@ class TokenProviderService
         }
 
         $finalUrl = $redirectUrl;
+        $hasTokenUrl = $provider?->has_token_url ?? false;
 
-        // Se siamo in Cross-Domain e abbiamo un token, lo appendiamo all'URL
-        if (!$isSameDomainZone && !empty($masterToken) && !empty($redirectUrl)) {
-            $finalUrl = $this->appendTokenIfLocalUrl($finalUrl, $masterToken);
+        // Accodiamo il token all'URL se il provider forza la consegna in URL
+        // (has_token_url) oppure se siamo cross-domain (il cookie non sarebbe leggibile).
+        if (!empty($masterToken) && ($hasTokenUrl || !$isSameDomainZone)) {
+            $finalUrl = $this->appendTokenIfLocalUrl($finalUrl, $masterToken, $hasTokenUrl);
         }
 
         return [
@@ -286,7 +288,7 @@ class TokenProviderService
             }
         }
 
-        $finalUrl = $tokenService->appendTokenIfLocalUrl($redirectUrl, $token);
+        $finalUrl = $tokenService->appendTokenIfLocalUrl($redirectUrl, $token, $provider->has_token_url);
         $cookie = $tokenService->cookieCretion($token, $providerId);
 
         return [
