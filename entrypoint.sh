@@ -30,4 +30,7 @@ for i in {1..30}; do
   sleep 2
 done
 
+echo "Generazione documentazione Swagger..."
+php artisan l5-swagger:generate || echo "Generazione Swagger fallita, proseguo comunque."
+
 exec /usr/bin/supervisord -n -c /etc/supervisord.conf

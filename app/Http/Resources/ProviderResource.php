@@ -27,6 +27,7 @@ class ProviderResource extends JsonResource
             "domain" => $this->domain,
             "protocol" => $this->protocol,
             "logoutUrl" => $this->logoutUrl,
+            "hasTokenUrl" => (bool) $this->has_token_url,
             "deleted_at" => $this->deleted_at,
             // presente solo nella lista (addSelect in all()), assente nel find
             "unique_users_count" => $this->whenHas("unique_users_count"),

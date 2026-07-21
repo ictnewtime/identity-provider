@@ -71,9 +71,7 @@ class ProviderController extends Controller
     ]
     public function all(Request $request)
     {
-        return $this->buildProvidersQuery($request)->through(
-            fn(Provider $provider) => new ProviderResource($provider),
-        );
+        return $this->buildProvidersQuery($request)->through(fn(Provider $provider) => new ProviderResource($provider));
     }
 
     /**
@@ -220,10 +218,16 @@ class ProviderController extends Controller
                                 property: "secret_key",
                                 type: "string",
                                 example: "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6",
-                                description: "Signature key of the provider",
+                                description: "Signature key of the provider of type '32 alfanumeric and special character' format",
+                            ),
+                            new OA\Property(
+                                property: "has_token_url",
+                                type: "boolean",
+                                example: "true",
+                                description: "Force the JWT master-token to be sended in the URL",
                             ),
                         ],
-                        required: ["name", "url", "domain", "logoutUrl", "secret_key"],
+                        required: ["name", "url", "domain", "logoutUrl", "secret_key", "has_token_url"],
                     ),
                 ),
             ),
@@ -248,7 +252,7 @@ class ProviderController extends Controller
     ]
     public function create(ProviderRequest $request)
     {
-        $data = $request->only("name", "url", "domain", "protocol", "logoutUrl", "secret_key");
+        $data = $request->only("name", "url", "domain", "protocol", "logoutUrl", "secret_key", "has_token_url");
 
         try {
             $provider = Provider::create($data);
@@ -320,6 +324,12 @@ class ProviderController extends Controller
                                 example: "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6",
                                 description: "Signature key for JWT token. Must be 32 characters long. Leave empty to not change it.",
                             ),
+                            new OA\Property(
+                                property: "has_token_url",
+                                type: "boolean",
+                                example: "true",
+                                description: "Force the JWT master-token to be sended in the URL",
+                            ),
                         ],
                         required: ["name", "url", "domain", "logoutUrl"],
                     ),
@@ -351,7 +361,7 @@ class ProviderController extends Controller
     ]
     public function update(Request $request, $id)
     {
-        $data = $request->only("name", "url", "domain", "protocol", "logoutUrl", "secret_key");
+        $data = $request->only("name", "url", "domain", "protocol", "logoutUrl", "secret_key", "has_token_url");
 
         try {
             $provider = Provider::find($id);
