@@ -59,7 +59,7 @@ class LoginController extends Controller
             $googleUser = Socialite::driver("google")->user();
         } catch (\Exception $e) {
             return redirect()
-                ->route("login")
+                ->route("loginForm")
                 ->withErrors(["login" => __("auth.google_login_failed")]);
         }
 
@@ -75,7 +75,7 @@ class LoginController extends Controller
             } else {
                 // L' user non esiste allinterno dell applicazione IDP.
                 return redirect()
-                    ->route("login")
+                    ->route("loginForm")
                     ->withErrors(["login" => __("auth.google_login_without_account")]);
             }
         }

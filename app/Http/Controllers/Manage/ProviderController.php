@@ -87,7 +87,11 @@ class ProviderController extends Controller
         $show_deleted = $request->boolean("show_deleted");
         $query = Provider::query();
         if ($request->filled("q")) {
-            $query->where("domain", "like", "%" . $request->q . "%");
+            $query->where(function ($subQuery) use ($request) {
+                $subQuery
+                    ->where("domain", "like", "%" . $request->q . "%")
+                    ->orWhere("name", "like", "%" . $request->q . "%");
+            });
         }
         // contatore per il numero di utenti univoci per provider
         $query->addSelect([
