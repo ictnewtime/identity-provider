@@ -21,7 +21,7 @@ class LogLoginListener implements ShouldQueue {
             'ip'     => $ip,
             'userId' => $user->id,
             'action' => 'Login',
-            'url'    => route('login')
+            'url'    => route('loginForm')
         ]);
 
         Log::info($message);

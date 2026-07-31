@@ -77,7 +77,7 @@ COPY docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 RUN mkdir -p /var/log/supervisor /var/run/supervisor /var/run/php-fpm && \
     chmod 755 /var/run/supervisor
 
-RUN chown -R www-data:www-data storage
+RUN chown -R www-data:www-data storage && chmod -R 775 storage bootstrap/cache
 RUN php artisan storage:link
 RUN touch /var/www/storage/logs/laravel.log && chown www-data:www-data /var/www/storage/logs/laravel.log
 RUN npm run build

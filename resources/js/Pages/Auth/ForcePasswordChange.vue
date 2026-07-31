@@ -36,9 +36,10 @@ const formItems = ref({
 
 const passwordRef = toRef(form, "new_password");
 const confirmPasswordRef = toRef(form, "new_password_confirmation");
+const currentPasswordRef = toRef(form, "current_password");
 
 const { requirements, strength, strengthColorClass, strengthTextColorClass, strengthText, isValid, generatePassword } =
-    usePassword(passwordRef, confirmPasswordRef);
+    usePassword(passwordRef, confirmPasswordRef, currentPasswordRef);
 
 const isFormValid = computed(() => form.current_password.length > 0 && isValid.value);
 
@@ -257,6 +258,20 @@ const togglePasswordVisibility = (password_type) => {
                                 :class="requirements.passwordsMatch ? 'pi-check-circle' : 'pi-times-circle'"
                             ></i>
                             {{ $t("auth.req_match") }}
+                        </li>
+                        <li
+                            v-if="form.new_password"
+                            :class="
+                                requirements.differentFromCurrent
+                                    ? 'text-green-600 font-medium'
+                                    : 'text-red-600 font-medium'
+                            "
+                        >
+                            <i
+                                class="pi mr-2 text-xs"
+                                :class="requirements.differentFromCurrent ? 'pi-check-circle' : 'pi-times-circle'"
+                            ></i>
+                            {{ $t("auth.req_different_from_old") }}
                         </li>
                     </ul>
                 </div>
