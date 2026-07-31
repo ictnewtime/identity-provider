@@ -1,10 +1,11 @@
 import { computed, unref } from "vue";
 import { trans } from "laravel-vue-i18n";
 
-export function usePassword(passwordRef, confirmPasswordRef) {
+export function usePassword(passwordRef, confirmPasswordRef, currentPasswordRef = null) {
     // Usiamo unref() per estrarre il valore, sia che tu passi un toRef, un getter, o una stringa
     const getPwd = () => unref(passwordRef) || "";
     const getConfirm = () => unref(confirmPasswordRef) || "";
+    const getCurrent = () => unref(currentPasswordRef) || "";
 
     const requirements = computed(() => ({
         minLength: getPwd().length >= 12,
@@ -13,6 +14,10 @@ export function usePassword(passwordRef, confirmPasswordRef) {
         hasNumber: /[0-9]/.test(getPwd()),
         hasSpecialChar: /[!@#$%^&*(),.?":{}|<>\-_]/.test(getPwd()),
         passwordsMatch: !!getPwd() && getPwd() === getConfirm(),
+        // Vincolo attivo solo se viene passata la password attuale (es. cambio
+        // password forzato): la nuova deve essere diversa da quella corrente.
+        // Se currentPasswordRef non è fornita, il requisito è considerato soddisfatto.
+        differentFromCurrent: !currentPasswordRef ? true : getPwd().length > 0 && getPwd() !== getCurrent(),
     }));
 
     const strength = computed(() => {
@@ -117,7 +122,8 @@ export function usePassword(passwordRef, confirmPasswordRef) {
             requirements.value.hasLowerCase &&
             requirements.value.hasNumber &&
             requirements.value.hasSpecialChar &&
-            requirements.value.passwordsMatch
+            requirements.value.passwordsMatch &&
+            requirements.value.differentFromCurrent
         );
     });
 
