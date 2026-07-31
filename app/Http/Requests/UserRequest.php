@@ -43,8 +43,6 @@ class UserRequest extends FormRequest
                 "nullable",
                 "min:12",
                 "confirmed",
-                // In update: la nuova password deve essere diversa dall'attuale.
-                // In create ($userId null) non c'è una vecchia password da confrontare.
                 function ($attribute, $value, $fail) use ($userId) {
                     if (!$value || !$userId) {
                         return;

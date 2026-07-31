@@ -14,9 +14,6 @@ export function usePassword(passwordRef, confirmPasswordRef, currentPasswordRef 
         hasNumber: /[0-9]/.test(getPwd()),
         hasSpecialChar: /[!@#$%^&*(),.?":{}|<>\-_]/.test(getPwd()),
         passwordsMatch: !!getPwd() && getPwd() === getConfirm(),
-        // Vincolo attivo solo se viene passata la password attuale (es. cambio
-        // password forzato): la nuova deve essere diversa da quella corrente.
-        // Se currentPasswordRef non è fornita, il requisito è considerato soddisfatto.
         differentFromCurrent: !currentPasswordRef ? true : getPwd().length > 0 && getPwd() !== getCurrent(),
     }));
 
