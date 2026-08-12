@@ -7,30 +7,53 @@ Prerequisito comune: l'ambiente preparato secondo [SETUP.md](SETUP.md), credenzi
 
 ---
 
-## Test PHP (PHPUnit) — dentro il container
-
-> ⚠️ **Non lanciare `php artisan test` nudo dentro il container.** Se esiste
-> `bootstrap/cache/config.php` — e nel container esiste — `env()` è inerte, `phpunit.xml` non ha
-> effetto e i test girano su **MariaDB**: `RefreshDatabase` fa `migrate:fresh` e **svuota il database
-> di staging**. È il difetto [`VDF11`](task/vulnerability/vulnerability.md), ed è già successo.
-
-Usare `composer test`, che fa `config:clear` come primo passo:
+## Test PHP (PHPUnit) — nel **suo** container
 
 ```sh
-docker exec idp_app_2 composer test
-docker exec idp_app_2 composer test -- --filter=NomeDelTest
+docker compose -f docker-compose.test.yml run --rm --build test
+docker compose -f docker-compose.test.yml run --rm test php artisan test --filter=AuditList
 ```
 
-Dopo il `config:clear` vale quello che `phpunit.xml` dice: **sqlite in memoria**
-(`DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`), quindi nessun MariaDB necessario.
+Un ambiente separato da quello di sviluppo (`Dockerfile.test` + `docker-compose.test.yml`), e la
+separazione è il punto: **non tocca** il database `idp_develop`, **non** legge come autorevole né
+riscrive il `.env` dell'host, **non** tocca `bootstrap/cache/` — la config cache è deviata su
+`/tmp/config-test.php`. Il database `idp_test` lo crea l'entrypoint da sé, con
+`CREATE DATABASE IF NOT EXISTS`, a ogni avvio.
 
-**In alternativa, senza toccare il container** — un contenitore usa-e-getta con la config cache
-deviata, che è il modo più sicuro perché non modifica niente nell'ambiente:
+Il codice si monta, quindi non serve ricostruire l'immagine a ogni modifica; `--build` serve solo
+quando cambia `Dockerfile.test`.
+
+### I due modi
+
+| Modo | Database | Quando |
+|---|---|---|
+| **1 — sqlite in memoria** | `:memory:` | il più veloce, per tutto ciò che non dipende da MariaDB. È il predefinito di `phpunit.xml` |
+| **2 — MariaDB** (quello che usa `docker-compose.test.yml`) | `idp_test` | quando un test deve provare qualcosa che sqlite **non riproduce**: collation, indici veri, tipi JSON, comportamento dei lock, `information_schema` |
+
+Il modo si scelgono con le variabili d'ambiente, che **vincono** su `phpunit.xml` — PHPUnit le imposta
+prima che Laravel legga i file `.env`, e il caricatore di Laravel non sovrascrive ciò che c'è già
+(verificato il 2026-08-12). Per forzare il modo 1 dentro l'ambiente di test:
 
 ```sh
-docker run --rm -v "$PWD":/app -w /app -e APP_CONFIG_CACHE=/tmp/nessuna-cache.php \
-    php:8.2-cli php artisan test
+docker compose -f docker-compose.test.yml run --rm \
+    -e DB_CONNECTION=sqlite -e DB_DATABASE=:memory: test
 ```
+
+Il modello delle variabili è [.env.test.example](../.env.test.example), che `Dockerfile.test` copia
+dentro l'immagine — **non** sopra il `.env` dell'host.
+
+### Il guardiano che impedisce di cancellare il database sbagliato
+
+`tests/TestCase.php` legge la configurazione **risolta a runtime** e **aborta** se il database in uso
+non è fra quelli di `TEST_ALLOWED_DATABASES` (`:memory:` e `idp_test`).
+
+Sta in `setUpTraits()` e non in `setUp()`, e la differenza è tutto: `RefreshDatabase` agisce dentro
+`setUpTraits()`, quindi un controllo dopo `parent::setUp()` parlerebbe **a database già ricreato**.
+Provato nei due versi — con un database non consentito la suite si ferma **senza** che nessuna
+tabella venga creata; con `idp_test` passa.
+
+Serve anche ora che l'ambiente è separato: protegge chi lancerà la suite nel modo sbagliato comunque,
+per esempio dentro `idp_app_2`.
 
 ---
 

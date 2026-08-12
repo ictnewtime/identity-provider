@@ -23,6 +23,7 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 | [./todo/20260812-static-analysis-findings-v3/](./todo/20260812-static-analysis-findings-v3/) | Literali duplicati nelle annotazioni OpenAPI di quattro controller: percorsi, descrizioni dei parametri, tag | `TOA` | media |
 | [./todo/20260812-static-analysis-findings-v4/](./todo/20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio d'errore ripetuto tre volte e costruttore vuoto | `TPU` | bassa |
 | [./todo/20260812-swagger-deploy-tests/](./todo/20260812-swagger-deploy-tests/) | Test che verificano che la documentazione OpenAPI sia **generata e valida**, e che **fermano la pipeline** prima del deploy. Oggi la pipeline non ha nessun job di test | `TSD` | **alta** |
+| [./todo/20260812-local-environments/](./todo/20260812-local-environments/) | Due ambienti locali: **develop** con `idp_develop` creato a mano, **test** con `idp_test` ricreato a ogni avvio. E la decisione su **quale database usa la suite** — misurato: `LIKE` su una lettera accentata trova 0 righe su sqlite e 1 su MariaDB | `TLE` | **alta** |
 | [./todo/20260812-e2e-test-container/](./todo/20260812-e2e-test-container/) | Un container dedicato per Cypress: all'immagine dell'applicazione mancano **tutte** le librerie che gli servono. Sblocca la verifica di quattro punti già chiusi nella tranche v1 | `TEC` | **alta** |
 
 ## Chiusi

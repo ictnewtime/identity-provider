@@ -37,9 +37,9 @@ class AuditListTest extends TestCase
                     "event" => "updated",
                     "auditable_type" => User::class,
                     "auditable_id" => "1",
-                    "ip_address" => "127.0.0.1",
+                    "ip_address" => env("TEST_IP_ADDRESS"),
                     "url" => "http://localhost",
-                    "user_agent" => "phpunit",
+                    "user_agent" => env("TEST_USER_AGENT"),
                 ],
                 $overrides,
             ),
@@ -75,10 +75,10 @@ class AuditListTest extends TestCase
 
     public function test_la_ricerca_filtra_per_indirizzo_ip(): void
     {
-        $this->audit(["ip_address" => "10.0.0.1"]);
-        $this->audit(["ip_address" => "192.168.1.1"]);
+        $this->audit(["ip_address" => env("TEST_IP_ADDRESS_ALT")]);
+        $this->audit(["ip_address" => env("TEST_IP_ADDRESS_OTHER")]);
 
-        $this->chiama(["q" => "10.0.0"])
+        $this->chiama(["q" => env("TEST_IP_ADDRESS_ALT")])
             ->assertStatus(200)
             ->assertJsonCount(1, "data");
     }
