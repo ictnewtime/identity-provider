@@ -203,8 +203,16 @@ qualcuno l'ha tenuta apposta.
   sono due attributi indipendenti sullo stesso input. Toglierne uno non tocca il pulsante — la
   domanda originale suggeriva un'alternativa che non esiste.
 
-  → **RISPOSTA: la password non deve avere `autocomplete`.** Allinea le due eccezioni ai sette
+  → **PRIMA RISPOSTA: la password non deve avere `autocomplete`.** Allinea le due eccezioni ai sette
   componenti che già non ce l'hanno.
+
+  → **RISPOSTA DEFINITIVA, stessa giornata: l'attributo resta.** Il developer ha accolto la riserva
+  qui sotto e l'ha estesa anche a `UserForm.vue:454`: `new-password` distingue i campi della password
+  **nuova** da quello della password **attuale** in un form che ne ha più di uno, ed è ciò che impedisce
+  al browser di precompilare la credenziale salvata dove va scritta una password diversa. Toglierlo
+  sarebbe una regressione vera. `TSA05` e `TSA05b` sono entrambi **scartati**, e la ragione è scritta
+  dove chi tocca quel codice la trova: [doc-code-guide-line.md](/docs/doc-code-guide-line.md). Il
+  rilievo di SonarQube resta, ed è un falso positivo da sopprimere alla fonte come `TSA06`.
 
   **Una riserva, e la lascio scritta perché la decisione sia informata**: togliere l'attributo dà
   *coerenza*, non *soppressione*. `autocomplete="new-password"` è il modo documentato per dire al
@@ -245,7 +253,7 @@ chi rilegge la decisione fra sei mesi, non a rimetterla in discussione.
 | **D1** | `git rm --cached` **subito**, con un `cypress.env.example.json` che porta le sole chiavi. La riscrittura della storia solo se il repo è accessibile fuori dal team: costa a tutti e non sostituisce comunque la rotazione. | **accolta in parte**: sganciare sì, storia no — le credenziali erano dummy |
 | **D2** | Sì, fuori dal repo, e **prima** del resto: finché quelle credenziali sono valide, tutto il lavoro sui file non cambia niente. | **superata**: non c'è un'identità di lunga durata da ruotare |
 | **D3** | Cancellare `cypress/e2e-bk/`. Sono esempi generati (F10): 20 file che nessuno esegue producono rilievi che qualcuno legge. Se servono come riferimento, stanno nella documentazione di Cypress. | **non accolta**: si tiene, e si esclude lato Sonar |
-| **D4** | Tenere il pulsante. La correzione utile non è togliere la commutazione, è dichiarare `autocomplete` **su tutti e due** i campi (F11) e nella stessa forma nei due form (F5). | **non accolta**: si toglie invece di aggiungere. La riserva su `ProviderForm.vue:376` (che non è una password) è registrata nel § 4 e isolata in `TSA05b` |
+| **D4** | Tenere il pulsante. La correzione utile non è togliere la commutazione, è dichiarare `autocomplete` **su tutti e due** i campi (F11) e nella stessa forma nei due form (F5). | **accolta a valle di un ripensamento**: la prima risposta toglieva l'attributo, la definitiva lo tiene. Resta non fatta solo la metà additiva — dichiararlo anche su `UserForm.vue:312` — che è il difetto `VDF04`, ancora aperto |
 | **D5** | Sì, ma **minimo**: ESLint con il plugin Vue e le sole regole che coprono questi rilievi. Un lint che al primo giro segnala trecento cose si disattiva alla settimana successiva. | **non accolta**: niente ESLint; resta `BDB02` (nessuna riproduzione locale dei rilievi) |
 | **D6** | Se è SonarQube, `TSA06` si chiude con un `NOSONAR` motivato o un'esclusione nel progetto Sonar, non nel codice Vue. | **confermata**: è SonarQube, e il quality gate **ferma già oggi un rilascio** (`.github/workflows/deploy-staging.yml:38`) |
 | **D7** | Verificarlo per primo, ispezionando l'input renderizzato nel browser. | **decaduta**: con `D4` che toglie l'attributo, non c'è più niente da ispezionare |
