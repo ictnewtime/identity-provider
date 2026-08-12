@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Manage;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AuditResource;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -52,8 +53,22 @@ class AuditController extends Controller
             if (in_array($field, $allowedSorts)) {
                 if (str_starts_with($field, "user.")) {
                     $sortColumn = str_replace("user.", "users.", $field);
+
+                    // `user` è una relazione POLIMORFA: la chiave è la coppia (user_id, user_type),
+                    // e la tabella ha un indice proprio su quella coppia. Unire sul solo `user_id`
+                    // attaccherebbe l'audit di un client Passport all'utente con lo stesso id.
+                    //
+                    // `leftJoin` e non `join`: `audits.user_id` è nullable, e una join interna
+                    // farebbe sparire dalla lista gli audit di sistema — un registro di audit che
+                    // nasconde righe a seconda dell'ordinamento.
                     $query
-                        ->join("users", "audits.user_id", "=", "users.id")
+                        ->leftJoin("users", function ($join) {
+                            $join->on("audits.user_id", "=", "users.id")->where(
+                                "audits.user_type",
+                                "=",
+                                User::class,
+                            );
+                        })
                         ->select("audits.*")
                         ->orderBy($sortColumn, $direction);
                 } else {
@@ -66,16 +81,10 @@ class AuditController extends Controller
 
         // Paginazione
         $perPage = $request->input("per_page", 25);
-        return $query
-            ->latest()
-            ->paginate($perPage)
-            ->through(function ($audit) {
-                // Se la relazione 'user' esiste ed è un Client di Passport
-                if ($audit->user instanceof PassportClient) {
-                    // Iniettiamo la proprietà username al volo per Vue
-                    $audit->user->username = $audit->user->name;
-                }
-                return $audit;
-            });
+
+        // La forma della risposta la decide AuditResource: qui non escono modelli nudi.
+        // La conversione del nome dell'attore — `username` per un utente, `name` per un client
+        // Passport — sta lì, e non muta più il modello per farla.
+        return AuditResource::collection($query->latest()->paginate($perPage));
     }
 }
