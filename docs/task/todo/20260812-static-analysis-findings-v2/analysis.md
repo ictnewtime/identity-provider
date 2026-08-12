@@ -3,7 +3,7 @@
 **Identificatori**: `TCC` = task cognitive-complexity
 
 Stato: da approvare · Data: 2026-08-12 · Tranche **v2** di 4 —
-[v1](../20260812-static-analysis-findings-v1/analysis.md) · [v3](../20260812-static-analysis-findings-v3/analysis.md) · [v4](../20260812-static-analysis-findings-v4/analysis.md)
+[v1](../../done/20260812-static-analysis-findings-v1/analysis.md) · [v3](../20260812-static-analysis-findings-v3/analysis.md) · [v4](../20260812-static-analysis-findings-v4/analysis.md)
 
 ## 1. Obiettivo
 
@@ -25,7 +25,11 @@ riguarderà, perché il rilievo sarà verde.
 | F3 | Il middleware ha **già** un metodo di uscita dedicato, usato in tutti i rami d'errore | `app/Http/Middleware/Authenticated.php:102` (`forceLogoutAndRedirect`) |
 | F4 | La rotta della lista audit è protetta ma **non filtrata per tenant**: nessun vincolo su provider o organizzazione | `routes/web.php:144` |
 | F5 | Il progetto **non ha ancora** né `app/Http/Resources` popolato per gli audit né uno strato di query dedicato: il controller parla direttamente con l'ORM | `app/Http/Controllers/Manage/AuditController.php:21` |
-| F6 | La `join("users", "audits.user_id", "=", "users.id")` è una **inner join** e ignora `auditable`/`user_type`: la relazione `user` è **polimorfa** (`User` o `PassportClient`), come dimostra l'`orWhereHasMorph` dieci righe sopra | `AuditController.php:52-56` vs `:30-42` |
+| F6 | La `join("users", "audits.user_id", "=", "users.id")` **non filtra su `user_type`**, che pure esiste in tabella con tanto di indice `(user_id, user_type)` | `AuditController.php:52-56`; `database/migrations/2026_03_11_105918_create_audits_table.php:20,35` |
+| F6a | **`User` usa `SoftDeletes`**: un utente cancellato lascia la sua riga, quindi la inner join continua a trovarlo | `app/Models/User.php:19` |
+| F6b | `audits.user_id` è **nullable**: gli audit senza utente esistono, e la inner join li esclude | migrazione `:21` |
+| F6c | **`Laravel\Passport\Client` NON ha SoftDeletes**: ha un booleano `revoked`. Una cancellazione è definitiva e lascia gli audit orfani | `vendor/laravel/passport/src/Client.php:10,48`; `database/migrations/2016_06_01_000004_create_oauth_clients_table.php:23` |
+| F6d | Oggi **l'applicazione non cancella client Passport**: `OauthClientsController` non ha un metodo di cancellazione e le sue rotte sono commentate | `app/Http/Controllers/Manage/OauthClientsController.php`; `routes/web.php:11` |
 | F7 | `$perPage = $request->input("per_page", 25)` non ha **né tetto né validazione**: il valore arriva dal client | `AuditController.php:70` |
 | F8 | La risposta restituisce il **modello completo** `Audit` con dentro il modello completo `user`, senza una API Resource che scelga i campi | `AuditController.php:71-79` |
 | F9 | `->latest()` viene applicato **dopo** l'`orderBy` esplicito, e nel ramo `else` duplica un ordinamento già impostato | `AuditController.php:73` vs `:65` |
@@ -60,17 +64,32 @@ Alternativa scartata per entrambe: **spezzare in metodi senza cambiare la strutt
 scendere sotto 15. Chiude il rilievo, lascia i difetti sotto, e la prossima soglia superata riporta
 qui qualcuno che dovrà rileggere tutto da capo.
 
-**`F6` — la join polimorfa è un difetto di correttezza, non di stile.** Ordinando per
-`user.username`, la query unisce `audits.user_id` a `users.id` **senza guardare il tipo**. Ma dieci
-righe più su lo stesso codice dichiara che quella relazione può puntare a un `PassportClient`: un
-audit prodotto da un client con `id` 7 viene unito all'**utente** con `id` 7, che è una persona
-diversa e non c'entra niente. E poiché la join è interna, gli audit senza utente — o con un utente
-cancellato — **spariscono dalla lista** appena qualcuno clicca su quella colonna. Un registro di
-audit che nasconde righe a seconda di come lo si ordina è il difetto peggiore di questo lotto, ed è
-il motivo per cui `TCC03` sta in cima al piano invece che in fondo. Alternative: una `leftJoin` con
-la condizione sul tipo (corretta, ma l'ordinamento su una relazione polimorfa resta fragile), oppure
-togliere `user.username` dalle colonne ordinabili finché non c'è una soluzione vera. La seconda è
-brutta e onesta; la raccomandazione sta nel § 5.
+**`F6` — cosa è davvero rotto nella join, dopo le correzioni del developer.** La mia prima analisi
+diceva due cose e **una era sbagliata**: che gli audit di utenti cancellati sparissero dalla lista.
+`F6a` la smentisce — `User` usa `SoftDeletes`, la riga resta, la inner join la trova. Correzione
+registrata qui e non in coda.
+
+Restano due problemi veri, e sono diversi fra loro:
+
+1. **La join non guarda `user_type`** (`F6`). La colonna esiste, ha perfino un indice dedicato, e la
+   query la ignora: un audit prodotto da un client Passport con `id` 7 viene unito all'**utente** con
+   `id` 7. Non è un dubbio sulla forma della relazione — che il developer ha confermato voluta — è la
+   join che non usa metà della chiave.
+2. **La join è interna, e `user_id` è nullable** (`F6b`). Gli audit senza utente — quelli di sistema —
+   spariscono dalla lista appena si ordina per username. Nessun soft delete c'entra: sono righe che
+   non hanno mai avuto un utente.
+
+Quindi la correzione **non è togliere la colonna ordinabile** (era la mia raccomandazione, superata):
+è aggiungere la condizione su `user_type` e passare a `leftJoin`. Le due modifiche vanno insieme —
+solo il tipo lascerebbe fuori i `NULL`, solo la left join continuerebbe ad attaccare la riga sbagliata.
+
+**Il problema che apre `F6c`, e che non era nella lista.** `Passport\Client` non ha soft delete: ha
+`revoked`. Se un client viene cancellato, la riga sparisce e i suoi audit restano con un `user_id` che
+non punta più a niente — e su un registro di audit questo è il danno peggiore, perché l'informazione
+persa è **chi ha fatto cosa**. `F6d` dice che oggi il rischio non si realizza: l'applicazione non
+cancella client, il controller non ha il metodo e le rotte sono commentate. Ma il meccanismo giusto
+esiste già nello schema — la colonna `revoked` — quindi la regola da fissare adesso, finché nessuno ha
+ancora scritto quel codice, è: **un client Passport si revoca, non si cancella**.
 
 **`F7` — `per_page` senza tetto.** È il punto 5 della checklist dell'organizzazione, alla lettera:
 `?per_page=1000000` fa caricare in memoria un milione di righe di audit — la tabella che in questo
@@ -84,8 +103,10 @@ non è un leak verso un ruolo sbagliato, **ma è la forma che lo rende possibile
 una API Resource sceglie i campi una volta, un modello nudo li espone per sempre. Va detto che
 introdurla rompe il frontend (§ 2), quindi è un punto suo, subordinato.
 
-**`F4` — lo scope.** Non lo tratto come un difetto perché non so se in questo sistema esista un
-concetto di tenant sugli audit: è una domanda (`D3`), non una conclusione.
+**`F4` — lo scope: risposta del developer.** In questo sistema **i tenant non si gestiscono**, e un
+amministratore vede tutti gli audit: è corretto così. Smette di essere una domanda e diventa una
+riga scritta — l'assenza di un `where` è una **scelta**, non una dimenticanza, ed è questo che vale
+la pena lasciare a chi legge la query fra sei mesi.
 
 **`F9` — `latest()` di troppo.** Dopo un `orderBy` esplicito aggiunge `created_at desc` come criterio
 secondario; nel ramo `else` è la stessa cosa detta due volte. Non l'ho eseguito, quindi **non affermo
@@ -100,39 +121,60 @@ volta sola, e non qui.
 
 ## 4. Da decidere
 
+> **Risposte del developer, 2026-08-12. Il § 4 è chiuso**: sei domande su sei. Le risposte stanno
+> dove erano le domande, e hanno **allargato lo scope del task** (`D5`) e capovolto la correzione di
+> `F6` (`D2`).
+
 ### Vincoli
 
-- **D1** — la scomposizione di `Authenticated::handle()` tocca il percorso di autenticazione di tutta
-  l'area protetta (§ 2). Confermi che va fatta **solo dopo** aver scritto i test che coprono i sei
-  rami d'uscita attuali? Senza, è un refactoring alla cieca su un middleware di sicurezza.
-- **D2** — `F6`, l'ordinamento per `user.username`: si corregge la join (con il tipo, e in `left`), o
-  si **rimuove la colonna** dalle ordinabili finché non c'è una soluzione per le relazioni polimorfe?
+- **D1** — la scomposizione di `Authenticated::handle()` va fatta **solo dopo** i test sui sei rami
+  d'uscita? → **CONFERMATO.** I test vengono prima, e restano invariati durante il refactoring: sono
+  l'unica prova che il comportamento non è cambiato.
+- **D2** — l'ordinamento per `user.username`: correggere la join o rimuovere la colonna? →
+  **CORREGGERE LA JOIN.** La relazione polimorfa è voluta; quello che manca è che la query usi
+  `user_type` e non escluda le righe senza utente (§ 3). La colonna resta ordinabile.
 
 ### Conflitti
 
-- **D3** — `F4`: gli audit devono essere filtrati per provider/organizzazione, o è corretto che un
-  amministratore li veda tutti? Se il secondo, lo si scrive e il punto si chiude come `scartato`.
-- **D5** — `F8`: introdurre una API Resource rompe la tabella Vue. Lo si fa **in questo task**,
-  insieme al frontend, o diventa un task suo? Tenerlo qui allarga lo scope; rimandarlo lascia la
-  risposta com'è.
+- **D3** — gli audit vanno filtrati per provider/organizzazione? → **NO**: i tenant non si gestiscono,
+  ed è corretto che un amministratore veda tutto. Da **scrivere** dove sta la query, non da lasciare
+  implicito.
+- **D5** — la API Resource rompe la tabella Vue: in questo task o in uno suo? → **in questo task,
+  allargando lo scope**, frontend compreso.
 
 ### Ignoto
 
-- **D4** — `F9`: `->latest()` con la join produce un errore di ambiguità su `created_at`, o MySQL lo
-  risolve sulla lista di output? Non l'ho eseguito e non lo affermo. Va provato con una richiesta
-  reale ordinata per `user.username`.
-- **D6** — qual è la soglia e quale strumento la misura, per il PHP? Senza saperlo non si può
-  verificare che 18 sia sceso sotto 15: si può solo *credere* di averlo fatto.
+- **D4** — `->latest()` con la join dà un errore di ambiguità su `created_at`? → **si verifica con un
+  test unitario**, non a occhio. Il test viene prima della rimozione: se l'errore c'è, `F9` non è
+  pulizia ma un guasto su una colonna ordinabile e cambia priorità.
+- **D6** — quale strumento misura la complessità e con quale soglia? → **SonarQube**, e il risultato si
+  **riporta a mano, iterando**: si modifica, si rilancia la scansione, si legge il numero. La verifica
+  resta quindi `man`, e nel piano è dichiarata tale invece di fingere un comando che non esiste.
+
+### Come va fatta la scomposizione — indicazione del developer
+
+Non «spostare righe»: **riorganizzare il codice in funzioni e, dove serve, in 2-3 file separati**,
+cioè 2-3 classi. Con, per ciascuna:
+
+- **unit test per classe** — ogni pezzo si prova da solo;
+- **unit test di composizione** — l'intero meccanismo, con prove su **flussi e condizioni diversi**.
+
+È un requisito sulla forma del risultato, non solo sul numero: una classe che non si può provare da
+sola non ha risolto il problema che il numero segnalava.
 
 ## 5. Consigli
 
-| Domanda | Raccomandazione |
-|---|---|
-| **D1** | Sì, e non è negoziabile. I test dei sei rami del middleware sono il primo punto del piano (`TCC01`); la scomposizione viene dopo e deve lasciarli verdi senza modificarli — è l'unica prova che il comportamento non è cambiato. |
-| **D2** | **Rimuovere `user.username` dalle colonne ordinabili**, subito, e aprire la correzione vera come punto suo. Una `leftJoin` con la condizione sul tipo risolve le righe perse ma lascia l'ordinamento fragile su due tabelle diverse (`users.username` e `oauth_clients.name`), che è il problema che non ho una buona risposta per — e una lista che ordina *quasi* giusto è peggio di una colonna che non si ordina. |
-| **D3** | Serve la tua risposta. Se un amministratore è per definizione globale, va **scritto** nell'analisi e nel controllo di autorizzazione, non lasciato implicito nell'assenza di un `where`. |
-| **D4** | Verificarlo prima di toccare quella riga: se l'errore c'è, `F9` non è pulizia ma un guasto in produzione su una colonna ordinabile, e cambia priorità. |
-| **D5** | Task suo. Qui lo scope è la complessità cognitiva più i difetti che ci stanno dentro; la API Resource è un cambiamento di contratto col frontend e merita il suo piano. Ma va **aperto adesso**, non ricordato. |
-| **D6** | Se è SonarQube, la soglia è la sua regola predefinita e si misura solo rieseguendolo. Finché non è nel repo (`TSA09`), la verifica di `TCC02` e `TCC06` resta `man`: la dichiaro tale nel piano invece di far finta che un comando la produca. |
+Le raccomandazioni **precedono** le risposte del § 4. Dove il developer ha deciso diversamente vale la
+sua risposta; la riga qui sotto dice cosa avevo consigliato — serve a chi rilegge la decisione fra sei
+mesi, non a rimetterla in discussione.
+
+| Domanda | Raccomandazione | Esito |
+|---|---|---|
+| **D1** | Sì, e non è negoziabile: i test dei sei rami prima, la scomposizione dopo. | **accolta** |
+| **D2** | Rimuovere `user.username` dalle colonne ordinabili e aprire la correzione vera a parte. | **non accolta, e meglio così**: si corregge la join. La mia raccomandazione poggiava anche su una premessa sbagliata — gli audit di utenti cancellati che sparivano — smentita da `F6a` |
+| **D3** | Serve la tua risposta; se un amministratore è globale per definizione va **scritto**. | **accolta nella parte che conta**: nessun tenant, e lo si scrive |
+| **D4** | Verificarlo prima di toccare la riga. | **accolta, con il metodo precisato**: un test unitario |
+| **D5** | Task suo: è un cambiamento di contratto col frontend. | **non accolta**: si fa qui, allargando lo scope |
+| **D6** | Finché lo strumento non è nel repo la verifica resta `man`. | **confermata**: SonarQube, misura riportata a mano iterando |
 
 Il piano: [action-plan.md](./action-plan.md).

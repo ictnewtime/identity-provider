@@ -79,7 +79,7 @@ Vale per **tutte** le occorrenze. Marcare il rilievo come *False Positive* e inc
 > portare `UserForm` alla forma di `ProviderForm`, mai togliere l'attributo.
 
 Traccia: `TSA05` e `TSA05b`, entrambi **scartati**, in
-[static-analysis-findings-v1](task/todo/20260812-static-analysis-findings-v1/action-plan.md).
+[static-analysis-findings-v1](task/done/20260812-static-analysis-findings-v1/action-plan.md).
 
 ### Dove manca, e sono i posti in cui servirebbe di più
 

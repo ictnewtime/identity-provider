@@ -12,7 +12,7 @@ scoperto dopo.
 Nasce come raccolta: il developer ha deciso il 2026-08-12 di **non toccare la pipeline per ora**, e
 questo task diventa la casella unica di tutto ciò che modifica i workflow. Vi confluisce `TSA13`
 (preparare le credenziali E2E in pipeline) da
-[static-analysis-findings-v1](../../todo/20260812-static-analysis-findings-v1/action-plan.md), e vi
+[static-analysis-findings-v1](../../done/20260812-static-analysis-findings-v1/action-plan.md), e vi
 appartiene anche `TSD07` di
 [swagger-deploy-tests](../../todo/20260812-swagger-deploy-tests/action-plan.md), che è rimasto lì e va
 deciso (`D1`).

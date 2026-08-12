@@ -14,12 +14,11 @@ controllo degli indici:
 
 ## Aperti
 
-Le quattro tranche `-v1`…`-v4` vengono dalla **stessa passata di analisi statica del 2026-08-12** e
-si leggono insieme: sono divise per obiettivo, non per priorità.
+Le tranche `-v2`…`-v4` vengono dalla **stessa passata di analisi statica del 2026-08-12** e si
+leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chiusa**, sotto.
 
 | Task | Obiettivo | Sigla | Priorità |
 |---|---|---|---|
-| [./todo/20260812-static-analysis-findings-v1/](./todo/20260812-static-analysis-findings-v1/) | Frontend Vue e test E2E: password nei test, `Number.parseInt`, `autocomplete`, un falso positivo. **Contiene la voce più grave del lotto** — credenziali reali tracciate in git | `TSA` | **alta** |
 | [./todo/20260812-static-analysis-findings-v2/](./todo/20260812-static-analysis-findings-v2/) | Complessità cognitiva di due funzioni: la lista degli audit e il middleware di autenticazione. Sotto il rilievo ci sono difetti di correttezza che il rilievo non nomina | `TCC` | **alta** |
 | [./todo/20260812-static-analysis-findings-v3/](./todo/20260812-static-analysis-findings-v3/) | Literali duplicati nelle annotazioni OpenAPI di quattro controller: percorsi, descrizioni dei parametri, tag | `TOA` | media |
 | [./todo/20260812-static-analysis-findings-v4/](./todo/20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio d'errore ripetuto tre volte e costruttore vuoto | `TPU` | bassa |
@@ -28,4 +27,8 @@ si leggono insieme: sono divise per obiettivo, non per priorità.
 
 ## Chiusi
 
-Nessuno. L'indice di `done/` nasce col primo task chiuso.
+| Task | Obiettivo | Sigla | Chiuso il |
+|---|---|---|---|
+| [./done/20260812-static-analysis-findings-v1/](./done/20260812-static-analysis-findings-v1/) | Frontend Vue e test E2E. Obiettivo raggiunto: **nessuna password letterale** resta in `database/seeders/` né in `cypress/e2e/`, e le credenziali E2E ora si generano | `TSA` | 2026-08-12 |
+
+L'elenco completo, con cosa è stato scartato e perché, sta in [done/index.md](./done/index.md).

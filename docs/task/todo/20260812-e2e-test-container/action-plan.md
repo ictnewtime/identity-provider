@@ -22,13 +22,14 @@ decisione del developer.
 ## Onda 2 — chiudere i punti che aspettano questa verifica
 
 È la ragione per cui il task esiste: quattro punti della tranche
-[v1](../20260812-static-analysis-findings-v1/action-plan.md) sono `fatto, da verificare` e la loro
-verifica è un'esecuzione di Cypress.
+[v1](../../done/20260812-static-analysis-findings-v1/action-plan.md) sono chiusi con la verifica
+**delegata qui**, e il task è stato spostato in `done/` su quella delega. Se `TEC04` li smentisce, si
+riaprono là: un task chiuso non è un task immune.
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
 |---|---|---|---|---|---|---|
 | TEC04 | da approvare | Eseguire `scripts/prepare-e2e-credentials.sh` nel container **`app`** (serve `php artisan`, `F10`), poi i test dal container `cypress`. Chiude la verifica di `TSA10a`, `TSA11`, `TSA12` e `TSA03` | nessuno | medio — è una **scrittura sul database**, che R1 subordina ad approvazione esplicita | auto | `login.cy.js` passa con gli utenti generati; `crud-user.cy.js` passa con la password presa da `Cypress.env("newUserPassword")` |
-| TEC05 | da approvare | Riportare l'esito nella tranche v1: i quattro punti passano a `fatto` **solo se i test passano**. Se falliscono, l'esito si scrive lì dov'era sbagliata l'analisi, non in coda (R16) | `docs/task/todo/20260812-static-analysis-findings-v1/action-plan.md` | basso | man | nessun punto resta `fatto, da verificare` |
+| TEC05 | da approvare | Riportare l'esito in `done/20260812-static-analysis-findings-v1`: se i test passano, la delega si chiude e si annota; **se falliscono**, i punti tornano aperti e il task torna in `todo/`, con l'esito scritto dov'era sbagliata l'analisi e non in coda (R16) | `docs/task/done/20260812-static-analysis-findings-v1/action-plan.md` | basso | man | il piano della v1 dice cosa hanno stabilito i test, non che li aspetta |
 
 ## Onda 3 — le conseguenze
 

@@ -10,7 +10,7 @@ Rendere i test E2E **eseguibili in modo riproducibile** da un container proprio,
 macchina di chi sviluppa.
 
 Perché adesso, e questa è la ragione concreta: quattro punti chiusi nella tranche
-[static-analysis-findings-v1](../20260812-static-analysis-findings-v1/action-plan.md) — `TSA10a`,
+[static-analysis-findings-v1](../../done/20260812-static-analysis-findings-v1/action-plan.md) — `TSA10a`,
 `TSA11`, `TSA12`, `TSA03` — sono implementati e **la loro verifica è un'esecuzione di Cypress**.
 Finché quella non è ripetibile, quei punti restano una dichiarazione.
 

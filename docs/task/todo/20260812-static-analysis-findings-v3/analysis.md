@@ -3,7 +3,7 @@
 **Identificatori**: `TOA` = task openapi-annotations
 
 Stato: da approvare · Data: 2026-08-12 · Tranche **v3** di 4 —
-[v1](../20260812-static-analysis-findings-v1/analysis.md) · [v2](../20260812-static-analysis-findings-v2/analysis.md) · [v4](../20260812-static-analysis-findings-v4/analysis.md)
+[v1](../../done/20260812-static-analysis-findings-v1/analysis.md) · [v2](../20260812-static-analysis-findings-v2/analysis.md) · [v4](../20260812-static-analysis-findings-v4/analysis.md)
 
 ## 1. Obiettivo
 
