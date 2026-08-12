@@ -8,7 +8,8 @@ describe("Scenari di CRUD per gli Utenti", () => {
         email: `test_${timestamp}@example.com`,
         name: "Test",
         surname: "User",
-        password: "Password123!",
+        // Generata da scripts/prepare-e2e-credentials.sh: nessuna password letterale nei test.
+        password: Cypress.env("newUserPassword"),
     };
 
     // --- Funzioni Helper per azioni ripetute ---

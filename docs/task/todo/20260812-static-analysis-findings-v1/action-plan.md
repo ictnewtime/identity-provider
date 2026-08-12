@@ -9,34 +9,39 @@ puntano lì. Il piano **si ferma al primo punto non approvato**.
 
 Legenda della colonna V — `auto`: lo stabilisce un comando · `man`: lo legge una persona.
 
-## Onda 1 — quello che non aspetta (credenziali)
+## Onda 1 — le credenziali: si generano, non si custodiscono
 
-**Ridimensionata dalle risposte del 2026-08-12** (`D1`, `D2`): le credenziali erano **dummy, per il
-locale**, in stage e produzione `cypress.env.json` non si usa, e in pipeline lo genera l'esecuzione
-stessa. Non c'è niente da ruotare e niente da ripulire dalla storia. Resta da togliere dal
-tracciamento un file che non deve esserci.
+**Onda 1b unita qui il 2026-08-12**, su richiesta del developer: erano due onde che descrivevano la
+stessa cosa in due momenti — il file di esempio e lo sgancio da git da una parte, la generazione
+dall'altra — e separarle faceva approvare due volte una decisione sola.
+
+**Ridimensionata dalle risposte** (`D1`, `D2`): le credenziali erano **dummy, per il locale**, in
+stage e produzione `cypress.env.json` non si usa, e in pipeline lo genererà l'esecuzione stessa. Non
+c'è niente da ruotare né da ripulire dalla storia.
+
+La sostanza dell'onda: le due metà — il file **e** gli utenti nel database — sono inseparabili, perché
+la prima da sola produce un login che fallisce sempre (`F13`).
+
+> **Perché quattro punti sono `fatto, da verificare`.** Il codice c'è e supera i controlli di sintassi
+> (`bash -n`, `php -l`, `node --check`) più il confronto delle chiavi fra lo script e
+> `cypress.env.example.json`. Ma la verifica scritta nella loro colonna è **un'esecuzione di
+> Cypress**, che oggi non è ripetibile: serve un container dedicato, perché all'immagine
+> dell'applicazione mancano tutte le librerie che Cypress richiede. Il lavoro è
+> [e2e-test-container](../20260812-e2e-test-container/action-plan.md), e chiuderli è il suo `TEC04`.
+> `TSA10` invece è `fatto`: **verificato a mano dal developer**.
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
 |---|---|---|---|---|---|---|
 | TSA01 | **fatto** (2026-08-12) | `cypress.env.example.json` con le sole chiavi e **nessuna password**: i due campi di credenziale sono stringhe vuote, gli username sono quelli dedicati di `D8`. Creato su richiesta esplicita del developer | `cypress.env.example.json` (nuovo) | basso | auto | il file esiste, è JSON valido, e `adminPassword`/`nonAdminPassword` sono vuoti |
-| TSA14 | da approvare | **Sganciare `cypress.env.json` dal tracciamento git** — è già in `.gitignore` (ultima riga) ma resta indicizzato, quindi continua a essere distribuito a ogni clone. Il comando è `git rm --cached cypress.env.json` e **lo esegue il developer** (R2: git in sola lettura per l'agente); il file sul disco resta dov'è | `cypress.env.json` (solo l'indice git) | basso, dopo `D1` | auto | `git ls-files cypress.env.json` non stampa niente, e il file esiste ancora sul disco |
+| TSA14 | **approvato** (2026-08-12) | **Sganciare `cypress.env.json` dal tracciamento git** — è già in `.gitignore` (ultima riga) ma resta indicizzato, quindi continua a essere distribuito a ogni clone. Il comando è `git rm --cached cypress.env.json` e **lo esegue il developer** (R2: git in sola lettura per l'agente); il file sul disco resta dov'è | `cypress.env.json` (solo l'indice git) | basso, dopo `D1` | auto | `git ls-files cypress.env.json` non stampa niente, e il file esiste ancora sul disco |
+| TSA10 | **fatto** (2026-08-12) — verificato a mano dal developer | **Lo script** `scripts/prepare-e2e-credentials.sh`: `umask` stretta, password casuali conformi alla policy (maiuscola, minuscola, cifra, simbolo), scrittura di `cypress.env.json`, invocazione del seeder, controllo che il file non sia tracciato da git, pulizia delle variabili in uscita. Idempotente: rieseguirlo rigenera tutto senza lasciare residui | `scripts/prepare-e2e-credentials.sh` (nuovo) | basso | auto | `bash -n` passa; eseguito su un ambiente pulito produce un `cypress.env.json` valido e nessuna password compare nell'output |
+| TSA10a | **fatto, da verificare** con i test E2E — [e2e-test-container](../20260812-e2e-test-container/action-plan.md), punto `TEC04` | **Una riga** in `docs/SETUP.md`, subito dopo il blocco di `php artisan key:generate`, che invoca lo script e lo dichiara obbligatorio. Solo l'invocazione: la procedura sta nello script, non nel documento — due copie divergono, e il documento è quella che nessuno riesegue | `docs/SETUP.md` | basso | auto | il documento cita `scripts/prepare-e2e-credentials.sh` e **non** contiene comandi di generazione né valori |
+| TSA11 | **fatto, da verificare** con i test E2E — [e2e-test-container](../20260812-e2e-test-container/action-plan.md), punto `TEC04` | `E2EUserSeeder` che crea `e2e.admin` ed `e2e.user` leggendo le password **dalle variabili d'ambiente**, senza valore di ripiego scritto nel codice. Chiude la seconda metà di `TSA10`, che senza di lui resta dichiarata e non funzionante | `database/seeders/E2EUserSeeder.php` (nuovo) | medio — crea utenti con privilegi di amministratore | auto | eseguito lo script, `npm run cy:run -- --spec cypress/e2e/auth/login.cy.js` passa; senza le variabili esportate il seeder **fallisce** invece di inventare una password |
+| TSA12 | **fatto, da verificare** con i test E2E — [e2e-test-container](../20260812-e2e-test-container/action-plan.md), punto `TEC04` | Togliere la password scritta in chiaro nel seeder principale (`F14`, difetto `VDF08`): `admin.admin` prende la sua da una variabile d'ambiente, come gli utenti E2E | `database/seeders/DatabaseSeeder.php:39` | medio — cambia la preparazione di ogni ambiente nuovo | auto | `grep -n 'Hash::make("' database/seeders/` non trova più letterali |
+| TSA03 | **fatto, da verificare** con i test E2E — [e2e-test-container](../20260812-e2e-test-container/action-plan.md), punto `TEC04` | Spostare la password dei dati di test da letterale a `Cypress.env(...)`, con la chiave dichiarata in `cypress.env.example.json` e il **valore generato** da `TSA10`. **Dopo `TSA10`**: prima che lo script esista, la chiave non ha chi la riempia | `cypress/e2e/user/crud-user.cy.js:11` | basso | auto | `grep -nE 'password:\s*"' cypress/e2e/` non trova più letterali (R6: il valore non si riporta, si nomina il campo); `npm run cy:run -- --spec cypress/e2e/user/crud-user.cy.js` passa |
+| TSA15 | **implementato** (2026-08-12) | `docs/TEST.md`: come si eseguono le due famiglie di test — PHPUnit **dentro** il container, Cypress **fuori** — e la tabella di cosa manca all'immagine perche' Cypress ci giri dentro. Nasce dalla verifica manuale di `TSA10`: senza un posto dove sta scritto come si lancia Cypress, i punti sotto non si possono chiudere | `docs/TEST.md` (nuovo) | basso | auto | il documento esiste e le sue affermazioni sull'immagine sono verificabili con `dpkg -s` |
 | ~~TSA02~~ | **scartato** (2026-08-12) | Rotazione delle credenziali esposte. **Non serve** (`D2`): in locale il file lo prepara chi sviluppa, in pipeline lo genera l'esecuzione, in stage e produzione non viene usato. Non esiste un'identità di lunga durata da ruotare | — | — | — | — |
-| TSA03 | da approvare | Spostare la password dei dati di test da letterale a `Cypress.env(...)`, con la chiave dichiarata in `cypress.env.example.json` e il **valore generato** dalla procedura di `TSA10`. **Dipende da TSA01**: prima che il file sia sganciato, spostarla lì peggiora `F6` | `cypress/e2e/user/crud-user.cy.js:11` | basso | auto | `grep -nE 'password:\s*"' cypress/e2e/` non trova più letterali (R6: il valore non si riporta, si nomina il campo); `npm run cy:run -- --spec cypress/e2e/user/crud-user.cy.js` passa |
-
-## Onda 1b — le credenziali si generano, non si custodiscono
-
-Nasce dalla considerazione del § 3: quando i test E2E entrano in pipeline (`F12`) qualcuno deve
-**fornire** quelle credenziali al deploy, e l'unica risposta che non crea un segreto da proteggere è
-generarle a ogni preparazione dell'ambiente. Le due metà — il file **e** gli utenti nel database —
-sono inseparabili: la prima da sola produce un login che fallisce sempre (`F13`).
-
-| ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
-|---|---|---|---|---|---|---|
-| TSA10 | da approvare | **Lo script** `scripts/prepare-e2e-credentials.sh`: `umask` stretta, password casuali conformi alla policy (maiuscola, minuscola, cifra, simbolo), scrittura di `cypress.env.json`, invocazione del seeder, controllo che il file non sia tracciato da git, pulizia delle variabili in uscita. Idempotente: rieseguirlo rigenera tutto senza lasciare residui | `scripts/prepare-e2e-credentials.sh` (nuovo) | basso | auto | `bash -n` passa; eseguito su un ambiente pulito produce un `cypress.env.json` valido e nessuna password compare nell'output |
-| TSA10a | da approvare | **Una riga** in `docs/SETUP.md`, subito dopo il blocco di `php artisan key:generate`, che invoca lo script e lo dichiara obbligatorio. Solo l'invocazione: la procedura sta nello script, non nel documento — due copie divergono, e il documento è quella che nessuno riesegue | `docs/SETUP.md` | basso | auto | il documento cita `scripts/prepare-e2e-credentials.sh` e **non** contiene comandi di generazione né valori |
-| TSA11 | da approvare | `E2EUserSeeder` che crea `e2e.admin` ed `e2e.user` leggendo le password **dalle variabili d'ambiente**, senza valore di ripiego scritto nel codice. Chiude la seconda metà di `TSA10`, che oggi resta dichiarata e non funzionante | `database/seeders/E2EUserSeeder.php` (nuovo) | medio — crea utenti con privilegi di amministratore | auto | eseguito il blocco di `SETUP.md`, `npm run cy:run -- --spec cypress/e2e/auth/login.cy.js` passa; senza le variabili esportate il seeder **fallisce** invece di inventare una password |
-| TSA12 | da approvare | Togliere la password scritta in chiaro nel seeder principale (`F14`, difetto `VDF08`): `admin.admin` prende la sua da una variabile d'ambiente, come gli utenti E2E | `database/seeders/DatabaseSeeder.php:39` | medio — cambia la preparazione di ogni ambiente nuovo | auto | `grep -n 'Hash::make("' database/seeders/` non trova più letterali |
-| TSA13 | da approvare | Eseguire il blocco di `TSA10` **nella pipeline**, prima dei test E2E. Dipende dal job di test, che oggi non esiste: si aggancia a `TSD07` di [swagger-deploy-tests](../20260812-swagger-deploy-tests/action-plan.md) invece di aprire un secondo job | `.github/workflows/deploy-staging.yml`, `deploy-production.yml` | medio | man | una esecuzione della pipeline in cui i test E2E accedono con credenziali generate in quella stessa esecuzione, e nessun segreto compare nei log |
+| ~~TSA13~~ | **spostato** (2026-08-12) | Eseguire lo script **nella pipeline**, prima dei test E2E. Il developer non tocca la pipeline per ora: il punto è migrato in [backlog/20260812-pipeline-tests](../../backlog/20260812-pipeline-tests/action-plan.md) come `BPT03`, insieme a tutto il resto che modifica i workflow. Qui non resta niente da fare | — | — | — | — |
 
 ## Onda 2 — le correzioni di codice
 

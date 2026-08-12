@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Provider;
 use App\Models\Role;
 use App\Models\ProviderUserRole;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
@@ -34,9 +35,20 @@ class DatabaseSeeder extends Seeder
             "provider_id" => $provider->id,
         ]);
 
+        // La password dell'amministratore arriva dall'ambiente e non ha un valore di ripiego:
+        // scriverla qui la pubblicherebbe a chiunque legga il repository (difetto VDF08).
+        $adminPassword = env("SEED_ADMIN_PASSWORD");
+
+        if (empty($adminPassword)) {
+            throw new RuntimeException(
+                "SEED_ADMIN_PASSWORD non impostata: il seeder non inventa la password di un amministratore. " .
+                    "Impostarla nell'ambiente prima di eseguire db:seed (docs/SETUP.md).",
+            );
+        }
+
         $user = User::create([
             "username" => "admin.admin",
-            "password" => Hash::make("HtZhs96xZ%7LhF"),
+            "password" => Hash::make($adminPassword),
             "email" => "admin.admin@example.com",
             "name" => "admin",
             "surname" => "admin",

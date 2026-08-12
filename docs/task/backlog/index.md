@@ -11,6 +11,13 @@ Instrada, non spiega.
 Una voce di `backlog.md` che viene decisa diventa un task datato in `../todo/`, e la riga qui **si
 spunta** con il rimando: non si cancella.
 
-Le proposte **non si contano e non scadono**. Se qui nascerà un task inquadrato ma non ancora avviato,
-prende una cartella `YYYYMMDD-<max 3 parole>/` in questa directory e una riga in questo file — un
-controllo verifica il legame nei due versi.
+Le proposte **non si contano e non scadono**.
+
+## Task inquadrati, non avviati
+
+Hanno analisi e piano, e aspettano solo la decisione di partire. Ognuno ha una cartella
+`YYYYMMDD-<max 3 parole>/` e una riga qui — un controllo verifica il legame nei due versi.
+
+| Task | Obiettivo | Sigla | Perché è fermo |
+|---|---|---|---|
+| [./20260812-pipeline-tests/](./20260812-pipeline-tests/) | Far girare i test **dentro la pipeline**, così che un test rosso fermi il deploy. Raccoglie tutto ciò che modifica i workflow | `BPT` | il developer ha deciso il 2026-08-12 di **non toccare la pipeline per ora** |
