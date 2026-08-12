@@ -9,16 +9,27 @@ Prerequisito comune: l'ambiente preparato secondo [SETUP.md](SETUP.md), credenzi
 
 ## Test PHP (PHPUnit) — dentro il container
 
+> ⚠️ **Non lanciare `php artisan test` nudo dentro il container.** Se esiste
+> `bootstrap/cache/config.php` — e nel container esiste — `env()` è inerte, `phpunit.xml` non ha
+> effetto e i test girano su **MariaDB**: `RefreshDatabase` fa `migrate:fresh` e **svuota il database
+> di staging**. È il difetto [`VDF11`](task/vulnerability/vulnerability.md), ed è già successo.
+
+Usare `composer test`, che fa `config:clear` come primo passo:
+
 ```sh
-docker exec idp_app_2 php artisan test
+docker exec idp_app_2 composer test
+docker exec idp_app_2 composer test -- --filter=NomeDelTest
 ```
 
-Non serve MariaDB: `phpunit.xml` usa **sqlite in memoria** (`DB_CONNECTION=sqlite`,
-`DB_DATABASE=:memory:`). Per una sola suite o un solo filtro:
+Dopo il `config:clear` vale quello che `phpunit.xml` dice: **sqlite in memoria**
+(`DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`), quindi nessun MariaDB necessario.
+
+**In alternativa, senza toccare il container** — un contenitore usa-e-getta con la config cache
+deviata, che è il modo più sicuro perché non modifica niente nell'ambiente:
 
 ```sh
-docker exec idp_app_2 php artisan test --testsuite=Unit
-docker exec idp_app_2 php artisan test --filter=NomeDelTest
+docker run --rm -v "$PWD":/app -w /app -e APP_CONFIG_CACHE=/tmp/nessuna-cache.php \
+    php:8.2-cli php artisan test
 ```
 
 ---
