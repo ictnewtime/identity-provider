@@ -9,8 +9,10 @@ const model = defineModel();
 const primevue = usePrimeVue();
 
 onMounted(() => {
+    const firstDayOfWeek = Number.parseInt(trans("primevue.first_day_of_week"), 10);
+
     primevue.config.locale = {
-        firstDayOfWeek: parseInt(trans("primevue.first_day_of_week") || 1),
+        firstDayOfWeek: Number.isNaN(firstDayOfWeek) ? 1 : firstDayOfWeek,
         dayNames: trans("primevue.day_names").split(","),
         dayNamesShort: trans("primevue.day_names_short").split(","),
         dayNamesMin: trans("primevue.day_names_min").split(","),
