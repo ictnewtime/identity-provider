@@ -40,4 +40,24 @@ if [ ! -f vendor/bin/phpunit ]; then
     composer install --no-interaction --prefer-dist
 fi
 
+# --- 3. Dati di partenza, solo per l'ambiente E2E ------------------------------------------
+# Un browser vero ha bisogno di trovare provider, ruolo e utenti gia' li': `RefreshDatabase` da'
+# lo schema, i DATI non li da' nessuno. `DatabaseSeeder` basta (decisione D6), e si ferma da se'
+# se e' gia' passato — quindi rilanciare il container non duplica niente.
+# ATTENZIONE all'ordine: la suite PHP usa `RefreshDatabase`, che fa `migrate:fresh` e DROPPA
+# tutto — quindi seminare prima di `php artisan test` e' lavoro buttato. Il seeding serve al
+# flusso E2E, dove il comando e' Cypress e nessuno ricrea lo schema. Verificato il 2026-08-12:
+# dopo una esecuzione della suite, `providers` e `users` di `idp_test` erano a 0.
+if [ -n "${SEED_ADMIN_PASSWORD:-}" ] && [ "${DB_CONNECTION:-}" = "mysql" ] && [ "${1:-}" != "php" ]; then
+    echo "==> Migrazioni e dati di partenza su ${DB_DATABASE:-idp_test}"
+    php artisan migrate --force --no-interaction
+
+    if php artisan db:seed --force --no-interaction; then
+        echo "==> Dati di partenza creati"
+    else
+        # Il seeder rifiuta la seconda esecuzione con un errore GESTITO: qui non e' un guasto.
+        echo "==> Dati di partenza gia' presenti, proseguo"
+    fi
+fi
+
 exec "$@"

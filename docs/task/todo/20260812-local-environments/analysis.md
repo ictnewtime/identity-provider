@@ -10,7 +10,7 @@ Avere due ambienti locali distinti e non intrecciati:
 
 - **develop** — database `idp_develop`, creato **a mano** dal developer, che resta suo;
 - **test** — database `idp_test`, **ricreato da sé** a ogni avvio del container (`CREATE DATABASE IF
-  NOT EXISTS`).
+NOT EXISTS`).
 
 E decidere la **forma del flusso di test**, che è la domanda vera: un `docker-compose.test.yml` è la
 risposta giusta, o basta lanciare dei comandi? Con un vincolo che cambia tutto — il database dei test
@@ -20,30 +20,30 @@ deve **restare vivo per tutta la durata** — e un dubbio da sciogliere: MariaDB
 
 ### Cosa esiste già
 
-| # | Fatto | Prova |
-|---|---|---|
-| F1 | L'ambiente di test separato **esiste**: `Dockerfile.test`, `docker-compose.test.yml` e un entrypoint che crea `idp_test` con `CREATE DATABASE IF NOT EXISTS` | i tre file; punto `TCC16`, fatto il 2026-08-12 |
-| F2 | Funziona nei **due modi** — MariaDB `idp_test` e sqlite in memoria — con lo stesso esito: 21 test verdi, 1 rosso noto | due esecuzioni verificate |
-| F3 | La separazione è **verificata**: dopo un'esecuzione completa, `idp_local` ha ancora le sue 20 tabelle, `bootstrap/cache/` non è toccata (mtime del 31 luglio), il `.env` dell'host è intatto | confronto prima/dopo |
-| F4 | Un guardiano in `tests/TestCase.php` **aborta prima** di qualunque migrazione se il database non è fra `TEST_ALLOWED_DATABASES` | `tests/TestCase.php`; provato nei due versi |
+| #   | Fatto                                                                                                                                                                                        | Prova                                          |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| F1  | L'ambiente di test separato **esiste**: `Dockerfile.test`, `docker-compose.test.yml` e un entrypoint che crea `idp_test` con `CREATE DATABASE IF NOT EXISTS`                                 | i tre file; punto `TCC16`, fatto il 2026-08-12 |
+| F2  | Funziona nei **due modi** — MariaDB `idp_test` e sqlite in memoria — con lo stesso esito: 21 test verdi, 1 rosso noto                                                                        | due esecuzioni verificate                      |
+| F3  | La separazione è **verificata**: dopo un'esecuzione completa, `idp_local` ha ancora le sue 20 tabelle, `bootstrap/cache/` non è toccata (mtime del 31 luglio), il `.env` dell'host è intatto | confronto prima/dopo                           |
+| F4  | Un guardiano in `tests/TestCase.php` **aborta prima** di qualunque migrazione se il database non è fra `TEST_ALLOWED_DATABASES`                                                              | `tests/TestCase.php`; provato nei due versi    |
 
 ### Cosa non esiste, o è rimasto a metà
 
-| # | Fatto | Prova |
-|---|---|---|
-| F5 | **`idp_develop` non esiste.** I database presenti sono `idp_local`, `idp_staging`, `idp_test` | `show databases` |
-| F6 | `.env` punta ancora a `idp_local`, e `docker-compose.yml` del servizio `app` a `idp_staging` | `.env:22`; `docker-compose.yml` |
-| F7 | `idp_local` e `idp_staging` hanno **20 tabelle ciascuno** e nessuno dei due è l'ambiente dichiarato: sono due residui | `information_schema.tables` |
-| F8 | I test E2E **non girano ancora in nessun ambiente riproducibile**: all'immagine dell'applicazione mancano tutte le librerie di Cypress, e il lavoro è un task a sé | [e2e-test-container](../20260812-e2e-test-container/action-plan.md) |
+| #   | Fatto                                                                                                                                                              | Prova                                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| F5  | **`idp_develop` non esiste.** I database presenti sono `idp_local`, `idp_staging`, `idp_test`                                                                      | `show databases`                                                    |
+| F6  | `.env` punta ancora a `idp_local`, e `docker-compose.yml` del servizio `app` a `idp_staging`                                                                       | `.env:22`; `docker-compose.yml`                                     |
+| F7  | `idp_local` e `idp_staging` hanno **20 tabelle ciascuno** e nessuno dei due è l'ambiente dichiarato: sono due residui                                              | `information_schema.tables`                                         |
+| F8  | I test E2E **non girano ancora in nessun ambiente riproducibile**: all'immagine dell'applicazione mancano tutte le librerie di Cypress, e il lavoro è un task a sé | [e2e-test-container](../20260812-e2e-test-container/action-plan.md) |
 
 ### Il fatto che decide la scelta del database
 
-| # | Fatto | Prova |
-|---|---|---|
-| F9 | **sqlite e MariaDB non cercano allo stesso modo.** `LIKE '%MARIÒ%'` su `Mariò`: **0 righe** su sqlite, **1 riga** su MariaDB con `utf8mb4_unicode_ci`. È esattamente la ricerca `q` degli audit e degli utenti, su nomi che in italiano hanno accenti | misurato il 2026-08-12 sulle due basi |
-| F10 | `CONCAT()` invece è portabile: sqlite recente lo supporta. Quindi il `selectRaw("CONCAT(...)")` del progetto **non** è un ostacolo | misurato; `app/Console/Commands/AssignRoleToUser.php:33` |
-| F11 | Una domanda già aperta — se `->latest()` con la join dia ambiguità su `created_at` (`D4` di `v2`, punto `TCC05`) — **non è verificabile su sqlite**: è un comportamento del risolutore di MySQL | `AuditController.php:73`; `TCC05` |
-| F12 | Le chiavi esterne su sqlite sono attive per configurazione, quindi **su questo** i due non divergono | `config/database.php:39` (`foreign_key_constraints`, default `true`) |
+| #   | Fatto                                                                                                                                                                                                                                                 | Prova                                                                |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| F9  | **sqlite e MariaDB non cercano allo stesso modo.** `LIKE '%MARIÒ%'` su `Mariò`: **0 righe** su sqlite, **1 riga** su MariaDB con `utf8mb4_unicode_ci`. È esattamente la ricerca `q` degli audit e degli utenti, su nomi che in italiano hanno accenti | misurato il 2026-08-12 sulle due basi                                |
+| F10 | `CONCAT()` invece è portabile: sqlite recente lo supporta. Quindi il `selectRaw("CONCAT(...)")` del progetto **non** è un ostacolo                                                                                                                    | misurato; `app/Console/Commands/AssignRoleToUser.php:33`             |
+| F11 | Una domanda già aperta — se `->latest()` con la join dia ambiguità su `created_at` (`D4` di `v2`, punto `TCC05`) — **non è verificabile su sqlite**: è un comportamento del risolutore di MySQL                                                       | `AuditController.php:73`; `TCC05`                                    |
+| F12 | Le chiavi esterne su sqlite sono attive per configurazione, quindi **su questo** i due non divergono                                                                                                                                                  | `config/database.php:39` (`foreign_key_constraints`, default `true`) |
 
 > **Nota di trasparenza**: per misurare `F9` ho creato e subito cancellato un database di prova
 > (`prova_collation`) su MariaDB. È una **scrittura sul database**, che R1 subordina a un'approvazione
@@ -96,11 +96,11 @@ su `created_at` dipende dal risolutore di MySQL. Su sqlite quel test **non si pu
 
 Da cui la lettura che propongo, che non è un compromesso ma una divisione di compiti:
 
-| | Database | Perché |
-|---|---|---|
-| **Unit** — logica pura, nessuna query interessante | sqlite in memoria | è il più veloce, e ciò che prova non dipende dal motore |
-| **Feature e regressioni sul comportamento del database** | **MariaDB `idp_test`** | è l'unico posto dove `F9` e `F11` si possono verificare. Un test di ricerca su sqlite non è un test di ricerca |
-| **E2E** | MariaDB `idp_test`, vivo per tutta la sessione | non ha alternative: serve un'applicazione viva |
+|                                                          | Database                                       | Perché                                                                                                         |
+| -------------------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Unit** — logica pura, nessuna query interessante       | sqlite in memoria                              | è il più veloce, e ciò che prova non dipende dal motore                                                        |
+| **Feature e regressioni sul comportamento del database** | **MariaDB `idp_test`**                         | è l'unico posto dove `F9` e `F11` si possono verificare. Un test di ricerca su sqlite non è un test di ricerca |
+| **E2E**                                                  | MariaDB `idp_test`, vivo per tutta la sessione | non ha alternative: serve un'applicazione viva                                                                 |
 
 sqlite resta il predefinito perché è il più rapido, ma **la suite che protegge dalle regressioni gira
 su MariaDB**. Alternativa scartata: solo sqlite, per la ragione di `F9`. Alternativa scartata: solo
@@ -157,13 +157,30 @@ e chi lo tiene vivo**; il container di Cypress è un lavoro suo, già inquadrato
 
 ## 5. Consigli
 
-| Domanda | Raccomandazione | Esito |
-|---|---|---|
-| **D1** | Tienila a mano: creazione del database e modifica del `.env` sono due comandi e li vedi accadere. | **accolta** |
-| **D2** | Cancellarli, **ma dopo** che `idp_develop` è popolato: prima sono l'unica copia dei dati con cui hai lavorato. | **accolta**, con l'avvertenza scritta nel passo 6 |
-| **D3** | Diviso per tipo: sqlite predefinito, MariaDB per i test che toccano il comportamento del database. | **superata**: la linea passa fra backend ed E2E, non fra Unit e Feature. Più netta, e il costo — `F9` non coperta dal backend — è dichiarato qui sopra |
-| **D4** | Tenere il compose come ambiente unico: un file in meno vale più di una purezza concettuale. | **non accolta**: si divide. Il file in più c'è, e in cambio ogni ambiente dice a chi serve |
-| **D5** | Misurarlo di nuovo a 100 test. | **decaduta**: le tempistiche non contano |
-| **D6** | Se `DatabaseSeeder` è riusabile, il punto è corto. | **confermata**: è riusabile |
+| Domanda | Raccomandazione                                                                                                | Esito                                                                                                                                                  |
+| ------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **D1**  | Tienila a mano: creazione del database e modifica del `.env` sono due comandi e li vedi accadere.              | **accolta**                                                                                                                                            |
+| **D2**  | Cancellarli, **ma dopo** che `idp_develop` è popolato: prima sono l'unica copia dei dati con cui hai lavorato. | **accolta**, con l'avvertenza scritta nel passo 6                                                                                                      |
+| **D3**  | Diviso per tipo: sqlite predefinito, MariaDB per i test che toccano il comportamento del database.             | **superata**: la linea passa fra backend ed E2E, non fra Unit e Feature. Più netta, e il costo — `F9` non coperta dal backend — è dichiarato qui sopra |
+| **D4**  | Tenere il compose come ambiente unico: un file in meno vale più di una purezza concettuale.                    | **non accolta**: si divide. Il file in più c'è, e in cambio ogni ambiente dice a chi serve                                                             |
+| **D5**  | Misurarlo di nuovo a 100 test.                                                                                 | **decaduta**: le tempistiche non contano                                                                                                               |
+| **D6**  | Se `DatabaseSeeder` è riusabile, il punto è corto.                                                             | **confermata**: è riusabile                                                                                                                            |
 
 Il piano: [action-plan.md](./action-plan.md).
+
+## Appendice — i parametri iniziali
+
+I record che `DatabaseSeeder` deve creare nella tabella `parameters`. Sono la configurazione di
+esercizio dell'applicazione: senza, i servizi che li leggono non hanno un valore e ricadono su un
+comportamento non dichiarato.
+
+| `key`                           | `value` | `type`   |
+| ------------------------------- | ------- | -------- |
+| `password-force-reset-day`      | `90`    | `policy` |
+| `master-token-exp-time-seconds` | `28800` | `token`  |
+| `app-token-exp-time-seconds`    | `1800`  | `token`  |
+
+**Stato al 2026-08-12**: il seeder ne crea **tre su quattro**
+(`DatabaseSeeder.php:108-110`).
+
+Il punto che li semina è `TLE12`.

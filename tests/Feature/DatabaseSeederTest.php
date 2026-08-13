@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Parameter;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -59,6 +60,27 @@ class DatabaseSeederTest extends TestCase
             ["providers" => 1, "roles" => 1, "users" => 1, "provider_user_roles" => 1],
             $this->conteggi(),
         );
+    }
+
+    public function test_crea_i_parametri_iniziali(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $attesi = [
+            "password-force-reset-day" => ["value" => "90", "type" => "policy"],
+            "master-token-exp-time-seconds" => ["value" => "28800", "type" => "token"],
+            "app-token-exp-time-seconds" => ["value" => "1800", "type" => "token"],
+        ];
+
+        foreach ($attesi as $key => $atteso) {
+            $riga = Parameter::where("key", $key)->first();
+
+            $this->assertNotNull($riga, "manca il parametro '{$key}'");
+            $this->assertSame($atteso["value"], (string) $riga->value, "valore sbagliato per '{$key}'");
+            $this->assertSame($atteso["type"], $riga->type, "tipo sbagliato per '{$key}'");
+        }
+
+        $this->assertSame(count($attesi), Parameter::count(), "ci sono parametri oltre a quelli attesi");
     }
 
     public function test_la_seconda_esecuzione_fallisce_con_un_errore_gestito(): void
