@@ -10,6 +10,7 @@ un perché.
 | Task | Obiettivo | Sigla | Chiuso il |
 |---|---|---|---|
 | [./20260812-static-analysis-findings-v1/](./20260812-static-analysis-findings-v1/) | Rilievi SonarQube su frontend Vue e test E2E | `TSA` | 2026-08-12 |
+| [./20260812-local-environments/](./20260812-local-environments/) | Due ambienti locali, e la forma del flusso di test | `TLE` | 2026-08-12 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 
@@ -45,3 +46,38 @@ seeder è fuori dal codice, ma il valore vecchio resta nella storia git) in
 [../vulnerability/vulnerability.md](../vulnerability/vulnerability.md); `BDB24` e `BDB25` — nessun
 runner JS e `npm run build` non eseguibile in locale — in
 [../backlog/backlog.md](../backlog/backlog.md).
+
+## `20260812-local-environments` — com'è finita
+
+**Dieci punti chiusi, uno scartato.** L'obiettivo è raggiunto: `idp_develop` e `idp_test` esistono e
+non si toccano, e i due tipi di test hanno ambienti distinti — **backend su sqlite senza compose**,
+**E2E su MariaDB con compose**. La verifica che conta è stata fatta: dopo un'esecuzione completa,
+`idp_develop` è rimasto intatto.
+
+**La decisione che vale più del task** (`D3`, `D4`): la linea non passa fra `Unit` e `Feature` come
+avevo proposto, ma fra **backend** ed **E2E**, e cade dove cade il vincolo vero — sqlite non
+sopravvive fra due richieste HTTP. Il costo accettato è che la ricerca `LIKE` sulle lettere accentate
+**non è coperta dai test di backend**: `LIKE '%MARIÒ%'` su `Mariò` trova 0 righe su sqlite e 1 su
+MariaDB, misurato. La vedono gli E2E.
+
+**Cosa è emerso strada facendo, e che il task non cercava**:
+
+| | |
+|---|---|
+| `TLE08` | l'attesa del database in `entrypoint.sh` cercava un nome scritto a mano, falliva 30 tentativi e **proseguiva lo stesso** |
+| `TLE09`, `TLE10` | il seeder lasciava il database a metà alla seconda esecuzione; ora fallisce con un errore **gestito**, che dice come riseminare |
+| `TLE05` | seminare all'avvio non bastava: la suite PHP fa `migrate:fresh` e distruggeva il seed. Misurato — `providers` e `users` a 0 |
+| `TLE12` | seminando il quarto parametro si è scoperto che **nessuno lo legge**: difetto `VDF12`, che questo task **non chiude** |
+
+**Un punto è chiuso senza verifica**, e va saputo: `TLE04` — la specifica Cypress sulla ricerca
+accentata — **non è mai stata eseguita**. Cypress non è ancora nell'ambiente E2E
+([e2e-test-container](../todo/20260812-e2e-test-container/action-plan.md)) e i selettori sono dedotti
+da `crud-user.cy.js`. È un test scritto e mai visto girare: vale quanto una promessa finché non gira.
+
+**`TLE06` scartato**: misurare la durata della suite nelle due configurazioni. Il developer ha detto
+che le tempistiche non contano; il riferimento — 4,3 s contro 0,6 s su 22 test — resta nell'analisi
+come dato e non come criterio.
+
+**Cosa resta aperto altrove**: `VDF11` (la separazione impedisce il danno, ma il difetto resta finché
+la config cache è lì), `VDF12` (il parametro inerte), `BDB28` (`MYSQL_DATABASE` inerte nel compose) e
+`BDB30` (la tabella si chiama `patemeters`).

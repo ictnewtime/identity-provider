@@ -34,7 +34,7 @@ deve **restare vivo per tutta la durata** — e un dubbio da sciogliere: MariaDB
 | F5  | **`idp_develop` non esiste.** I database presenti sono `idp_local`, `idp_staging`, `idp_test`                                                                      | `show databases`                                                    |
 | F6  | `.env` punta ancora a `idp_local`, e `docker-compose.yml` del servizio `app` a `idp_staging`                                                                       | `.env:22`; `docker-compose.yml`                                     |
 | F7  | `idp_local` e `idp_staging` hanno **20 tabelle ciascuno** e nessuno dei due è l'ambiente dichiarato: sono due residui                                              | `information_schema.tables`                                         |
-| F8  | I test E2E **non girano ancora in nessun ambiente riproducibile**: all'immagine dell'applicazione mancano tutte le librerie di Cypress, e il lavoro è un task a sé | [e2e-test-container](../20260812-e2e-test-container/action-plan.md) |
+| F8  | I test E2E **non girano ancora in nessun ambiente riproducibile**: all'immagine dell'applicazione mancano tutte le librerie di Cypress, e il lavoro è un task a sé | [e2e-test-container](../../todo/20260812-e2e-test-container/action-plan.md) |
 
 ### Il fatto che decide la scelta del database
 
@@ -56,7 +56,7 @@ deve **restare vivo per tutta la durata** — e un dubbio da sciogliere: MariaDB
   non esiste e non è popolato, l'applicazione non parte. Va fatto in una volta sola.
 - **La scelta del database dei test non è reversibile a costo zero**: i test scritti su sqlite possono
   passare e nascondere una divergenza (`F9`), quindi cambiarli dopo significa riscriverli.
-- `TCC15` di [static-analysis-findings-v2](../20260812-static-analysis-findings-v2/action-plan.md)
+- `TCC15` di [static-analysis-findings-v2](../../todo/20260812-static-analysis-findings-v2/action-plan.md)
   copre la sola rinomina e **confluisce qui**: è il punto `TLE01`.
 
 ## 3. Analisi
