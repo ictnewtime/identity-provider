@@ -14,7 +14,8 @@ nessun test guarda (§ 2). Questo punto decide se il resto del piano è verifica
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
 |---|---|---|---|---|---|---|
-| TOA01 | da approvare | Accertare come si confronta lo specifico OpenAPI prima/dopo (`D3`): il file è `storage/api-docs/api-docs.json` (`config/l5-swagger.php:84,31`), generato da `l5-swagger:generate` — generarlo **ora** e conservarlo come riferimento. **Lo produce il task [swagger-deploy-tests](../20260812-swagger-deploy-tests/action-plan.md)**: se `TSD02` è già fatto, qui non c'è niente da accertare | nessuno (o il file generato, se versionato) | basso | auto | il comando gira nel container e produce un file confrontabile; se non esiste, il punto si chiude `scartato` col perché e tutti i punti sotto restano `man` |
+| TOA01 | **fatto** (2026-08-13) | **`D3`** — il confronto dello specifico generato esiste ed è ripetibile: `./scripts/openapi-spec-diff.sh salva` prima di toccare le annotazioni, `confronta` dopo. **Il file NON si versiona**: `storage/api-docs/.gitignore` contiene `*`, e `api-docs.json` è un artefatto generato — versionarlo darebbe un conflitto a ogni annotazione toccata da due persone. L'istantanea fuori dall'albero costa meno e serve allo stesso scopo | `scripts/openapi-spec-diff.sh` (nuovo) | basso | auto | **provato nei due versi**: con le annotazioni intatte dice «identico»; cambiando una `description` di una riga, la mostra e esce con errore |
+| TOA09 | **fatto** (2026-08-13) | **`D2`** — `OpenApiRoutesTest`: ogni percorso **documentato** deve avere una rotta registrata. In una direzione sola (`F12`, `F14`). **Riscritto durante l'implementazione**: leggeva i `path:` dal sorgente con una regex, e ha smesso di funzionare appena quei literali sono diventati costanti — sarebbe diventato «zero percorsi, tutto a posto». Ora legge lo **specifico generato**, che porta i percorsi risolti ed è quello che i client leggono | `tests/Feature/OpenApiRoutesTest.php` (nuovo) | basso | auto | **provato nei due versi**: cambiando `OA_PATH` in un percorso inesistente, il test lo nomina e fallisce |
 
 ## Onda 2 — le costanti condivise
 
@@ -23,7 +24,7 @@ file e poi nella base.
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
 |---|---|---|---|---|---|---|
-| TOA02 | da approvare | **`F6`–`F8`** — le tre descrizioni di parametro che si ripetono **su più file** (`"Provider id"` 7 volte su 3 file, `"Role id"` 5 su 2, `"User id"` 5 su 2) diventano costanti nel controller base, accanto alle `OA_DESC_MSG_*` che esistono già (`F9`, `D1`) | `app/Http/Controllers/Controller.php:34-45` | basso | auto | `grep -rn -F '"Provider id"' app/` non trova più occorrenze fuori dalla dichiarazione; idem per gli altri due |
+| TOA02 | **fatto** (2026-08-13) | **`F6`–`F8`, `D1`** — `OA_DESC_PROVIDER_ID`, `OA_DESC_ROLE_ID`, `OA_DESC_USER_ID` nel controller base, accanto alle `OA_DESC_MSG_*`. Erano 17 occorrenze su 4 file: una costante per file avrebbe chiuso i rilievi lasciando tre copie della stessa stringa | `app/Http/Controllers/Controller.php`, i quattro controller | basso | auto | `grep -rc 'description: "Provider id"' app/Http/Controllers/` → 0; idem per gli altri due; specifico **identico** |
 
 ## Onda 3 — le costanti locali, un controller per volta
 
@@ -31,18 +32,19 @@ Indipendenti fra loro: ognuno chiude i rilievi del suo file. Ordinati per numero
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
 |---|---|---|---|---|---|---|
-| TOA03 | da approvare | **`F5`** — il tag `"Provider User Roles"`, 5 volte nello stesso file, diventa una costante di classe | `ProviderUserRoleController.php` | basso | auto | `grep -c -F '"Provider User Roles"'` sul file restituisce 1 |
-| TOA04 | da approvare | **`F2`** — il percorso `"/api/v1/provider-user-roles/{id}"` (×3) e la sua collezione: **una** costante per la collezione, più `self::PATH . "/{id}"` dove serve (§ 3) | `ProviderUserRoleController.php` | basso | auto | il literale compare una volta sola nel file |
-| TOA05 | da approvare | **`F1`** — stessa forma per `"/api/v1/providers/{id}"` (×3), più `"Provider id"` (×3) che passa alla costante condivisa di `TOA02` | `ProviderController.php` | basso | auto | i due literali compaiono zero volte nel file |
-| TOA06 | da approvare | **`F3`** — `"/api/v1/roles/{id}"` (×3), più `"Role id"` (×3) alla costante condivisa | `RoleController.php` | basso | auto | idem |
-| TOA07 | da approvare | **`F4`** — `"/api/v1/users/{id}"` (×3), più `"User id"` (×3) alla costante condivisa | `UserController.php` | basso | auto | idem |
-| TOA08 | da approvare | Chiusura: lo specifico OpenAPI generato dopo le modifiche è **identico** a quello di `TOA01`. Se `TOA01` è stato scartato, questo punto è una rilettura a mano delle otto annotazioni toccate | nessuno | medio — è l'unica prova che il refactoring non ha cambiato la documentazione | auto se `TOA01` è passato, altrimenti man | `diff` fra il riferimento di `TOA01` e il file rigenerato: nessuna differenza |
+| TOA03 | **fatto** (2026-08-13) | **`F5`** — il tag `"Provider User Roles"` (×5) è ora `self::OA_TAG` | `ProviderUserRoleController.php` | basso | auto | il literale compare una volta sola, nella dichiarazione |
+| TOA04 | **fatto** (2026-08-13) | **`F2`** — `OA_PATH = "/api/v1/provider-user-roles"`, e `self::OA_PATH . "/{id}"` per la singola risorsa: **una** costante per due percorsi, così resta visibile che sono la stessa rotta | `ProviderUserRoleController.php` | basso | auto | il literale col `{id}` non compare più |
+| TOA05 | **fatto** (2026-08-13) | **`F1`** — stessa forma per `/api/v1/providers`, più le descrizioni passate alla costante condivisa | `ProviderController.php` | basso | auto | idem |
+| TOA06 | **fatto** (2026-08-13) | **`F3`** — `/api/v1/roles` | `RoleController.php` | basso | auto | idem |
+| TOA07 | **fatto** (2026-08-13) | **`F4`** — `/api/v1/users` | `UserController.php` | basso | auto | idem |
+| TOA08 | **fatto** (2026-08-13) | Chiusura: `./scripts/openapi-spec-diff.sh confronta` dice **«Specifico OpenAPI IDENTICO»** dopo tutte le modifiche. È l'unica prova che il refactoring non ha cambiato la documentazione — nessun test la guarda, e il rischio di questa tranche era quello | nessuno | medio | auto | lo script esce `0`; e la suite è a **67 verdi** |
 
 ## Cosa questo piano non copre
 
-- **La divergenza fra `routes/web.php` e i percorsi annotati** (`F10`, `D2`): è la duplicazione che
-  costa di più — rinominare una rotta lascia la documentazione che punta alla vecchia — e questi
-  rilievi l'hanno solo sfiorata. Task suo, **da aprire**.
+- **La direzione inversa del controllo** — «ogni rotta è documentata»: **non si fa**, ed è una
+  scelta. Gli stessi controller servono anche le rotte interne `admin/v1/…`, e tre rotte `api/v1`
+  non sono documentate di proposito (`F14`). Un controllo che segnala il corretto si smette di
+  leggere. `TOA09` copre la sola direzione che è un invariante.
 - **`"Provider user role not found"`**: non è un'annotazione ma un messaggio di risposta, sta in
   [v4](../20260812-static-analysis-findings-v4/action-plan.md).
 - La **traduzione** delle descrizioni OpenAPI: restano in inglese, ed è corretto (`F11`).

@@ -42,5 +42,9 @@ class Controller extends BaseController
 
     public const MEDIA_TYPE_JSON = "application/json";
 
+    public const OA_DESC_PROVIDER_ID = "Provider id";
+    public const OA_DESC_ROLE_ID = "Role id";
+    public const OA_DESC_USER_ID = "User id";
+
     public const OA_DESC_MSG_SECURITY_ADMIN = "__*Security:*__ __*can be used only by clients with \'admin\' role*__";
 }

@@ -15,9 +15,11 @@ use OpenApi\Attributes as OA;
 
 class ProviderController extends Controller
 {
+    private const OA_PATH = "/api/v1/providers";
+
     #[
         OA\Get(
-            path: "/api/v1/providers",
+            path: self::OA_PATH,
             summary: "list of providers",
             description: self::OA_DESC_MSG_SUCCESS,
             operationId: "Provider.all",
@@ -124,7 +126,7 @@ class ProviderController extends Controller
 
     #[
         OA\Get(
-            path: "/api/v1/providers/{id}",
+            path: self::OA_PATH . "/{id}",
             summary: "Get provider by id",
             description: self::OA_DESC_MSG_SUCCESS,
             operationId: "Provider.find",
@@ -134,7 +136,7 @@ class ProviderController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Provider id",
+                    description: self::OA_DESC_PROVIDER_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -175,7 +177,7 @@ class ProviderController extends Controller
 
     #[
         OA\Post(
-            path: "/api/v1/providers",
+            path: self::OA_PATH,
             summary: "Create a new provider",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.create",
@@ -270,7 +272,7 @@ class ProviderController extends Controller
 
     #[
         OA\Put(
-            path: "/api/v1/providers/{id}",
+            path: self::OA_PATH . "/{id}",
             summary: "Update provider by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.update",
@@ -280,7 +282,7 @@ class ProviderController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Provider id",
+                    description: self::OA_DESC_PROVIDER_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -390,7 +392,7 @@ class ProviderController extends Controller
 
     #[
         OA\Delete(
-            path: "/api/v1/providers/{id}",
+            path: self::OA_PATH . "/{id}",
             summary: "Delete provider by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.delete",
@@ -400,7 +402,7 @@ class ProviderController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Provider id",
+                    description: self::OA_DESC_PROVIDER_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
