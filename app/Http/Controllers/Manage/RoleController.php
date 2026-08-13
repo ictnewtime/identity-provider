@@ -261,7 +261,7 @@ class RoleController extends Controller
     {
         $role = Role::withTrashed()->find($id);
         if (empty($role)) {
-            return response()->json(["message" => "Role not found"], 404);
+            return $this->notFound("role.error.not_found");
         }
         return response()->json($role);
     }
@@ -336,7 +336,7 @@ class RoleController extends Controller
         $role = Role::find($id);
 
         if (empty($role)) {
-            return response()->json(["message" => "Role not found"], 404);
+            return $this->notFound("role.error.not_found");
         }
 
         try {
@@ -389,12 +389,8 @@ class RoleController extends Controller
         $role = Role::find($id);
 
         if (empty($role)) {
-            return response()->json(
-                [
-                    "message" => "Role id not found",
-                ],
-                404,
-            );
+            // Era `"Role id not found"`: lo stesso messaggio degli altri undici, scritto male.
+            return $this->notFound("role.error.not_found");
         }
 
         $providerUserRole = ProviderUserRole::where("role_id", $role->id)->first();

@@ -225,7 +225,7 @@ class ProviderUserRoleController extends Controller
         // usano di proposito la forma senza — chi legge non deve prenderla per una svista.
         $providerUserRole = ProviderUserRole::withTrashed()->find($id);
         if (empty($providerUserRole)) {
-            return response()->json(["message" => "Provider user role not found"], 404);
+            return $this->notFound("provider_user_roles.not_found");
         }
         return response()->json(["providerUserRole" => $providerUserRole], 200);
     }
@@ -308,7 +308,7 @@ class ProviderUserRoleController extends Controller
         // stessa scelta dichiarata in `find()`, vista dall'altro lato.
         $providerUserRole = ProviderUserRole::where("id", $id)->first();
         if (empty($providerUserRole)) {
-            return response()->json(["message" => "Provider user role not found"], 404);
+            return $this->notFound("provider_user_roles.not_found");
         }
         $providerUserRole->update($data);
         return response()->json(["message" => "Provider user role updated"], 200);
@@ -350,7 +350,7 @@ class ProviderUserRoleController extends Controller
         // Senza `withTrashed()`: cio' che e' gia' cancellato non si cancella di nuovo.
         $providerUserRole = ProviderUserRole::find($id);
         if (empty($providerUserRole)) {
-            return response()->json(["message" => "Provider user role not found"], 404);
+            return $this->notFound("provider_user_roles.not_found");
         }
         $providerUserRole->delete();
 

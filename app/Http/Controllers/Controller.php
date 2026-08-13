@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
+
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
@@ -39,6 +42,11 @@ class Controller extends BaseController
     public const OA_DESC_MSG_NOT_FOUND = "Not found"; // 404
     public const OA_DESC_MSG_UNPROCESSABLE_ENTITY = "Unprocessable entity"; // 422
     public const OA_DESC_MSG_INTERNAL_SERVER_ERROR = "Internal server error"; // 500
+
+    protected function notFound(string $translationKey): JsonResponse
+    {
+        return response()->json(["message" => __($translationKey)], Response::HTTP_NOT_FOUND);
+    }
 
     public const MEDIA_TYPE_JSON = "application/json";
 

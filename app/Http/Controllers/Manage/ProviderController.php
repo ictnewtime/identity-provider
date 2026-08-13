@@ -169,7 +169,7 @@ class ProviderController extends Controller
         }
 
         if (empty($provider)) {
-            return response()->json(["message" => "Provider not found"], 404);
+            return $this->notFound("provider.not_found");
         }
 
         return response()->json(["provider" => $provider], 200);
@@ -373,7 +373,7 @@ class ProviderController extends Controller
             $provider = Provider::find($id);
 
             if (empty($provider)) {
-                return response()->json(["message" => "Provider not found"], 404);
+                return $this->notFound("provider.not_found");
             }
 
             if (empty($data["secret_key"])) {

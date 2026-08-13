@@ -367,7 +367,7 @@ class UserController extends Controller
         $user = User::find($id);
 
         if (empty($user)) {
-            return response()->json(["message" => "User not found"], 404);
+            return $this->notFound("user.error.not_found");
         }
 
         $data = $request->only("email", "username", "name", "surname", "password_expires_at");

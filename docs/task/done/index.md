@@ -13,6 +13,7 @@ un perché.
 | [./20260812-local-environments/](./20260812-local-environments/) | Due ambienti locali, e la forma del flusso di test | `TLE` | 2026-08-12 |
 | [./20260813-vulnerability-fixes/](./20260813-vulnerability-fixes/) | I difetti senza casella | `TVF` | 2026-08-13 |
 | [./20260812-static-analysis-findings-v3/](./20260812-static-analysis-findings-v3/) | Literali duplicati nelle annotazioni OpenAPI | `TOA` | 2026-08-13 |
+| [./20260812-static-analysis-findings-v4/](./20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio ripetuto e costruttore vuoto | `TPU` | 2026-08-13 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 
@@ -163,3 +164,48 @@ generato, che porta i percorsi risolti ed è quello che i client leggono davvero
 
 **Cosa non copre**: la direzione inversa del controllo, per la ragione sopra; e il numero dei rilievi
 SonarQube, che si rilegge solo con una scansione.
+
+## `20260812-static-analysis-findings-v4` — com'è finita
+
+**Sei punti su sei**, la seconda tranche chiusa per intero. Ma il risultato che conta non era nel
+piano iniziale.
+
+**La scoperta**: le chiavi di traduzione dei messaggi 404 **esistevano già**, in italiano e in
+inglese — dodici chiavi `*not_found*` in `lang/`, e `provider_user_roles.not_found` in inglese valeva
+**esattamente** il literale scritto a mano nel controller. Il lavoro non era progettare un helper e
+delle chiavi: era **smettere di ignorare quelle che c'erano**. Qualcuno le aveva scritte, e nessun
+controller le aveva mai adottate.
+
+Il guadagno è verificabile con un test che prima era impossibile scrivere: **la stessa rotta risponde
+in due lingue diverse**. Col literale non c'era modo.
+
+**Due casi non sono stati forzati nell'helper, e la distinzione è nel codice**:
+
+| | |
+|---|---|
+| `"Role id not found"` | lo stesso messaggio degli altri undici, **scritto male** — normalizzato sulla stessa chiave |
+| `SessionController` | restituisce anche `valid`, che il chiamante legge: tradotto **senza** l'helper, che avrebbe dato il solo `message` e cambiato il contratto |
+
+**I test di `TPU01` sono nati per diventare rossi**, ed è successo. Fotografavano i messaggi vecchi
+dopo aver verificato che **nessuno li confrontava** — né il frontend, né Cypress, né un test — così
+il cambiamento sarebbe stato visibile invece che silenzioso. Quando `TPU03` li ha cambiati sono
+falliti, e sono stati **riscritti sul comportamento nuovo**, non aggiustati di nascosto. Il file
+porta la storia del perché è stato scritto due volte.
+
+**Altre due cose emerse scrivendo i test, che il piano non prevedeva**:
+
+- il 404 di `update()` è **irraggiungibile con un corpo non valido**: `ProviderUserRoleRequest`
+  richiede che i riferimenti esistano, e la validazione gira prima del metodo — con id inventati la
+  risposta è 422;
+- `delete()` **e** `bulkDelete()` avevano lo stesso 204-con-corpo, ma nella scheda ce n'era uno solo.
+  E correggendolo si è scoperto che Laravel **svuota da sé** il corpo dei 204: il difetto era nel
+  codice che mente, non nella risposta.
+
+**`TPU05` ha smentito un mio sospetto**: la differenza fra `withTrashed()` in lettura e la sua assenza
+in scrittura **è voluta** — un'associazione cancellata logicamente si consulta, non si modifica. È
+scritta in tre punti, uno per metodo, perché in uno solo gli altri due sarebbero rimasti a sembrare
+dimenticanze.
+
+**Cosa resta fuori**: il costruttore vuoto in `app/Services/AccountService.php` (`D6`, non segnalato
+per ora) e la domanda che questa tranche lascia aperta — se dodici chiavi tradotte erano lì
+inutilizzate, quante altre risposte dell'API sono ancora in inglese scritto a mano.
