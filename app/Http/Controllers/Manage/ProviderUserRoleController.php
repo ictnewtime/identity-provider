@@ -333,7 +333,8 @@ class ProviderUserRoleController extends Controller
             return response()->json(["message" => "Provider user role not found"], 404);
         }
         $providerUserRole->delete();
-        return response()->json(["message" => "Provider user role deleted"], 204);
+
+        return response()->noContent();
     }
 
     public function bulkDelete(Request $request)
@@ -355,7 +356,7 @@ class ProviderUserRoleController extends Controller
             return response()->json(["message" => __("provider_user_roles.bulk_delete_error")], 500);
         }
 
-        return response()->json(["message" => __("provider_user_roles.bulk_delete_success")], 204);
+        return response()->noContent();
     }
 
     public function restore(Request $request)
