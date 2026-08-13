@@ -12,6 +12,9 @@ use Laravel\Passport\Client as PassportClient;
 
 class AuditController extends Controller
 {
+    private const PER_PAGE_DEFAULT = 25;
+    private const PER_PAGE_MAX = 200;
+
     public function index()
     {
         return Inertia::render("Admin/Audits");
@@ -63,11 +66,7 @@ class AuditController extends Controller
                     // nasconde righe a seconda dell'ordinamento.
                     $query
                         ->leftJoin("users", function ($join) {
-                            $join->on("audits.user_id", "=", "users.id")->where(
-                                "audits.user_type",
-                                "=",
-                                User::class,
-                            );
+                            $join->on("audits.user_id", "=", "users.id")->where("audits.user_type", "=", User::class);
                         })
                         ->select("audits.*")
                         ->orderBy($sortColumn, $direction);
@@ -79,12 +78,9 @@ class AuditController extends Controller
             $query->orderBy("created_at", "desc");
         }
 
-        // Paginazione
-        $perPage = $request->input("per_page", 25);
+        $perPage = (int) $request->input("per_page", self::PER_PAGE_DEFAULT);
+        $perPage = max(1, min($perPage, self::PER_PAGE_MAX));
 
-        // La forma della risposta la decide AuditResource: qui non escono modelli nudi.
-        // La conversione del nome dell'attore — `username` per un utente, `name` per un client
-        // Passport — sta lì, e non muta più il modello per farla.
-        return AuditResource::collection($query->latest()->paginate($perPage));
+        return AuditResource::collection($query->paginate($perPage));
     }
 }

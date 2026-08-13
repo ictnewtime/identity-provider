@@ -127,3 +127,33 @@ si sostituisce.
 **Perché esiste**: il 2026-08-12 una esecuzione della suite ha fatto `migrate:fresh` sul database di
 sviluppo e lo ha svuotato. La difesa allora stava dentro `tests/TestCase.php` e proteggeva solo chi
 passava di lì. Traccia: `VDF11`, punto `TVF04`.
+
+---
+
+## Un client Passport si **revoca**, non si cancella
+
+Se stai per scrivere il metodo che cancella un client OAuth, fermati: **non deve cancellarlo.** Deve
+metterlo a `revoked`.
+
+```php
+$client->forceFill(["revoked" => true])->save();   // sì
+$client->delete();                                  // no
+```
+
+**Perché**: `Laravel\Passport\Client` **non ha soft delete** (`vendor/laravel/passport/src/Client.php`)
+— una cancellazione è definitiva. E gli audit hanno una relazione **polimorfa** verso l'attore, che
+può essere un utente **oppure un client**: cancellare la riga lascia gli audit con un `user_id` che
+non risolve più, e la perdita è quella che su un registro di audit costa di più — **chi ha fatto
+cosa**, in modo irreversibile.
+
+La colonna `revoked` esiste già nello schema
+(`database/migrations/2016_06_01_000004_create_oauth_clients_table.php`), quindi non c'è niente da
+aggiungere: c'è solo da non usare `delete()`.
+
+**Oggi il rischio non si realizza**, ed è il motivo per cui questa pagina esiste adesso:
+`OauthClientsController` non ha un metodo di cancellazione e le sue rotte sono commentate
+(`routes/web.php`). La regola è scritta **prima** che quel codice nasca, perché dopo sarebbe una
+correzione in produzione.
+
+Traccia: difetto `VDF09`, punto `TCC08`, e il contesto in
+[project-analysis.md](project-analysis.md#audit-lattore-è-una-relazione-polimorfa).
