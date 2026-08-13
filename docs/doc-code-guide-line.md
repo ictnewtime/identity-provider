@@ -81,20 +81,49 @@ Vale per **tutte** le occorrenze. Marcare il rilievo come *False Positive* e inc
 Traccia: `TSA05` e `TSA05b`, entrambi **scartati**, in
 [static-analysis-findings-v1](task/done/20260812-static-analysis-findings-v1/action-plan.md).
 
-### Dove manca, e sono i posti in cui servirebbe di più
+### Dove manca è una scelta, non una dimenticanza
 
-Sette `<Password>` su nove non dichiarano niente — e la coppia, per funzionare, va dichiarata
-**intera**: metà attributo non distingue niente.
+Sette `<Password>` su nove non dichiarano niente, e **va bene così**: il developer ha deciso il
+2026-08-13 che su quei campi il browser **deve** poter suggerire le password salvate, perché serve ai
+test manuali — si inseriscono vecchie password memorizzate.
 
-| Form                        | Campi                                                | Cosa c'è          | Cosa servirebbe                                                                                                           |
-| --------------------------- | ---------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `ForcePasswordChange.vue`   | `current_password` `:78` · nuova `:115` · ripeti `:184` | niente            | è **esattamente** il caso a tre campi: `current-password` sul primo, `new-password` sugli altri due                        |
-| `ResetPassword.vue`         | password `:73` · ripeti `:144`                        | niente            | `new-password` su entrambi                                                                                                 |
-| `UserForm.vue`              | password `:312` · ripeti `:454`                       | solo sul secondo  | `new-password` **anche** sul primo: la coppia è dichiarata a metà                                                          |
-| `Login.vue`                 | password `:100`                                       | niente            | `current-password` — qui l'assenza è la meno dannosa, perché su un form di accesso le euristiche del browser bastano       |
+| Form | Campi | `autocomplete` |
+|---|---|---|
+| `UserForm.vue` | `password` `:312` · ripeti `:452` | solo sul secondo |
+| `ResetPassword.vue` | `password` `:73` · ripeti `:144` | nessuno |
+| `ForcePasswordChange.vue` | attuale `:78` · nuova `:115` · ripeti `:184` | nessuno |
+| `Login.vue` | password `:100` | nessuno |
 
-I primi tre sono form dove la password nuova si scrive due volte: **è il caso che l'attributo esiste
-per risolvere**, e senza di lui il browser suggerisce la credenziale salvata dove va scritta una
-password diversa. Solo `UserForm.vue:312` è registrato come difetto (`VDF04` in
-[vulnerability.md](task/vulnerability/vulnerability.md)); gli altri due form **non hanno un punto
-aperto**, ed è un buco di questo elenco, non una scelta.
+**La regola risultante è asimmetrica, di proposito**: non si aggiunge dove manca, **non si toglie dove
+c'è**. Le due metà hanno ragioni diverse — la prima è la comodità nei test manuali, la seconda è che
+togliere l'attributo reintrodurrebbe il suggerimento automatico dove qualcuno lo aveva escluso
+apposta. Chi «uniforma» in una direzione o nell'altra sta disfacendo una decisione.
+
+Traccia: `VDF04`, **chiusa come comportamento voluto**, in
+[vulnerability.md](task/vulnerability/vulnerability.md).
+
+---
+
+## Prima di cancellare un database, chiama la guardia
+
+**Qualunque codice che svuoti o ricrei un database** — `migrate:fresh`, un `truncate`, uno script di
+riallineamento — deve prima chiamare:
+
+```php
+use App\Support\DestructiveDatabaseGuard;
+
+DestructiveDatabaseGuard::ensureTestDatabase();
+```
+
+Rifiuta se il database in uso non è fra quelli di `TEST_ALLOWED_DATABASES` (`:memory:`, `idp_test`), e
+**fallisce chiusa**: senza elenco non lascia passare. Su un'operazione che distrugge dati, «non lo so»
+deve valere «no».
+
+**Perché non sovrascriviamo `migrate:fresh`**: quel comando, fuori da `local`, chiede già conferma da
+console — Laravel protegge chi lo digita. Quello che mancava è una guardia per chi cancella **da
+codice**, dove nessuno chiede niente. Da qui la forma: una funzione che si chiama, non un comando che
+si sostituisce.
+
+**Perché esiste**: il 2026-08-12 una esecuzione della suite ha fatto `migrate:fresh` sul database di
+sviluppo e lo ha svuotato. La difesa allora stava dentro `tests/TestCase.php` e proteggeva solo chi
+passava di lì. Traccia: `VDF11`, punto `TVF04`.

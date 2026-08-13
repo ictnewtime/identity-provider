@@ -11,6 +11,7 @@ un perché.
 |---|---|---|---|
 | [./20260812-static-analysis-findings-v1/](./20260812-static-analysis-findings-v1/) | Rilievi SonarQube su frontend Vue e test E2E | `TSA` | 2026-08-12 |
 | [./20260812-local-environments/](./20260812-local-environments/) | Due ambienti locali, e la forma del flusso di test | `TLE` | 2026-08-12 |
+| [./20260813-vulnerability-fixes/](./20260813-vulnerability-fixes/) | I difetti senza casella | `TVF` | 2026-08-13 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 
@@ -81,3 +82,46 @@ come dato e non come criterio.
 **Cosa resta aperto altrove**: `VDF11` (la separazione impedisce il danno, ma il difetto resta finché
 la config cache è lì), `VDF12` (il parametro inerte), `BDB28` (`MYSQL_DATABASE` inerte nel compose) e
 `BDB30` (la tabella si chiama `patemeters`).
+
+## `20260813-vulnerability-fixes` — com'è finita
+
+**Cinque punti fatti, uno scartato, uno chiuso.** Il task è nato per una ragione sola: cinque difetti
+del registro non avevano un punto in nessun piano, e **un difetto senza punto non lo corregge
+nessuno**, perché nessuno lo incontra lavorando.
+
+**Tre erano già corretti** e sono stati spuntati con la verifica, non rifatti: `VDF01`
+(`cypress.env.json` sganciato da git), `VDF06` (il `parseInt` che andava a `NaN`), `VDF08` (nessun
+letterale di password nei seeder). Riverificati con `grep` e `git ls-files` il giorno della chiusura,
+non presi per buoni dalla scheda.
+
+**Il punto con più valore è `TVF04`**, e la forma gliel'ha data il developer correggendo una mia
+premessa. Avevo consigliato di sovrascrivere `migrate:fresh`; ma quel comando, fuori da `local`,
+**chiede già conferma da console** — Laravel protegge chi lo digita. Quello che mancava era una
+guardia per chi cancella **da codice**, dove nessuno chiede niente. Da qui
+`App\Support\DestructiveDatabaseGuard`, una funzione che si chiama e non un comando che si
+sostituisce; `tests/TestCase.php` ora la invoca invece di duplicarla, così la difesa non vive più
+dentro `tests/`.
+
+Provata nei due versi (`TVF05`, cinque test): rifiuta il database di sviluppo **prima** di qualunque
+migrazione — 0 oggetti creati — e non grida su `:memory:` né su `idp_test`. Fallisce **chiusa**: senza
+elenco di database consentiti non lascia passare, perché su un'operazione che distrugge dati «non lo
+so» deve valere «no».
+
+**Due punti non sono stati fatti, e per ragioni opposte**:
+
+| | |
+|---|---|
+| `TVF06` | scartato: l'`autocomplete` sui campi password lo prende il developer — e poi `VDF04` è stato **chiuso come comportamento voluto**, non corretto. Dove l'attributo manca è voluto che il browser suggerisca le password salvate: serve ai test manuali |
+| `TVF07` | chiuso senza lavoro: il parametro `jwt-exp-time-seconds`, seminato e mai letto da nessuna riga di `app/`, **il developer lo ha rimosso**. Era la seconda delle due uscite possibili, ed era quella giusta |
+
+**Una regola asimmetrica è nata da qui**, ed è scritta in
+[/docs/doc-code-guide-line.md](/docs/doc-code-guide-line.md): sull'`autocomplete` **non si aggiunge
+dove manca, non si toglie dove c'è**. Le due metà hanno ragioni diverse, e chi «uniforma» in una
+direzione o nell'altra sta disfacendo una decisione.
+
+**Un errore mio, registrato**: avevo dichiarato in due documenti che il difetto del parametro inerte
+era registrato come `VDF12`, e non lo era — l'inserimento non era andato a buon fine e non l'avevo
+verificato. Per due giorni è sembrato coperto quando non lo era.
+
+**Cosa resta nel registro**: `VDF10` (`TCC13`), `VDF03` (`TCC04`), `VDF07` (`TSD06`/`TSD08`), `VDF09`
+(`TCC08`), `VDF05` (`TPU04`) — tutti con un punto in un altro task.

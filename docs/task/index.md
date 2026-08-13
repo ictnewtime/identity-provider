@@ -23,7 +23,6 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 | [./todo/20260812-static-analysis-findings-v3/](./todo/20260812-static-analysis-findings-v3/) | Literali duplicati nelle annotazioni OpenAPI di quattro controller: percorsi, descrizioni dei parametri, tag | `TOA` | media |
 | [./todo/20260812-static-analysis-findings-v4/](./todo/20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio d'errore ripetuto tre volte e costruttore vuoto | `TPU` | bassa |
 | [./todo/20260812-swagger-deploy-tests/](./todo/20260812-swagger-deploy-tests/) | Test che verificano che la documentazione OpenAPI sia **generata e valida**, e che **fermano la pipeline** prima del deploy. Oggi la pipeline non ha nessun job di test | `TSD` | **alta** |
-| [./todo/20260813-vulnerability-fixes/](./todo/20260813-vulnerability-fixes/) | I **difetti senza casella**: cinque voci del registro che non avevano un punto in nessun piano. Tre risultano già corretti e vanno spuntati; la guardia contro `migrate:fresh` va spostata **dove si cancella** | `TVF` | **alta** |
 | [./todo/20260812-e2e-test-container/](./todo/20260812-e2e-test-container/) | Un container dedicato per Cypress: all'immagine dell'applicazione mancano **tutte** le librerie che gli servono. Sblocca la verifica di quattro punti già chiusi nella tranche v1 | `TEC` | **alta** |
 
 ## Chiusi
@@ -32,5 +31,6 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 |---|---|---|---|
 | [./done/20260812-static-analysis-findings-v1/](./done/20260812-static-analysis-findings-v1/) | Frontend Vue e test E2E. Obiettivo raggiunto: **nessuna password letterale** resta in `database/seeders/` né in `cypress/e2e/`, e le credenziali E2E ora si generano | `TSA` | 2026-08-12 |
 | [./done/20260812-local-environments/](./done/20260812-local-environments/) | Due ambienti locali separati — develop `idp_develop`, test `idp_test` — e due ambienti di test distinti: backend su sqlite senza compose, E2E su MariaDB con compose | `TLE` | 2026-08-12 |
+| [./done/20260813-vulnerability-fixes/](./done/20260813-vulnerability-fixes/) | I difetti che non avevano un punto in nessun piano: tre già corretti e spuntati, la guardia contro le cancellazioni spostata dove si cancella, uno chiuso come comportamento voluto | `TVF` | 2026-08-13 |
 
 L'elenco completo, con cosa è stato scartato e perché, sta in [done/index.md](./done/index.md).
