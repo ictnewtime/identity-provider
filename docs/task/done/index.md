@@ -12,6 +12,7 @@ un perché.
 | [./20260812-static-analysis-findings-v1/](./20260812-static-analysis-findings-v1/) | Rilievi SonarQube su frontend Vue e test E2E | `TSA` | 2026-08-12 |
 | [./20260812-local-environments/](./20260812-local-environments/) | Due ambienti locali, e la forma del flusso di test | `TLE` | 2026-08-12 |
 | [./20260813-vulnerability-fixes/](./20260813-vulnerability-fixes/) | I difetti senza casella | `TVF` | 2026-08-13 |
+| [./20260812-static-analysis-findings-v3/](./20260812-static-analysis-findings-v3/) | Literali duplicati nelle annotazioni OpenAPI | `TOA` | 2026-08-13 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 
@@ -125,3 +126,40 @@ verificato. Per due giorni è sembrato coperto quando non lo era.
 
 **Cosa resta nel registro**: `VDF10` (`TCC13`), `VDF03` (`TCC04`), `VDF07` (`TSD06`/`TSD08`), `VDF09`
 (`TCC08`), `VDF05` (`TPU04`) — tutti con un punto in un altro task.
+
+## `20260812-static-analysis-findings-v3` — com'è finita
+
+**Nove punti su nove**, ed è l'unica tranche chiusa per intero senza scarti. I nove rilievi SonarQube
+sui literali duplicati sono chiusi: i quattro percorsi e i quattro literali di descrizione compaiono
+ora una volta sola, nella loro dichiarazione.
+
+**La prova che il refactoring non ha fatto danni non poteva venire dai test**, perché nessun test
+guarda la documentazione generata — ed era il rischio vero della tranche. Viene da
+`./scripts/openapi-spec-diff.sh`: istantanea prima, rigenerazione dopo, `diff`. Esito: **specifico
+identico**. Lo script è provato nei due versi — cambiando una `description` di una riga, la mostra.
+
+**Il file generato NON è stato versionato**, ed è una decisione: `api-docs.json` è un artefatto, e
+versionarlo darebbe un conflitto a ogni annotazione toccata da due persone. L'istantanea fuori
+dall'albero costa meno e serve allo stesso scopo.
+
+**La correzione ha evitato la trappola del rilievo.** `"Provider id"` era segnalato 3 volte in un
+file, ma compariva **17 volte su 4 file** insieme agli altri due. Una costante *per file* avrebbe
+chiuso i rilievi lasciando tre copie della stessa stringa — il segnale spento e il problema intatto.
+Le tre descrizioni stanno nel controller base; i percorsi hanno **una** costante per due percorsi
+(`self::OA_PATH` e `self::OA_PATH . "/{id}"`), così resta visibile che sono la stessa rotta.
+
+**`TOA09` è nato da una domanda del developer** — «un controllo sui percorsi annotati è fattibile, se
+i controller servono anche le rotte web?» — e la risposta è: sì, **in una direzione sola**. «Ogni
+percorso documentato ha una rotta» è un invariante; «ogni rotta è documentata» non lo è, perché gli
+stessi controller servono anche `admin/v1/…` e tre rotte `api/v1` non sono documentate di proposito.
+Il controllo confronta due elenchi di stringhe e non guarda i controller, quindi la condivisione non
+lo disturba.
+
+**Quel test si è dovuto riscrivere a metà lavoro**, ed è la cosa più istruttiva della tranche:
+leggeva i `path:` dal sorgente con una regex, e ha smesso di trovarli appena quei literali sono
+diventati costanti — sarebbe diventato «zero percorsi, tutto a posto». L'ha scoperto **il guardiano
+che gli avevo messo dentro** (`test_il_controllo_ha_qualcosa_da_controllare`). Ora legge lo specifico
+generato, che porta i percorsi risolti ed è quello che i client leggono davvero.
+
+**Cosa non copre**: la direzione inversa del controllo, per la ragione sopra; e il numero dei rilievi
+SonarQube, che si rilegge solo con una scansione.

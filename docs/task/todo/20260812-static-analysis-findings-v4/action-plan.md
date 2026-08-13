@@ -11,7 +11,7 @@ comando · `man`: lo legge una persona.
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
 |---|---|---|---|---|---|---|
-| TPU01 | da approvare | **`D2`** — verificare se qualche client, test E2E o componente Vue confronta le stringhe dei messaggi 404. Se sì, tradurle è una regressione e il piano cambia forma | nessuno (accertamento) | basso, ma è ciò che rende sicuro il resto | auto | `grep -rn 'not found' resources/js/ cypress/e2e/` — l'esito si riporta qui, qualunque sia |
+| TPU01 | **fatto** (2026-08-13) | **`D2`** — **nessuno** confronta i messaggi 404 (`F9`), quindi tradurli non è una regressione. E poiché il developer ha chiesto di aggiungere i test se mancavano: `ProviderUserRoleNotFoundTest` fissa i tre messaggi attuali, così quando `TPU03` li farà passare dalle traduzioni **il diff lo mostrerà**. Un quarto test verifica che la chiave `provider_user_roles.not_found` **esista già** e in inglese coincida col literale | `tests/Feature/ProviderUserRoleNotFoundTest.php` (nuovo) | basso | auto | 4 verdi. **Scoperto scrivendoli**: il 404 di `update()` è irraggiungibile con un corpo non valido — la validazione gira prima e risponde 422 |
 
 ## Onda 2 — le correzioni
 
@@ -19,7 +19,7 @@ comando · `man`: lo legge una persona.
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
 |---|---|---|---|---|---|---|
-| TPU02 | da approvare | **`F4`** — cancellare il costruttore vuoto. Non commentarlo: un costruttore senza parametri né corpo non fa niente che PHP non faccia da sé (§ 3, `D4`) | `ProviderUserRoleController.php:19` | basso | auto | la riga non esiste più; `docker exec idp_app_2 php artisan test` verde |
+| TPU02 | **fatto** (2026-08-13) | **`F4`, `D4`** — il costruttore vuoto è cancellato, non commentato: un costruttore senza parametri né corpo non fa niente che PHP non faccia da sé, e il commento che SonarQube chiedeva sarebbe stato un commento su una riga che non serve | `ProviderUserRoleController.php` | basso | auto | `grep -c __construct` sul file restituisce **0**; suite 71 verdi; specifico OpenAPI identico |
 | TPU03 | da approvare | **`F1` + `F2`** — un helper `notFound()` sul controller base che compone la risposta 404 passando dalle traduzioni, più le chiavi in `lang/it.json` e `lang/en.json`. Sostituisce le **tre** occorrenze segnalate; l'estensione alle altre nove dipende da `D1` | `app/Http/Controllers/Controller.php`, `ProviderUserRoleController.php:221,292,333`, `lang/it.json`, `lang/en.json` | medio — cambia il corpo di risposte che il frontend legge | auto | test: le tre rotte rispondono 404 con il messaggio tradotto nella lingua della richiesta; `grep -c 'Provider user role not found' app/` restituisce 0 |
 | TPU04 | **fatto** (2026-08-13) | **`F5`** — `delete()` e `bulkDelete()` usano ora `response()->noContent()`. Il frontend non leggeva quel corpo (`DeleteProviderUserRoleDialog.vue:22` usa `.then(() => …)` con un testo suo), quindi nessuna rottura. **Scoperta verificando**: Laravel **svuota da sé** il corpo dei 204 quando spedisce, quindi via HTTP le due forme sono indistinguibili — il difetto era nel **codice che mente**, non nella risposta. La verifica è stata cambiata di conseguenza | `ProviderUserRoleController.php:341,364` | basso — nessun consumatore leggeva il corpo | auto | 4 test: 204 senza `Content-Type`, la cancellazione avviene davvero, il 404 il corpo ce l'ha, e nessun `response()->json(…, 204)` resta nel controller. **Provati nei due versi**: rimettendo il difetto, l'ultimo diventa rosso |
 
@@ -27,7 +27,7 @@ comando · `man`: lo legge una persona.
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
 |---|---|---|---|---|---|---|
-| TPU05 | da approvare | **`F6`, `D5`** — se la differenza fra `withTrashed()->find()` in lettura e la sua assenza in `update()`/`delete()` è **voluta**, scriverla in un commento e chiudere. Se non lo è, è un difetto: `update()` risponde «non trovato» su un record che `find()` restituisce con 200 | `ProviderUserRoleController.php:219,290,331` | medio se è un difetto, nullo se è una scelta | man | la risposta del developer, e il commento che ne resta |
+| TPU05 | **fatto** (2026-08-13) | **`F6`, `D5`** — la differenza **è voluta**: un'associazione cancellata logicamente si consulta, non si modifica. Scritta in **tre punti**, uno per metodo — `find()` dichiara la scelta, `update()` e `delete()` la richiamano dall'altro lato. Il mio sospetto nell'analisi era che fosse una svista: sbagliato, ed è annotato lì | `ProviderUserRoleController.php` (3 commenti) | nullo | man | i tre metodi dicono *scelta*, non *da fare* |
 | TPU06 | da approvare | **`D1`** — estendere l'helper di `TPU03` alle altre **nove** occorrenze dello stesso schema su tutto lo strato dei controller (`F2`). Se decidi di contenere lo scope, questo punto diventa `scartato` e il resto **si apre come task**, altrimenti resta un file diverso dagli altri quattro | `ProviderController.php`, `UserController.php`, `RoleController.php` e i rispettivi messaggi | medio | auto | `grep -rhno 'message" => "[A-Za-z ]*not found"' app/Http/Controllers/` non trova più occorrenze |
 
 ## Cosa questo piano non copre

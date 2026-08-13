@@ -3,7 +3,7 @@
 **Identificatori**: `TOA` = task openapi-annotations
 
 Stato: da approvare · Data: 2026-08-12 · Tranche **v3** di 4 —
-[v1](../../done/20260812-static-analysis-findings-v1/analysis.md) · [v2](../20260812-static-analysis-findings-v2/analysis.md) · [v4](../20260812-static-analysis-findings-v4/analysis.md)
+[v1](../../done/20260812-static-analysis-findings-v1/analysis.md) · [v2](../../todo/20260812-static-analysis-findings-v2/analysis.md) · [v4](../../todo/20260812-static-analysis-findings-v4/analysis.md)
 
 ## 1. Obiettivo
 
@@ -81,7 +81,7 @@ stesso file, sempre nello stesso ruolo. Una costante di classe, nessuna decision
 
 **Cosa non risolvo qui.** `"Provider user role not found"`, che nella lista arrivava insieme a questi,
 **non è un'annotazione**: è un messaggio restituito a runtime da tre metodi diversi. Ha conseguenze
-diverse (l'utente lo legge, e non è tradotto) e sta in [v4](../20260812-static-analysis-findings-v4/analysis.md).
+diverse (l'utente lo legge, e non è tradotto) e sta in [v4](../../todo/20260812-static-analysis-findings-v4/analysis.md).
 
 **Rapporto con le altre tranche.** Nessun rilievo condiviso. La sovrapposizione è a monte: quale
 strumento produce questi rilievi (`D6` di `v1`), e il fatto che `TSA09` porti nel repo la

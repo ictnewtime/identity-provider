@@ -46,5 +46,5 @@ Indipendenti fra loro: ognuno chiude i rilievi del suo file. Ordinati per numero
   non sono documentate di proposito (`F14`). Un controllo che segnala il corretto si smette di
   leggere. `TOA09` copre la sola direzione che è un invariante.
 - **`"Provider user role not found"`**: non è un'annotazione ma un messaggio di risposta, sta in
-  [v4](../20260812-static-analysis-findings-v4/action-plan.md).
+  [v4](../../todo/20260812-static-analysis-findings-v4/action-plan.md).
 - La **traduzione** delle descrizioni OpenAPI: restano in inglese, ed è corretto (`F11`).

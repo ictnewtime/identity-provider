@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 use OwenIt\Auditing\Models\Audit;
 
@@ -18,8 +17,6 @@ class ProviderUserRoleController extends Controller
 {
     private const OA_TAG = "Provider User Roles";
     private const OA_PATH = "/api/v1/provider-user-roles";
-
-    public function __construct() {}
 
     #[
         OA\Get(
@@ -223,6 +220,9 @@ class ProviderUserRoleController extends Controller
     ]
     public function find($id)
     {
+        // `withTrashed()` in lettura e non in scrittura, ed e' una scelta: un'associazione
+        // cancellata logicamente si consulta, non si modifica. `update()` e `delete()` qui sotto
+        // usano di proposito la forma senza — chi legge non deve prenderla per una svista.
         $providerUserRole = ProviderUserRole::withTrashed()->find($id);
         if (empty($providerUserRole)) {
             return response()->json(["message" => "Provider user role not found"], 404);
@@ -304,6 +304,8 @@ class ProviderUserRoleController extends Controller
     {
         $data = $request->validated();
 
+        // Senza `withTrashed()`: un'associazione cancellata logicamente non si modifica. E' la
+        // stessa scelta dichiarata in `find()`, vista dall'altro lato.
         $providerUserRole = ProviderUserRole::where("id", $id)->first();
         if (empty($providerUserRole)) {
             return response()->json(["message" => "Provider user role not found"], 404);
@@ -345,6 +347,7 @@ class ProviderUserRoleController extends Controller
     ]
     public function delete($id)
     {
+        // Senza `withTrashed()`: cio' che e' gia' cancellato non si cancella di nuovo.
         $providerUserRole = ProviderUserRole::find($id);
         if (empty($providerUserRole)) {
             return response()->json(["message" => "Provider user role not found"], 404);
