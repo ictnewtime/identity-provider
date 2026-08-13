@@ -42,7 +42,8 @@ services:
             APP_ENV: testing
             # Il database dei test: creato dall'entrypoint con IF NOT EXISTS a ogni avvio.
             DB_CONNECTION: mysql
-            DB_HOST: mariadb
+            # Il NOME DEL SERVIZIO del docker-compose di sviluppo, non il container_name.
+            DB_HOST: idp_mariadb_2
             DB_PORT: 3306
             DB_DATABASE: idp_test
             DB_USERNAME: root
@@ -54,9 +55,11 @@ services:
             # non toccano piu' quella dell'applicazione di sviluppo.
             APP_CONFIG_CACHE: /tmp/config-test.php
         networks:
-            - database-network
+            - idp_network
 
 networks:
-    database-network:
-        name: database-network
+    # La rete la crea `docker-compose.yml`: qui ci si aggancia, non la si ridefinisce.
+    # Il nome vero e' `<progetto>_idp_network`, e con `name:` si punta a quello.
+    idp_network:
+        name: identity-provider2_idp_network
         external: true

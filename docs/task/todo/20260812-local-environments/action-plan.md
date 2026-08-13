@@ -34,6 +34,8 @@ due richieste HTTP.
 | TLE04 | da approvare | Il test che rende visibile `F9`: ricerca `q` con una lettera accentata **maiuscola**. **Va nella famiglia E2E**, perché con `D3` il backend gira su sqlite e lì quel test fallirebbe per il motore, non per il codice. Oggi non esiste, e la sua assenza è il motivo per cui la divergenza è passata inosservata | `cypress/e2e/` | basso | auto | il test è verde sull'ambiente E2E |
 | ~~TLE06~~ | **scartato** (2026-08-12) | Misurare la durata della suite nelle due configurazioni. **`D5`: le tempistiche non contano.** Il riferimento di oggi resta annotato nell'analisi — 4,3 s contro 0,6 s su 22 test — come dato, non come criterio | — | — | — | — |
 
+| TLE08 | **fatto** (2026-08-12) | **L'attesa del database in `entrypoint.sh` cercava un nome scritto a mano.** Il servizio MariaDB è stato rinominato da `mariadb` a `idp_mariadb_2` e la rete in `idp_network`: la riga `/dev/tcp/mariadb/3306` ha smesso di trovarlo, ha fallito **30 tentativi e poi è proseguita lo stesso** — il modo peggiore di sbagliare, perché il container parte e l'errore si manifesta altrove. Ora legge `DB_HOST`/`DB_PORT` e, se scadono i tentativi, **lo dice** invece di tacere. Allineato anche `docker-compose.test.yml`, che aveva le stesse due stringhe stantie | `entrypoint.sh:22-40`, `docker-compose.test.yml` | medio — è il percorso di avvio dell'applicazione | auto | l'ambiente E2E stampa `Attendo idp_mariadb_2:3306` e prosegue: 21 verdi, 1 rosso noto |
+
 ## Onda 3 — la forma del flusso, e gli E2E
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
