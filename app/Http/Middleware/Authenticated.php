@@ -105,8 +105,10 @@ class Authenticated
         $cookieName = "idp_token_" . $idpProviderId;
         $provider = Provider::find($idpProviderId);
 
-        Cookie::queue(Cookie::forget($cookieName, "/", $provider->domain));
-        Cookie::queue(Cookie::forget("token", "/", $provider->domain));
+        $domain = $provider?->domain;
+
+        Cookie::queue(Cookie::forget($cookieName, "/", $domain));
+        Cookie::queue(Cookie::forget("token", "/", $domain));
 
         if ($request->expectsJson() && !$request->header("X-Inertia")) {
             return response()->json(["message" => $message], 401);
