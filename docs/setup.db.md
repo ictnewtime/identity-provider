@@ -69,6 +69,19 @@ docker exec -e SEED_ADMIN_PASSWORD='<scegli-una-password>' idp_app_2 php artisan
 > ferma con un messaggio. È la correzione del difetto
 > [`VDF08`](task/vulnerability/vulnerability.md) — prima era scritta nel codice e versionata.
 
+> **Eseguirlo due volte fallisce, ed è voluto.** Il seeder se ne accorge da sé e si ferma con
+> `db:seed non e' rieseguibile`, dicendo come riseminare — invece di lasciar arrivare un
+> `UNIQUE constraint failed` dal database, che dice cosa è successo e non cosa fare. E **non lascia
+> niente a metà**: il controllo è la prima riga della transazione. Per riseminare da zero:
+>
+> ```sh
+> docker exec idp_app_2 php artisan migrate:fresh --force
+> docker exec -e SEED_ADMIN_PASSWORD='<password>' idp_app_2 php artisan db:seed
+> ```
+>
+> `migrate:fresh` **droppa tutte le tabelle** di `idp_develop`: è quello che serve qui, ed è la stessa
+> cosa che sul database sbagliato ha causato [`VDF11`](task/vulnerability/vulnerability.md).
+
 ### Verificare che i test di backend non lo tocchino
 
 I test di backend girano su sqlite: nessun servizio, nessun database. La verifica è che `idp_develop`
