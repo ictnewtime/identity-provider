@@ -157,12 +157,13 @@ class SessionController extends Controller
             $validated["ip_address"] ?? $request->ip(),
             $validated["user_agent"] ?? $request->userAgent(),
             $tokenService,
+            canCreate: false,
         );
 
         if (!$appToken) {
             return response()->json(
                 [
-                    "message" => __("session.error.access_denied.userdisabled_or_missing_roles", [
+                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
                         "providerId" => $providerId,
                     ]),
                 ],
