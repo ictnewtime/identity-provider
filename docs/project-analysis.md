@@ -27,7 +27,7 @@ sul **ruolo**, non sull'appartenenza dei dati.
 solo quelle nuove. Il costo di introdurli cresce con i dati, non con il codice.
 
 **Traccia**: `D3` e punto `TCC09` in
-[static-analysis-findings-v2](task/todo/20260812-static-analysis-findings-v2/analysis.md).
+[static-analysis-findings-v2](task/done/20260812-static-analysis-findings-v2/analysis.md).
 
 ---
 

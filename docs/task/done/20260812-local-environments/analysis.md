@@ -56,7 +56,7 @@ deve **restare vivo per tutta la durata** — e un dubbio da sciogliere: MariaDB
   non esiste e non è popolato, l'applicazione non parte. Va fatto in una volta sola.
 - **La scelta del database dei test non è reversibile a costo zero**: i test scritti su sqlite possono
   passare e nascondere una divergenza (`F9`), quindi cambiarli dopo significa riscriverli.
-- `TCC15` di [static-analysis-findings-v2](../../todo/20260812-static-analysis-findings-v2/action-plan.md)
+- `TCC15` di [static-analysis-findings-v2](../20260812-static-analysis-findings-v2/action-plan.md)
   copre la sola rinomina e **confluisce qui**: è il punto `TLE01`.
 
 ## 3. Analisi

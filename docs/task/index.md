@@ -19,7 +19,7 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 
 | Task | Obiettivo | Sigla | Priorità |
 |---|---|---|---|
-| [./todo/20260812-static-analysis-findings-v2/](./todo/20260812-static-analysis-findings-v2/) | Complessità cognitiva di due funzioni: la lista degli audit e il middleware di autenticazione. Sotto il rilievo ci sono difetti di correttezza che il rilievo non nomina | `TCC` | **alta** |
+| [./todo/20260813-token-refresh/](./todo/20260813-token-refresh/) | L'app token scade dopo 30 minuti e **nessuno lo rinnova**, benché il meccanismo esista già (`token/exchange`) e il codice dichiari di volerlo. Difetto `VDF13` | `TTR` | **alta** |
 | [./todo/20260812-swagger-deploy-tests/](./todo/20260812-swagger-deploy-tests/) | Test che verificano che la documentazione OpenAPI sia **generata e valida**, e che **fermano la pipeline** prima del deploy. Oggi la pipeline non ha nessun job di test | `TSD` | **alta** |
 | [./todo/20260812-e2e-test-container/](./todo/20260812-e2e-test-container/) | Un container dedicato per Cypress: all'immagine dell'applicazione mancano **tutte** le librerie che gli servono. Sblocca la verifica di quattro punti già chiusi nella tranche v1 | `TEC` | **alta** |
 
@@ -29,6 +29,7 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 |---|---|---|---|
 | [./done/20260812-static-analysis-findings-v1/](./done/20260812-static-analysis-findings-v1/) | Frontend Vue e test E2E. Obiettivo raggiunto: **nessuna password letterale** resta in `database/seeders/` né in `cypress/e2e/`, e le credenziali E2E ora si generano | `TSA` | 2026-08-12 |
 | [./done/20260812-local-environments/](./done/20260812-local-environments/) | Due ambienti locali separati — develop `idp_develop`, test `idp_test` — e due ambienti di test distinti: backend su sqlite senza compose, E2E su MariaDB con compose | `TLE` | 2026-08-12 |
+| [./done/20260812-static-analysis-findings-v2/](./done/20260812-static-analysis-findings-v2/) | Complessità cognitiva: lista audit e middleware scomposti in classi provabili. Sotto il rilievo c'erano quattro difetti che il rilievo non nominava | `TCC` | 2026-08-13 |
 | [./done/20260812-static-analysis-findings-v3/](./done/20260812-static-analysis-findings-v3/) | Literali duplicati nelle annotazioni OpenAPI: nove rilievi chiusi con lo specifico generato **identico** prima e dopo | `TOA` | 2026-08-13 |
 | [./done/20260812-static-analysis-findings-v4/](./done/20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio ripetuto e costruttore vuoto. I dodici messaggi 404 passano ora dalle traduzioni — chiavi che **esistevano già** in due lingue | `TPU` | 2026-08-13 |
 | [./done/20260813-vulnerability-fixes/](./done/20260813-vulnerability-fixes/) | I difetti che non avevano un punto in nessun piano: tre già corretti e spuntati, la guardia contro le cancellazioni spostata dove si cancella, uno chiuso come comportamento voluto | `TVF` | 2026-08-13 |

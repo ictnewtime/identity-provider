@@ -3,7 +3,7 @@
 **Identificatori**: `TSA` = task static-analysis-findings
 
 Stato: da approvare · Data: 2026-08-12 · Tranche **v1** di 4 —
-[v2](../../todo/20260812-static-analysis-findings-v2/analysis.md) · [v3](../20260812-static-analysis-findings-v3/analysis.md) · [v4](../20260812-static-analysis-findings-v4/analysis.md)
+[v2](../20260812-static-analysis-findings-v2/analysis.md) · [v3](../20260812-static-analysis-findings-v3/analysis.md) · [v4](../20260812-static-analysis-findings-v4/analysis.md)
 
 Questa tranche copre **frontend Vue e test E2E**. Le altre tre sono PHP e non condividono nessun
 rilievo con questa: la sovrapposizione è su `D6` (quale strumento ha prodotto la lista) e su `TSA09`,

@@ -12,6 +12,7 @@ un perché.
 | [./20260812-static-analysis-findings-v1/](./20260812-static-analysis-findings-v1/) | Rilievi SonarQube su frontend Vue e test E2E | `TSA` | 2026-08-12 |
 | [./20260812-local-environments/](./20260812-local-environments/) | Due ambienti locali, e la forma del flusso di test | `TLE` | 2026-08-12 |
 | [./20260813-vulnerability-fixes/](./20260813-vulnerability-fixes/) | I difetti senza casella | `TVF` | 2026-08-13 |
+| [./20260812-static-analysis-findings-v2/](./20260812-static-analysis-findings-v2/) | Complessità cognitiva: lista audit e middleware | `TCC` | 2026-08-13 |
 | [./20260812-static-analysis-findings-v3/](./20260812-static-analysis-findings-v3/) | Literali duplicati nelle annotazioni OpenAPI | `TOA` | 2026-08-13 |
 | [./20260812-static-analysis-findings-v4/](./20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio ripetuto e costruttore vuoto | `TPU` | 2026-08-13 |
 
@@ -209,3 +210,50 @@ dimenticanze.
 **Cosa resta fuori**: il costruttore vuoto in `app/Services/AccountService.php` (`D6`, non segnalato
 per ora) e la domanda che questa tranche lascia aperta — se dodici chiavi tradotte erano lì
 inutilizzate, quante altre risposte dell'API sono ancora in inglese scritto a mano.
+
+## `20260812-static-analysis-findings-v2` — com'è finita
+
+**Sedici punti: quattordici fatti, uno scartato, uno spostato.** Con questa si chiudono **tutte e
+quattro** le tranche del lotto del 2026-08-12.
+
+**Il rilievo era due numeri di complessità; sotto c'erano quattro difetti che il rilievo non
+nominava** — ed è la ragione per cui l'analisi è servita più della correzione:
+
+| | |
+|---|---|
+| `VDF02` | la join verso l'attore ignorava `user_type` ed era interna: il registro **nascondeva righe** a seconda dell'ordinamento |
+| `VDF03` | `per_page` senza tetto sulla tabella che cresce più in fretta |
+| `VDF10` | il percorso d'errore del middleware falliva **proprio nel caso che doveva gestire** — 500 invece di 401, e un log che accusava il token |
+| `VDF09` | un client Passport cancellato lascia gli audit senza attore: `Passport\Client` non ha soft delete |
+
+**I test sono venuti prima, ed è quello che ha reso il resto possibile.** `TCC01` e `TCC02` — 24 test
+sui sei rami del middleware e sui comportamenti della lista — sono stati scritti **prima** di toccare
+il codice, e sono rimasti **invariati** durante tutta la scomposizione. È l'unica prova che il
+comportamento non è cambiato. Uno di loro è nato rosso e ha scoperto `VDF10`: quel ramo d'errore non
+era mai stato percorso.
+
+**La scomposizione ha prodotto sei classi provabili da sole**, non metodi privati — era il requisito
+posto dal developer. `app/Queries/Audit/` per la lista, `app/Auth/Idp/` per il middleware. Il
+cambiamento che conta non è il numero di righe: il `try` non avvolge più quasi tutto, circonda la
+sola decodifica — e da lì nasceva sia l'annidamento sia `VDF10`.
+
+**Gli unit test asseriscono sull'SQL prodotto, senza database**: un test sui dati dice «le righe ci
+sono», questi dicono **perché** ci sono. E hanno trovato un difetto nei test stessi — asserivano su
+`"created_at"`, le virgolette di sqlite, e fallivano su MariaDB. Verdi su un motore, rossi sull'altro:
+è la ragione per cui i due ambienti esistono.
+
+**Due decisioni del developer hanno capovolto una mia raccomandazione**, e vale la pena averlo
+scritto:
+
+- `D2` — avevo consigliato di **togliere** `user.username` dalle colonne ordinabili. La risposta è
+  stata **correggere la join**, ed era meglio: la mia raccomandazione poggiava anche su una premessa
+  sbagliata — che gli audit di utenti cancellati sparissero — smentita da `SoftDeletes`;
+- `D5` — avevo consigliato di rimandare la API Resource a un task suo. La risposta è stata farla qui,
+  allargando lo scope, e il frontend è stato adeguato in un punto solo.
+
+**Cosa non è stato verificato, ed è l'unica cosa che resta aperta**: il **numero** di complessità. Si
+legge solo rilanciando SonarQube, e la verifica dei due punti di scomposizione è dichiarata `man` per
+questo. Il codice è più corto e provabile a pezzi; che 18 e 16 siano scesi sotto 15 è **credibile, non
+misurato**.
+
+**Scartato** `TCC15` (spostato in `local-environments` come `TLE01`) e nessun punto abbandonato.
