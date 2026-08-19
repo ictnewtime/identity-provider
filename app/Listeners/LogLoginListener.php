@@ -9,10 +9,6 @@ use Illuminate\Support\Facades\Log;
 
 class LogLoginListener implements ShouldQueue {
 
-    public function __construct(){
-
-    }
-
     public function handle(LoginEvent $event){
 
         $user = $event->getUser();
