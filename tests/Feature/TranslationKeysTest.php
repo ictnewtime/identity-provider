@@ -28,29 +28,13 @@ class TranslationKeysTest extends TestCase
 
     /**
      * Le chiavi che oggi **non** hanno traduzione, e che questo test non fa fallire.
-     *
-     * Non e' un permesso: e' un debito, con la data in cui e' stato misurato. Serve a distinguere
-     * cio' che era gia' rotto da cio' che si rompe adesso — senza questa lista il test nascerebbe
-     * rosso e nessuno lo terrebbe. Le prime due sono state **rimosse dal revert del 2026-08-19**
-     * (erano state aggiunte da `TTR05`); le altre tre erano rotte da prima e nessuno le aveva viste.
-     *
      * Il secondo test qui sotto impedisce che questa lista invecchi: appena una di queste chiavi
      * viene tradotta, diventa rosso e chiede di togliere la riga.
      */
     /**
      * Vuota, e va tenuta vuota.
-     *
-     * Ha contenuto cinque chiavi il 2026-08-19, per mezza giornata: tre erano davvero senza
-     * traduzione e sono state tradotte (`TSH07`), due erano nominate in due voci morte di
-     * `ProviderRequest::messages()` e sono state **cancellate col codice che le nominava** — non
-     * tradotte, perche' nessuno le avrebbe mai lette.
-     *
-     * Se un giorno tornasse a riempirsi, ogni riga porti la data e il perche': il terzo test qui
-     * sotto obbliga a togliere le righe appena la chiave viene tradotta, ma non puo' obbligare
-     * nessuno a spiegarle.
      */
     private const DEBITO = [];
-
 
     /** @return array<string, string> chiave => file:riga dove e' usata */
     private function chiaviUsate(): array
@@ -73,9 +57,8 @@ class TranslationKeysTest extends TestCase
                     // Solo le chiavi **letterali**: `__($variabile)` non si puo' controllare qui.
                     if (preg_match_all('/__\(\s*["\']([a-zA-Z0-9_.\-]+)["\']/', $riga, $trovateRiga)) {
                         foreach ($trovateRiga[1] as $chiave) {
-                            $trovate[$chiave] ??= str_replace(base_path() . "/", "", $file->getPathname()) .
-                                ":" .
-                                ($numero + 1);
+                            $trovate[$chiave] ??=
+                                str_replace(base_path() . "/", "", $file->getPathname()) . ":" . ($numero + 1);
                         }
                     }
                 }
