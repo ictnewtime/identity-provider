@@ -29,7 +29,7 @@ class ProviderController extends ApiProviderController
         $provider = Provider::withTrashed()->find($id);
 
         if (empty($provider)) {
-            return $this->notFound("provider.not_found");
+            return response()->json(["message" => "Provider not found"], 404);
         }
 
         return response()->json(["provider" => new ProviderAdminResource($provider)], 200);

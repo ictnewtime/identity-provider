@@ -34,14 +34,6 @@ class OauthClientsController extends Controller
         $this->clientRepository = $clientRepository;
     }
 
-    /**
-     * ATTENZIONE a chi scrivera' il metodo di cancellazione di un client: NON deve cancellarlo.
-     *
-     * `Passport\Client` non ha soft delete, e la relazione dell'attore negli audit e' polimorfa:
-     * cancellare la riga lascia gli audit con un `user_id` che non risolve piu', e su un registro
-     * di audit e' la perdita che costa di piu' — chi ha fatto cosa, in modo irreversibile.
-     * Si mette `revoked` a `true`: la colonna esiste gia' nello schema.
-     */
     public function all(Request $request)
     {
         $query = $request->input("q");

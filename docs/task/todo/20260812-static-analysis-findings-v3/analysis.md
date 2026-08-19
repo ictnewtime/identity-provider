@@ -89,51 +89,29 @@ configurazione di lint **solo per JavaScript** mentre tutta questa tranche è PH
 
 ## 4. Da decidere
 
-> **Risposte del developer, 2026-08-13.** Tre su tre, e la seconda ha richiesto di guardare le rotte
-> vere prima di rispondere: i fatti stanno qui sotto, in `F12`–`F15`.
-
 ### Vincoli
 
-- **D1** — le costanti condivise vanno nel controller base o in una classe dedicata? → **Nel
-  controller base**: va bene far crescere `Controller.php`.
+- **D1** — le costanti di `F6`–`F8` vanno nel controller base insieme alle `OA_DESC_MSG_*` (`F9`), o
+  preferisci una classe dedicata alle annotazioni per non far crescere `Controller.php`?
 
 ### Conflitti
 
-- **D2** — la doppia dichiarazione dei percorsi: si accetta, o si controlla che ogni percorso
-  annotato corrisponda a una rotta esistente? → **«Spiega meglio; se fattibile con uno script o un
-  test sarebbe utile, ma Swagger passa dalle API e i controller servono anche le rotte web.»**
+- **D2** — la doppia dichiarazione dei percorsi (`F10`): la si accetta come costo di `swagger-php`, o
+  vuoi un controllo che verifichi che ogni percorso annotato corrisponda a una rotta esistente? Il
+  secondo è un lavoro suo, e chiude un difetto che questi rilievi hanno solo sfiorato.
 
-  **È fattibile, e l'obiezione sui controller condivisi non lo impedisce** — perché il controllo va
-  fatto **in una direzione sola**. I fatti, verificati oggi:
+### Ignoto
 
-  | # | Fatto | Prova |
-  |---|---|---|
-  | F12 | Gli stessi controller sono raggiunti da **due gruppi di rotte**: `admin/v1/…` (interne, usate dall'interfaccia Inertia) e `api/v1/…` (esterne, quelle documentate) | `php artisan route:list`: 108 rotte, 13 sotto `api/` |
-  | F13 | Gli **8 percorsi annotati** corrispondono tutti a una rotta `api/v1/…` esistente | confronto fra `route:list --json` e i `path:` delle annotazioni: **nessun percorso orfano** |
-  | F14 | Tre rotte `api/v1` **non** sono documentate: `provider-user-roles/has-relation`, `sessions/check`, `token/exchange` | stesso confronto, direzione inversa |
-  | F15 | Il file generato **non è versionabile com'è**: `storage/api-docs/.gitignore` contiene `*`, quindi `api-docs.json` è escluso per costruzione | `git check-ignore -v storage/api-docs/api-docs.json` |
-
-  **Perché una direzione sola.** «Ogni percorso annotato ha una rotta» è un invariante vero e utile:
-  un'annotazione che punta a un percorso inesistente è documentazione che mente, e succede appena
-  qualcuno rinomina una rotta. L'inverso — «ogni rotta è documentata» — **non** è un invariante:
-  `F12` e `F14` mostrano che ci sono rotte interne e rotte esterne non documentate di proposito.
-  Controllare anche quello produrrebbe rumore su una scelta legittima, e un controllo che segnala il
-  corretto si smette di leggere.
-
-  Il controllo quindi **non si accorge** che i controller sono condivisi, perché non guarda i
-  controller: confronta due elenchi di stringhe — i `path:` delle annotazioni e le URI registrate.
-
-- **D3** — come si confronta lo specifico prima e dopo? → **Va bene `git diff`.**
-  **Con un ostacolo da togliere prima** (`F15`): `storage/api-docs/.gitignore` esclude tutto, quindi
-  oggi `api-docs.json` non è versionato e un `git diff` non ha niente da confrontare. O si versiona
-  quel file, o il confronto si fa su una copia salvata a mano prima delle modifiche.
+- **D3** — come si verifica che la documentazione generata sia **identica** prima e dopo? Se
+  `php artisan l5-swagger:generate` produce un file versionabile, il confronto è un `diff` ed è la
+  verifica migliore di tutto il piano. Non ho controllato se in questo progetto quel file esiste.
 
 ## 5. Consigli
 
-| Domanda | Raccomandazione | Esito |
-|---|---|---|
-| **D1** | Nel controller base, accanto alle `OA_DESC_MSG_*`: sono dodici righe e stanno dove chi legge le cerca. | **accolta** |
-| **D2** | Aprirlo come task suo e non infilarlo qui. | **superata**: è fattibile e va fatto, ma **in una direzione sola** — annotazione → rotta. È un punto di questo piano, non un task |
-| **D3** | Verificarlo per primo: se il `diff` è disponibile, tutto il piano passa da `man` ad `auto`. | **accolta, con un passo in più**: va prima reso versionabile il file generato (`F15`) |
+| Domanda | Raccomandazione |
+|---|---|
+| **D1** | Nel controller base, accanto alle `OA_DESC_MSG_*`. Sono dodici righe e stanno dove chi legge le cerca; una classe nuova per dodici costanti aggiunge un file e una decisione a chi arriva dopo. Se `Controller.php` crescerà, si sposta il blocco intero — è un `mv`, non un problema da prevenire adesso. |
+| **D2** | Aprirlo come task suo e **non** infilarlo qui. Ma dirlo: il rilievo che hai in mano nasconde una duplicazione più cara di quella che segnala, e chiuderlo senza annotarla la rende invisibile. |
+| **D3** | Verificarlo **per primo**: se il `diff` dello specifico generato è disponibile, ogni punto di questo piano passa da `man` ad `auto` e il task diventa quasi gratuito da controllare. È il singolo accertamento che cambia di più il valore del piano. |
 
 Il piano: [action-plan.md](./action-plan.md).

@@ -15,11 +15,9 @@ use OpenApi\Attributes as OA;
 
 class ProviderController extends Controller
 {
-    private const OA_PATH = "/api/v1/providers";
-
     #[
         OA\Get(
-            path: self::OA_PATH,
+            path: "/api/v1/providers",
             summary: "list of providers",
             description: self::OA_DESC_MSG_SUCCESS,
             operationId: "Provider.all",
@@ -126,7 +124,7 @@ class ProviderController extends Controller
 
     #[
         OA\Get(
-            path: self::OA_PATH . "/{id}",
+            path: "/api/v1/providers/{id}",
             summary: "Get provider by id",
             description: self::OA_DESC_MSG_SUCCESS,
             operationId: "Provider.find",
@@ -136,7 +134,7 @@ class ProviderController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: self::OA_DESC_PROVIDER_ID,
+                    description: "Provider id",
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -169,7 +167,7 @@ class ProviderController extends Controller
         }
 
         if (empty($provider)) {
-            return $this->notFound("provider.not_found");
+            return response()->json(["message" => "Provider not found"], 404);
         }
 
         return response()->json(["provider" => $provider], 200);
@@ -177,7 +175,7 @@ class ProviderController extends Controller
 
     #[
         OA\Post(
-            path: self::OA_PATH,
+            path: "/api/v1/providers",
             summary: "Create a new provider",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.create",
@@ -272,7 +270,7 @@ class ProviderController extends Controller
 
     #[
         OA\Put(
-            path: self::OA_PATH . "/{id}",
+            path: "/api/v1/providers/{id}",
             summary: "Update provider by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.update",
@@ -282,7 +280,7 @@ class ProviderController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: self::OA_DESC_PROVIDER_ID,
+                    description: "Provider id",
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -373,7 +371,7 @@ class ProviderController extends Controller
             $provider = Provider::find($id);
 
             if (empty($provider)) {
-                return $this->notFound("provider.not_found");
+                return response()->json(["message" => "Provider not found"], 404);
             }
 
             if (empty($data["secret_key"])) {
@@ -392,7 +390,7 @@ class ProviderController extends Controller
 
     #[
         OA\Delete(
-            path: self::OA_PATH . "/{id}",
+            path: "/api/v1/providers/{id}",
             summary: "Delete provider by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.delete",
@@ -402,7 +400,7 @@ class ProviderController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: self::OA_DESC_PROVIDER_ID,
+                    description: "Provider id",
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),

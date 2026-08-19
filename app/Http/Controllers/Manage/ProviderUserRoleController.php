@@ -10,21 +10,21 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
 use OwenIt\Auditing\Models\Audit;
 
 class ProviderUserRoleController extends Controller
 {
-    private const OA_TAG = "Provider User Roles";
-    private const OA_PATH = "/api/v1/provider-user-roles";
+    public function __construct() {}
 
     #[
         OA\Get(
-            path: self::OA_PATH,
+            path: "/api/v1/provider-user-roles",
             summary: "Get list of provider user roles",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.all",
-            tags: [self::OA_TAG],
+            tags: ["Provider User Roles"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
@@ -137,11 +137,11 @@ class ProviderUserRoleController extends Controller
 
     #[
         OA\Post(
-            path: self::OA_PATH,
+            path: "/api/v1/provider-user-roles",
             summary: "Create a new provider user role",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.create",
-            tags: [self::OA_TAG],
+            tags: ["Provider User Roles"],
             security: [["passport" => []]],
             requestBody: new OA\RequestBody(
                 required: true,
@@ -150,13 +150,9 @@ class ProviderUserRoleController extends Controller
                     schema: new OA\Schema(
                         type: "object",
                         properties: [
-                            new OA\Property(
-                                property: "provider_id",
-                                description: self::OA_DESC_PROVIDER_ID,
-                                type: "integer",
-                            ),
-                            new OA\Property(property: "user_id", description: self::OA_DESC_USER_ID, type: "integer"),
-                            new OA\Property(property: "role_id", description: self::OA_DESC_ROLE_ID, type: "integer"),
+                            new OA\Property(property: "provider_id", description: "Provider id", type: "integer"),
+                            new OA\Property(property: "user_id", description: "User id", type: "integer"),
+                            new OA\Property(property: "role_id", description: "Role id", type: "integer"),
                         ],
                     ),
                 ),
@@ -194,11 +190,11 @@ class ProviderUserRoleController extends Controller
 
     #[
         OA\Get(
-            path: self::OA_PATH . "/{id}",
+            path: "/api/v1/provider-user-roles/{id}",
             summary: "Returns provider user role by id",
             description: self::OA_DESC_MSG_SUCCESS,
             operationId: "ProviderUserRole.find",
-            tags: [self::OA_TAG],
+            tags: ["Provider User Roles"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
@@ -220,23 +216,20 @@ class ProviderUserRoleController extends Controller
     ]
     public function find($id)
     {
-        // `withTrashed()` in lettura e non in scrittura, ed e' una scelta: un'associazione
-        // cancellata logicamente si consulta, non si modifica. `update()` e `delete()` qui sotto
-        // usano di proposito la forma senza — chi legge non deve prenderla per una svista.
         $providerUserRole = ProviderUserRole::withTrashed()->find($id);
         if (empty($providerUserRole)) {
-            return $this->notFound("provider_user_roles.not_found");
+            return response()->json(["message" => "Provider user role not found"], 404);
         }
         return response()->json(["providerUserRole" => $providerUserRole], 200);
     }
 
     #[
         OA\Put(
-            path: self::OA_PATH . "/{id}",
+            path: "/api/v1/provider-user-roles/{id}",
             summary: "Update provider user role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.update",
-            tags: [self::OA_TAG],
+            tags: ["Provider User Roles"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
@@ -256,22 +249,12 @@ class ProviderUserRoleController extends Controller
                         properties: [
                             new OA\Property(
                                 property: "provider_id",
-                                description: self::OA_DESC_PROVIDER_ID,
+                                description: "Provider id",
                                 type: "integer",
                                 example: "1",
                             ),
-                            new OA\Property(
-                                property: "user_id",
-                                description: self::OA_DESC_USER_ID,
-                                type: "integer",
-                                example: "1",
-                            ),
-                            new OA\Property(
-                                property: "role_id",
-                                description: self::OA_DESC_ROLE_ID,
-                                type: "integer",
-                                example: "1",
-                            ),
+                            new OA\Property(property: "user_id", description: "User id", type: "integer", example: "1"),
+                            new OA\Property(property: "role_id", description: "Role id", type: "integer", example: "1"),
                         ],
                     ),
                 ),
@@ -304,11 +287,9 @@ class ProviderUserRoleController extends Controller
     {
         $data = $request->validated();
 
-        // Senza `withTrashed()`: un'associazione cancellata logicamente non si modifica. E' la
-        // stessa scelta dichiarata in `find()`, vista dall'altro lato.
         $providerUserRole = ProviderUserRole::where("id", $id)->first();
         if (empty($providerUserRole)) {
-            return $this->notFound("provider_user_roles.not_found");
+            return response()->json(["message" => "Provider user role not found"], 404);
         }
         $providerUserRole->update($data);
         return response()->json(["message" => "Provider user role updated"], 200);
@@ -316,11 +297,11 @@ class ProviderUserRoleController extends Controller
 
     #[
         OA\Delete(
-            path: self::OA_PATH . "/{id}",
+            path: "/api/v1/provider-user-roles/{id}",
             summary: "Delete provider user role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.delete",
-            tags: [self::OA_TAG],
+            tags: ["Provider User Roles"],
             security: [["passport" => []]],
             parameters: [
                 new OA\Parameter(
@@ -347,14 +328,12 @@ class ProviderUserRoleController extends Controller
     ]
     public function delete($id)
     {
-        // Senza `withTrashed()`: cio' che e' gia' cancellato non si cancella di nuovo.
         $providerUserRole = ProviderUserRole::find($id);
         if (empty($providerUserRole)) {
-            return $this->notFound("provider_user_roles.not_found");
+            return response()->json(["message" => "Provider user role not found"], 404);
         }
         $providerUserRole->delete();
-
-        return response()->noContent();
+        return response()->json(["message" => "Provider user role deleted"], 204);
     }
 
     public function bulkDelete(Request $request)
@@ -376,7 +355,7 @@ class ProviderUserRoleController extends Controller
             return response()->json(["message" => __("provider_user_roles.bulk_delete_error")], 500);
         }
 
-        return response()->noContent();
+        return response()->json(["message" => __("provider_user_roles.bulk_delete_success")], 204);
     }
 
     public function restore(Request $request)
