@@ -2,7 +2,7 @@
 
 **Identificatori**: `TRL` = task route-literals
 
-Stato: da approvare · Data: 2026-08-19
+Stato: **chiuso** (2026-08-19) · Data: 2026-08-19
 
 ## 1. Obiettivo
 

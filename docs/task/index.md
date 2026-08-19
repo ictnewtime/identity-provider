@@ -21,7 +21,6 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 |---|---|---|---|
 | [./todo/20260813-token-refresh/](./todo/20260813-token-refresh/) | L'app token scade dopo 30 minuti e **nessuno lo rinnova**, benché il meccanismo esista già (`token/exchange`) e il codice dichiari di volerlo. Difetto `VDF13` | `TTR` | **alta** |
 | [./todo/20260819-session-bootstrap/](./todo/20260819-session-bootstrap/) | **Blocco in esercizio su staging**: nessun percorso crea più la sessione di un'applicazione esterna, quindi il primo accesso è impossibile e il client ritenta all'infinito. Regressione di `TTR08`, difetti `VDF16` e `VDF17` | `TSB` | **alta** |
-| [./todo/20260819-route-literals/](./todo/20260819-route-literals/) | Tredici rilievi **`high`** di SonarQube — *«Define a constant instead of duplicating this literal»* — fra file di rotta, controller e un test. Per undici di essi la risposta non è una costante: `routes/web.php` scrive già `whereNumber()` dove `api.php` ripete `[0-9]+` | `TRL` | media |
 | [./todo/20260812-swagger-deploy-tests/](./todo/20260812-swagger-deploy-tests/) | Test che verificano che la documentazione OpenAPI sia **generata e valida**, e che **fermano la pipeline** prima del deploy. Oggi la pipeline non ha nessun job di test | `TSD` | **alta** |
 | [./todo/20260812-e2e-test-container/](./todo/20260812-e2e-test-container/) | Un container dedicato per Cypress: all'immagine dell'applicazione mancano **tutte** le librerie che gli servono. Sblocca la verifica di quattro punti già chiusi nella tranche v1 | `TEC` | **alta** |
 
@@ -36,5 +35,6 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 | [./done/20260812-static-analysis-findings-v4/](./done/20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio ripetuto e costruttore vuoto. I dodici messaggi 404 passano ora dalle traduzioni — chiavi che **esistevano già** in due lingue | `TPU` | 2026-08-13 |
 | [./done/20260813-vulnerability-fixes/](./done/20260813-vulnerability-fixes/) | I difetti che non avevano un punto in nessun piano: tre già corretti e spuntati, la guardia contro le cancellazioni spostata dove si cancella, uno chiuso come comportamento voluto | `TVF` | 2026-08-13 |
 | [./done/20260819-cypress-assertions/](./done/20260819-cypress-assertions/) | Rilievi bloccanti dai file Cypress. Chiuso **senza implementare niente**: il developer ha cancellato `cypress/e2e-bk/` e uno spec con zero test, e ha scartato il resto. Quel che resta scoperto è scritto nei punti scartati | `TCY` | 2026-08-19 |
+| [./done/20260819-route-literals/](./done/20260819-route-literals/) | Tredici rilievi `high` di SonarQube sui literali duplicati. Chiusi con **una costante sola dove serviva**: per undici di essi la risposta era `whereNumber()`, già in uso nello stesso file | `TRL` | 2026-08-19 |
 
 L'elenco completo, con cosa è stato scartato e perché, sta in [done/index.md](./done/index.md).
