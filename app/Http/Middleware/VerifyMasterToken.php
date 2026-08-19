@@ -2,17 +2,15 @@
 
 namespace App\Http\Middleware;
 
+use App\Auth\Idp\IdpMasterTokenVerifier;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\File;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
-use Firebase\JWT\ExpiredException;
-use Exception;
 
 class VerifyMasterToken
 {
+    public function __construct(private readonly IdpMasterTokenVerifier $verifier) {}
+
     public function handle(Request $request, Closure $next)
     {
         $tokenString = $request->bearerToken();
@@ -22,33 +20,19 @@ class VerifyMasterToken
             return response()->json(["message" => __("auth.token_missing")], 401);
         }
 
-        try {
-            $publicKeyPath = storage_path("app/keys/public.key");
-            if (!File::exists($publicKeyPath)) {
-                throw new Exception("File della chiave pubblica non trovato sul server.");
-            }
-            $publicKeyPem = File::get($publicKeyPath);
+        // La verifica vera — chiave pubblica, RS256, claim `sub` — sta in `IdpMasterTokenVerifier`,
+        // insieme al rinnovo trasparente che la usa allo stesso modo. Il motivo del rifiuto lo
+        // scrive lei nel log: qui la risposta e' comunque 401.
+        $userId = $this->verifier->userIdFrom($tokenString);
 
-            $decodedPayload = JWT::decode($tokenString, new Key($publicKeyPem, "RS256"));
-
-            $userId = $decodedPayload->sub ?? null;
-
-            if (!$userId) {
-                Log::error("Master Token corrotto (claim 'sub' mancante).");
-                return response()->json(["message" => __("auth.token_invalid")], 401);
-            }
-
-            $request->attributes->set("jwt_user_id", $userId);
-
-            if ($request->has("provider_id")) {
-                $request->attributes->set("jwt_provider_id", $request->input("provider_id"));
-            }
-        } catch (ExpiredException $e) {
-            Log::warning("Master Token scaduto: " . $e->getMessage());
+        if (!$userId) {
             return response()->json(["message" => __("auth.token_invalid")], 401);
-        } catch (Exception $e) {
-            Log::warning("Verifica Master Token fallita: " . $e->getMessage());
-            return response()->json(["message" => __("auth.token_invalid")], 401);
+        }
+
+        $request->attributes->set("jwt_user_id", $userId);
+
+        if ($request->has("provider_id")) {
+            $request->attributes->set("jwt_provider_id", $request->input("provider_id"));
         }
 
         return $next($request);

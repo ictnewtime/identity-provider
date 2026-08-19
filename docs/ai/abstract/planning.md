@@ -52,6 +52,16 @@ verifica.
 
 Colonne: `ID · Stato · Punto · File toccati · Rischio · V · Come si verifica`.
 
+- **Un punto sta nella tabella. Sempre.** Un intervento descritto in prosa accanto alla tabella —
+  una nota, un paragrafo, un capoverso «attenzione» — **non viene letto**: chi lavora scorre gli ID e
+  gli stati, e la prosa la salta. Se una cosa va fatta, è una riga con un ID; se non lo è, non è un
+  punto e non sta in un piano. Le uniche sezioni ammesse fuori dalla tabella sono l'intestazione, il
+  perché delle onde, **cosa il piano non copre** — che dice ciò che *non* si fa, quindi nessuno
+  rischia di aspettarselo — e le **dichiarazioni d'esito** imposte da una policy, come il controllo
+  perf/leak: sono risultati già ottenuti, non lavoro che qualcuno deve prendere in carico.
+  Il modo più comune di sbagliare non è la prosa voluta: è **una riga vuota** fra la
+  tabella e la riga nuova, che nel sorgente non si vede e in Markdown butta il punto fuori. Un
+  controllo lo rileva.
 - **Un punto = un intervento verificabile**, col suo modo di verifica. «Migliorare la testabilità»
   non è un punto; «estrarre il client dietro un'interfaccia, così il test può iniettare un doppio» sì.
 - **V** è `auto` (uno script lo stabilisce) o `man` (qualcuno lo legge). Una `man` non è più debole:
