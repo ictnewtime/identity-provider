@@ -75,8 +75,8 @@ class AuthenticatedTest extends TestCase
             "user_id" => $user->id,
             "provider_id" => $provider->id,
             "token" => $token,
-            "ip_address" => "127.0.0.1",
-            "user_agent" => "phpunit",
+            "ip_address" => env("TEST_IP_ADDRESS"),
+            "user_agent" => env("TEST_USER_AGENT"),
         ]);
     }
 

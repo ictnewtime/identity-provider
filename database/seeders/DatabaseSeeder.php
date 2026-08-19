@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Parameter;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use App\Models\User;
@@ -14,11 +15,63 @@ use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
+    /** L'amministratore creato dal seeder: e' anche il segno che il seeder e' gia' passato. */
+    private const ADMIN_USERNAME = "admin.admin";
+
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
+        $adminPassword = $this->getAdminPassword();
+
+        DB::transaction(function () use ($adminPassword) {
+            $this->seeding($adminPassword);
+        });
+    }
+
+    private function getAdminPassword(): string
+    {
+        $password = env("SEED_ADMIN_PASSWORD");
+
+        if (empty($password)) {
+            throw new RuntimeException(
+                "SEED_ADMIN_PASSWORD non impostata: il seeder non inventa la password di un amministratore. " .
+                    "Impostarla nell'ambiente prima di eseguire db:seed (docs/setup.db.md).",
+            );
+        }
+
+        return $password;
+    }
+
+    /**
+     * Il seeder si esegue UNA volta sola: la seconda deve fallire in modo comprensibile.
+     *
+     * Senza questo controllo il rifiuto arriva lo stesso, ma dal database — un
+     * `UNIQUE constraint failed: users.username` che dice cosa e' successo e non cosa fare.
+     * Qui arriva dal codice, e porta con se' il rimedio.
+     */
+    private function assertNotAlreadySeeded(): void
+    {
+        if (!User::where("username", self::ADMIN_USERNAME)->exists()) {
+            return;
+        }
+
+        throw new RuntimeException(
+            "Il database contiene gia' i dati iniziali (utente '" .
+                self::ADMIN_USERNAME .
+                "'): db:seed non e' rieseguibile.\n" .
+                "Per riseminare da zero — ATTENZIONE, cancella tutti i dati:\n" .
+                "  php artisan migrate:fresh --force\n" .
+                "  SEED_ADMIN_PASSWORD='...' php artisan db:seed",
+        );
+    }
+
+    private function seeding(string $adminPassword): void
+    {
+        // Prima riga della transazione: se scatta, non e' ancora stato scritto niente.
+        $this->assertNotAlreadySeeded();
+
         // Creiamo un Provider di default (es. il pannello di amministrazione stesso)
         $provider = Provider::create([
             "domain" => "localhost",
@@ -35,19 +88,8 @@ class DatabaseSeeder extends Seeder
             "provider_id" => $provider->id,
         ]);
 
-        // La password dell'amministratore arriva dall'ambiente e non ha un valore di ripiego:
-        // scriverla qui la pubblicherebbe a chiunque legga il repository (difetto VDF08).
-        $adminPassword = env("SEED_ADMIN_PASSWORD");
-
-        if (empty($adminPassword)) {
-            throw new RuntimeException(
-                "SEED_ADMIN_PASSWORD non impostata: il seeder non inventa la password di un amministratore. " .
-                    "Impostarla nell'ambiente prima di eseguire db:seed (docs/SETUP.md).",
-            );
-        }
-
         $user = User::create([
-            "username" => "admin.admin",
+            "username" => self::ADMIN_USERNAME,
             "password" => Hash::make($adminPassword),
             "email" => "admin.admin@example.com",
             "name" => "admin",

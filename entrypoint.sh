@@ -20,15 +20,29 @@ if [ ! -f "$KEYS_DIR/private.key" ]; then
     echo "Chiavi generate con successo!"
 fi
 
-echo "Attesa MariaDB..."
+# L'host del database si legge da DB_HOST, NON si scrive qui: era `mariadb` a mano, e il giorno
+# in cui il servizio del compose ha cambiato nome questa attesa ha smesso di trovarlo — fallendo
+# per 30 tentativi e poi proseguendo lo stesso, che è il modo peggiore di sbagliare.
+DB_HOST_ATTESO=${DB_HOST:-mariadb}
+DB_PORT_ATTESA=${DB_PORT:-3306}
+
+echo "Attesa MariaDB su ${DB_HOST_ATTESO}:${DB_PORT_ATTESA}..."
+DB_ONLINE=0
 for i in {1..30}; do
-  if timeout 1s bash -c "true < /dev/tcp/mariadb/3306" 2>/dev/null; then
+  if timeout 1s bash -c "true < /dev/tcp/${DB_HOST_ATTESO}/${DB_PORT_ATTESA}" 2>/dev/null; then
     echo "MariaDB è ONLINE!"
+    DB_ONLINE=1
     break
   fi
   echo "Database non ancora pronto... (tentativo $i)"
   sleep 2
 done
+
+if [ "$DB_ONLINE" -eq 0 ]; then
+  echo "ATTENZIONE: ${DB_HOST_ATTESO}:${DB_PORT_ATTESA} non risponde dopo 30 tentativi." >&2
+  echo "  Il nome viene da DB_HOST: deve coincidere con il NOME DEL SERVIZIO nel docker-compose," >&2
+  echo "  non con il container_name. Si prosegue lo stesso, ma l'applicazione non troverà il database." >&2
+fi
 
 echo "Generazione documentazione Swagger..."
 php artisan l5-swagger:generate || echo "Generazione Swagger fallita, proseguo comunque."
