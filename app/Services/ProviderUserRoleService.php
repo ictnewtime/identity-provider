@@ -22,14 +22,10 @@ class ProviderUserRoleService
         foreach ($providerUser as $providerUserRole) {
             $providerUserRoles[] = $providerUserRole["role"];
         }
-        // create object
+        // create token
         $tokenBody = (object) [
             "user" => [
                 "id" => $user->id,
-                "email" => $user->email,
-                "name" => $user->name,
-                "surname" => $user->surname,
-                "username" => $user->username,
             ],
             "roles" => $providerUserRoles,
         ];

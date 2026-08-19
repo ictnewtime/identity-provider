@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -36,10 +38,36 @@ class UserRequest extends FormRequest
             "username" => ["required", "string", Rule::unique("users", "username")->ignore($userId)],
             "name" => "required|string|max:255",
             "surname" => "required|string|max:255",
-            "password" => $this->isMethod("post") ? "required|min:12|confirmed" : "sometimes|nullable|min:12|confirmed",
+            "password" => [
+                $this->isMethod("post") ? "required" : "sometimes",
+                "nullable",
+                "min:12",
+                "confirmed",
+                function ($attribute, $value, $fail) use ($userId) {
+                    if (!$value || !$userId) {
+                        return;
+                    }
+                    $user = User::find($userId);
+                    if ($user && Hash::check($value, $user->password)) {
+                        $fail(__("auth.password_same_as_old"));
+                    }
+                },
+            ],
             "password_confirmation" => $this->isMethod("post") ? "required|min:12" : "sometimes|nullable|min:12",
             "password_expires_at" => "nullable|date",
             "enabled" => "sometimes|boolean",
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            "email.required" => __("users.validation.email_required"),
+            "email.email" => __("users.validation.email_invalid"),
+            "email.unique" => __("users.validation.email_unique"),
+
+            "username.required" => __("users.validation.username_required"),
+            "username.unique" => __("users.validation.username_unique"),
         ];
     }
 }

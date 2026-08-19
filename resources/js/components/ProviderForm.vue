@@ -8,6 +8,7 @@ import InputGroup from "primevue/inputgroup";
 import InputGroupAddon from "primevue/inputgroupaddon";
 import InputText from "primevue/inputtext";
 import Password from "primevue/password";
+import Checkbox from "primevue/checkbox";
 import Button from "primevue/button";
 import Message from "primevue/message";
 import { getDomain } from "../utils/urls";
@@ -32,6 +33,7 @@ const form = ref({
     secret_key: "",
     logoutUrl: "",
     protocol: "",
+    hasTokenUrl: false,
 });
 
 const errors = ref({
@@ -60,6 +62,7 @@ const resetForm = () => {
         secret_key: "",
         logoutUrl: "",
         protocol: "",
+        hasTokenUrl: false,
     };
     resetErrors();
 };
@@ -114,6 +117,7 @@ const submit = async () => {
         logoutUrl: form.value.logoutUrl,
         protocol: form.value.protocol,
         secret_key: form.value.secret_key,
+        has_token_url: form.value.hasTokenUrl,
     };
 
     try {
@@ -165,6 +169,7 @@ const fetchProvider = async (id) => {
             secret_key: data.secret_key,
             logoutUrl: data.logoutUrl,
             protocol: data.protocol,
+            hasTokenUrl: !!data.hasTokenUrl,
         };
     } catch (err) {
         toast.add({
@@ -399,6 +404,13 @@ const generateSecret = () => {
                 <Message v-if="errors.secret_key" severity="error" size="small" variant="simple">
                     {{ errors.secret_key }}
                 </Message>
+            </div>
+
+            <div class="flex items-center gap-2 md:col-span-2">
+                <Checkbox inputId="hasTokenUrl" v-model="form.hasTokenUrl" :binary="true" />
+                <label for="hasTokenUrl" class="font-medium text-surface-900">{{
+                    $t("admin.providers.form.has_token_url_label")
+                }}</label>
             </div>
         </div>
 

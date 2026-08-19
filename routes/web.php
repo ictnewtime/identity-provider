@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\Auth\JwksController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
 use App\Http\Controllers\JwtAuth\LoginController;
 use App\Http\Controllers\Manage\ProviderController;
+use App\Http\Controllers\Manage\Web\ProviderController as WebProviderController;
 use App\Http\Controllers\Manage\UserController;
 // use App\Http\Controllers\Manage\OauthClientsController;
 use App\Http\Controllers\Manage\ProviderUserRoleController;
@@ -13,12 +15,7 @@ use App\Http\Controllers\Manage\SessionController;
 use App\Http\Controllers\Manage\AuditController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Manage\ParametersController;
-use Illuminate\Support\Facades\Log;
-
-// Redirect Home -> Login
-Route::get("/", function () {
-    return redirect()->route("loginForm");
-});
+use Laravel\Socialite\Facades\Socialite;
 
 // Lingua
 Route::get("lang/{locale}", function ($locale) {
@@ -30,10 +27,8 @@ Route::get("lang/{locale}", function ($locale) {
 
 // Autenticazione
 Route::middleware("guest")->group(function () {
-    Route::get("loginForm", [LoginController::class, "showLoginForm"])->name("loginForm");
-    Route::get("login", function () {
-        return redirect()->route("loginForm");
-    })->name("login");
+    // Redirect Home -> Login
+    Route::get("/", [LoginController::class, "showLoginForm"])->name("loginForm");
     Route::get("/forgot-password", [PasswordResetController::class, "create"])->name("password.request");
     Route::post("/forgot-password", [PasswordResetController::class, "store"])->name("password.email");
     Route::get("/reset-password/{token}", [PasswordResetController::class, "edit"])->name("password.reset");
@@ -44,6 +39,9 @@ Route::post("v2/login", [LoginController::class, "login"]);
 Route::post("logout", [LoginController::class, "logout_web"])->name("logout_web");
 Route::get("/sso/logout", [LoginController::class, "logout_sso"])->name("logout_sso");
 
+Route::get("/auth/google/redirect", [LoginController::class, "redirectToGoogle"])->name("google.redirect");
+Route::get("/auth/google/callback", [LoginController::class, "handleGoogleCallback"])->name("google.callback");
+
 Route::middleware(["auth"])->group(function () {
     Route::get("/password/expired", [PasswordResetController::class, "expired"])->name("password.expired");
 
@@ -52,9 +50,11 @@ Route::middleware(["auth"])->group(function () {
     );
 });
 
+Route::get("/.well-known/jwks.json", [JwksController::class, "index"]);
+
 /********* ADMIN ROUTES ************/
 Route::prefix("admin")
-    ->middleware(["password.expiration", "authenticated", "role:admin"])
+    ->middleware(["authenticated", "role:admin"])
     ->group(function () {
         Route::get("/", function () {
             return redirect()->route("web-users");
@@ -90,9 +90,10 @@ Route::prefix("admin")
 
         Route::prefix("v1")->group(function () {
             // providers
-            Route::get("providers", [ProviderController::class, "all"]);
+            // all/find usano il controller web: espongono "secret_key" (admin)
+            Route::get("providers", [WebProviderController::class, "all"]);
             Route::post("providers", [ProviderController::class, "create"]);
-            Route::get("providers/{id}", [ProviderController::class, "find"])->whereNumber("id");
+            Route::get("providers/{id}", [WebProviderController::class, "find"])->whereNumber("id");
             Route::put("providers/{id}", [ProviderController::class, "update"])->whereNumber("id");
             Route::delete("providers/{id}", [ProviderController::class, "delete"])->whereNumber("id");
             Route::patch("providers/{id}/restore", [ProviderController::class, "restore"])->whereNumber("id");

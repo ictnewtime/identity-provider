@@ -1,0 +1,6 @@
+# Virtualenv Python
+path/
+
+# JWKS scaricato e chiave pubblica generata (contenuti fetchati/generati, non codice)
+jwks.json
+public.pem

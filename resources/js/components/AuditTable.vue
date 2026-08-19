@@ -40,7 +40,11 @@ const loadAudits = (page = 1) => {
             },
         })
         .then((res) => {
-            pagination.value = res.data;
+            pagination.value = {
+                data: res.data.data ?? [],
+                total: res.data.meta?.total ?? 0,
+                per_page: res.data.meta?.per_page ?? pagination.value.per_page,
+            };
         })
         .catch((err) => {
             console.error(err);

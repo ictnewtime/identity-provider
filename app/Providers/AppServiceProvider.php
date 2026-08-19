@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Request;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
 
@@ -21,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        URL::forceRootUrl(config("app.url"));
+
         // Se non siamo in locale, forza tutti i link generati da Laravel ad usare HTTPS
         if (config("app.env") !== "local") {
             URL::forceScheme("https");

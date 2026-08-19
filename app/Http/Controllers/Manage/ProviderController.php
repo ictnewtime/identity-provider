@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Manage;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ProviderRequest;
+use App\Http\Resources\ProviderResource;
 use App\Models\Provider;
 use App\Models\ProviderUserRole;
 
@@ -14,9 +15,11 @@ use OpenApi\Attributes as OA;
 
 class ProviderController extends Controller
 {
+    private const OA_PATH = "/api/v1/providers";
+
     #[
         OA\Get(
-            path: "/api/v1/providers",
+            path: self::OA_PATH,
             summary: "list of providers",
             description: self::OA_DESC_MSG_SUCCESS,
             operationId: "Provider.all",
@@ -70,10 +73,27 @@ class ProviderController extends Controller
     ]
     public function all(Request $request)
     {
+        return $this->buildProvidersQuery($request)->through(fn(Provider $provider) => new ProviderResource($provider));
+    }
+
+    /**
+     * Costruisce ed esegue la query paginata dei provider.
+     *
+     * Logica condivisa tra la rotta API (ProviderResource) e la rotta web admin
+     * (ProviderAdminResource): la differenza sta solo nella Resource applicata,
+     * non nella query. Restituisce il paginator nativo, così l'envelope di
+     * paginazione (current_page, total, per_page) resta a livello top-level.
+     */
+    protected function buildProvidersQuery(Request $request)
+    {
         $show_deleted = $request->boolean("show_deleted");
         $query = Provider::query();
         if ($request->filled("q")) {
-            $query->where("domain", "like", "%" . $request->q . "%");
+            $query->where(function ($subQuery) use ($request) {
+                $subQuery
+                    ->where("domain", "like", "%" . $request->q . "%")
+                    ->orWhere("name", "like", "%" . $request->q . "%");
+            });
         }
         // contatore per il numero di utenti univoci per provider
         $query->addSelect([
@@ -99,13 +119,14 @@ class ProviderController extends Controller
             $query->orderBy("id", "asc");
         }
 
-        $perPage = $request->input("per_page", 25);
+        // cap massimo per evitare payload/memory abuse (per_page=999999)
+        $perPage = min(max((int) $request->input("per_page", 25), 1), 100);
         return $query->paginate($perPage);
     }
 
     #[
         OA\Get(
-            path: "/api/v1/providers/{id}",
+            path: self::OA_PATH . "/{id}",
             summary: "Get provider by id",
             description: self::OA_DESC_MSG_SUCCESS,
             operationId: "Provider.find",
@@ -115,7 +136,7 @@ class ProviderController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Provider id",
+                    description: self::OA_DESC_PROVIDER_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -142,13 +163,13 @@ class ProviderController extends Controller
     public function find($id)
     {
         try {
-            $provider = Provider::find($id);
+            $provider = Provider::withTrashed()->find($id);
         } catch (\Exception $e) {
             return response()->json(["message" => "Invalid id" . $e], 500);
         }
 
         if (empty($provider)) {
-            return response()->json(["message" => "Provider not found"], 404);
+            return $this->notFound("provider.not_found");
         }
 
         return response()->json(["provider" => $provider], 200);
@@ -156,7 +177,7 @@ class ProviderController extends Controller
 
     #[
         OA\Post(
-            path: "/api/v1/providers",
+            path: self::OA_PATH,
             summary: "Create a new provider",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.create",
@@ -203,10 +224,16 @@ class ProviderController extends Controller
                                 property: "secret_key",
                                 type: "string",
                                 example: "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6",
-                                description: "Signature key of the provider",
+                                description: "Signature key of the provider of type '32 alfanumeric and special character' format",
+                            ),
+                            new OA\Property(
+                                property: "has_token_url",
+                                type: "boolean",
+                                example: "true",
+                                description: "Force the JWT master-token to be sended in the URL",
                             ),
                         ],
-                        required: ["name", "url", "domain", "logoutUrl", "secret_key"],
+                        required: ["name", "url", "domain", "logoutUrl", "secret_key", "has_token_url"],
                     ),
                 ),
             ),
@@ -231,7 +258,7 @@ class ProviderController extends Controller
     ]
     public function create(ProviderRequest $request)
     {
-        $data = $request->only("name", "url", "domain", "protocol", "logoutUrl", "secret_key");
+        $data = $request->only("name", "url", "domain", "protocol", "logoutUrl", "secret_key", "has_token_url");
 
         try {
             $provider = Provider::create($data);
@@ -245,7 +272,7 @@ class ProviderController extends Controller
 
     #[
         OA\Put(
-            path: "/api/v1/providers/{id}",
+            path: self::OA_PATH . "/{id}",
             summary: "Update provider by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.update",
@@ -255,7 +282,7 @@ class ProviderController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Provider id",
+                    description: self::OA_DESC_PROVIDER_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -303,6 +330,12 @@ class ProviderController extends Controller
                                 example: "2d6f5d6f8d6f2d6f5d6f8d6f2d6f5d6",
                                 description: "Signature key for JWT token. Must be 32 characters long. Leave empty to not change it.",
                             ),
+                            new OA\Property(
+                                property: "has_token_url",
+                                type: "boolean",
+                                example: "true",
+                                description: "Force the JWT master-token to be sended in the URL",
+                            ),
                         ],
                         required: ["name", "url", "domain", "logoutUrl"],
                     ),
@@ -334,13 +367,13 @@ class ProviderController extends Controller
     ]
     public function update(Request $request, $id)
     {
-        $data = $request->only("name", "url", "domain", "protocol", "logoutUrl", "secret_key");
+        $data = $request->only("name", "url", "domain", "protocol", "logoutUrl", "secret_key", "has_token_url");
 
         try {
             $provider = Provider::find($id);
 
             if (empty($provider)) {
-                return response()->json(["message" => "Provider not found"], 404);
+                return $this->notFound("provider.not_found");
             }
 
             if (empty($data["secret_key"])) {
@@ -359,7 +392,7 @@ class ProviderController extends Controller
 
     #[
         OA\Delete(
-            path: "/api/v1/providers/{id}",
+            path: self::OA_PATH . "/{id}",
             summary: "Delete provider by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.delete",
@@ -369,7 +402,7 @@ class ProviderController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Provider id",
+                    description: self::OA_DESC_PROVIDER_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),

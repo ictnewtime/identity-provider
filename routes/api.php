@@ -28,7 +28,6 @@ Route::prefix("v1")->group(function () {
         // providers
         Route::get("providers", [ProviderController::class, "all"]);
         Route::post("providers", [ProviderController::class, "create"]);
-        Route::get("providers/{id}", [ProviderController::class, "find"])->where(["id" => "[0-9]+"]);
         Route::put("providers/{id}", [ProviderController::class, "update"])->where(["id" => "[0-9]+"]);
         Route::delete("providers/{id}", [ProviderController::class, "delete"])->where(["id" => "[0-9]+"]);
 
@@ -97,6 +96,10 @@ Route::prefix("v1")->group(function () {
     // sessions
     Route::middleware(["verify_external_token"])->group(function () {
         Route::get("sessions/check", [SessionController::class, "check"]);
+        // Route::post("sessions/logout", [SessionController::class, "logout_session"]);
+    });
+    Route::middleware(["verify_master_token"])->group(function () {
+        Route::post("token/exchange", [SessionController::class, "get_token"]);
         // Route::post("sessions/logout", [SessionController::class, "logout_session"]);
     });
 });

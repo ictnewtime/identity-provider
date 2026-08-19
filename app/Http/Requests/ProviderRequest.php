@@ -30,6 +30,8 @@ class ProviderRequest extends FormRequest
             "secret_key" => [$this->isMethod("post") ? "required" : "sometimes", "string", "max:255"],
 
             "logoutUrl" => "nullable|url|max:255",
+
+            "has_token_url" => ["sometimes", "boolean"],
         ];
     }
 

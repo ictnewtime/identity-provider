@@ -92,18 +92,9 @@ class SessionController extends Controller
         $user = User::find($userId);
 
         if (!$user) {
-            return response()->json(["valid" => false, "message" => "User not found"], 404);
-        }
-
-        // Se la password è scaduta o deve essere forzata, terminiamo la sessione esterna
-        if (is_null($user->password_expires_at) || now()->greaterThanOrEqualTo($user->password_expires_at)) {
-            return response()->json(
-                [
-                    "valid" => false,
-                    "message" => "Password expired. User must authenticate and change password.",
-                ],
-                401,
-            );
+            // Non passa da `notFound()`: questa risposta porta anche `valid`, che il chiamante
+            // legge. L'helper darebbe il solo `message` e cambierebbe il contratto.
+            return response()->json(["valid" => false, "message" => __("user.error.not_found")], 404);
         }
 
         $validated = $request->validate([
@@ -135,6 +126,58 @@ class SessionController extends Controller
         );
     }
 
+    public function get_token(Request $request): JsonResponse
+    {
+        $userId = $request->attributes->get("jwt_user_id");
+
+        if (!$userId) {
+            return response()->json(["message" => "Master Token claims missing"], 401);
+        }
+
+        $validated = $request->validate([
+            "provider_id" => "required|string",
+            "ip_address" => "nullable|string",
+            "user_agent" => "nullable|string",
+        ]);
+
+        $providerId = $validated["provider_id"];
+
+        $user = User::find($userId);
+
+        if (!$user) {
+            return $this->notFound("user.error.not_found");
+        }
+
+        $tokenService = new TokenProviderService();
+        $sessionService = $this->sessionService ?? new SessionService();
+
+        $appToken = $sessionService->getValidProviderToken(
+            $user,
+            $providerId,
+            $validated["ip_address"] ?? $request->ip(),
+            $validated["user_agent"] ?? $request->userAgent(),
+            $tokenService,
+        );
+
+        if (!$appToken) {
+            return response()->json(
+                [
+                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
+                        "providerId" => $providerId,
+                    ]),
+                ],
+                403,
+            );
+        }
+
+        return response()->json(
+            [
+                "token" => $appToken,
+            ],
+            200,
+        );
+    }
+
     /**
      * Chiamata API M2M da App esterne per innescare il Single Logout (SLO).
      */
@@ -148,7 +191,6 @@ class SessionController extends Controller
         $userId = $request->input("user_id");
 
         $sessions = Session::where("user_id", $userId)->get();
-        $deletedCount = $sessions->count();
 
         foreach ($sessions as $session) {
             $session->delete();
@@ -165,9 +207,17 @@ class SessionController extends Controller
     /**
      * Chiamata API CRUD dal Pannello Admin IdP.
      */
-    public function delete($id)
+    public function delete(string $id)
     {
-        Session::findOrFail($id)->delete();
-        return response()->json(null, 204);
+        $sessionById = Session::findOrFail($id);
+        $this->sessionService->destroyAllUserSessions($sessionById->user_id);
+
+        return response()->json(
+            [
+                "success" => true,
+                "message" => "Delete all session by userId",
+            ],
+            200,
+        );
     }
 }

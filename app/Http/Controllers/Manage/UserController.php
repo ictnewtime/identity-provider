@@ -17,9 +17,11 @@ use OpenApi\Attributes as OA;
 
 class UserController extends Controller
 {
+    private const OA_PATH = "/api/v1/users";
+
     #[
         OA\Get(
-            path: "/api/v1/users",
+            path: self::OA_PATH,
             summary: "Get all users",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.all",
@@ -102,7 +104,8 @@ class UserController extends Controller
         } else {
             $query->orderBy("created_at", "asc");
         }
-        $perPage = $request->input("per_page", 25);
+        // cap massimo per evitare payload/memory abuse (per_page=999999)
+        $perPage = min(max((int) $request->input("per_page", 25), 1), 100);
         $users = $query->paginate($perPage);
 
         return response()->json($users);
@@ -110,7 +113,7 @@ class UserController extends Controller
 
     #[
         OA\Post(
-            path: "/api/v1/users",
+            path: self::OA_PATH,
             summary: "Create a new user",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.create",
@@ -221,7 +224,7 @@ class UserController extends Controller
 
     #[
         OA\Get(
-            path: "/api/v1/users/{id}",
+            path: self::OA_PATH . "/{id}",
             summary: "Returns user by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.find",
@@ -231,7 +234,7 @@ class UserController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "User id",
+                    description: self::OA_DESC_USER_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -257,7 +260,7 @@ class UserController extends Controller
     ]
     public function find($id)
     {
-        $user = User::find($id);
+        $user = User::withTrashed()->find($id);
         if (empty($user)) {
             return response()->json(["message" => __("user.error.not_found")], 404);
         }
@@ -266,7 +269,7 @@ class UserController extends Controller
 
     #[
         OA\Put(
-            path: "/api/v1/users/{id}",
+            path: self::OA_PATH . "/{id}",
             summary: "Update user by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.update",
@@ -276,7 +279,7 @@ class UserController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "User id",
+                    description: self::OA_DESC_USER_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -364,7 +367,7 @@ class UserController extends Controller
         $user = User::find($id);
 
         if (empty($user)) {
-            return response()->json(["message" => "User not found"], 404);
+            return $this->notFound("user.error.not_found");
         }
 
         $data = $request->only("email", "username", "name", "surname", "password_expires_at");
@@ -405,7 +408,7 @@ class UserController extends Controller
 
     #[
         OA\Delete(
-            path: "/api/v1/users/{id}",
+            path: self::OA_PATH . "/{id}",
             summary: "Delete user by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.delete",
@@ -415,7 +418,7 @@ class UserController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "User id",
+                    description: self::OA_DESC_USER_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
