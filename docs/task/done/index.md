@@ -15,6 +15,7 @@ un perché.
 | [./20260812-static-analysis-findings-v2/](./20260812-static-analysis-findings-v2/) | Complessità cognitiva: lista audit e middleware | `TCC` | 2026-08-13 |
 | [./20260812-static-analysis-findings-v3/](./20260812-static-analysis-findings-v3/) | Literali duplicati nelle annotazioni OpenAPI | `TOA` | 2026-08-13 |
 | [./20260812-static-analysis-findings-v4/](./20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio ripetuto e costruttore vuoto | `TPU` | 2026-08-13 |
+| [./20260819-cypress-assertions/](./20260819-cypress-assertions/) | Rilievi Cypress sul quality gate: sciolti cancellando, il resto scartato | `TCY` | 2026-08-19 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 
