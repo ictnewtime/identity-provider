@@ -81,3 +81,25 @@ variabile `$providerId` e l'import di `Rule`, tutti inutilizzati. Rimossi il 202
 
 **Traccia**: difetto `VDF21`, punti `TSH07` e `TSH08` in
 [sonar-high-findings](task/todo/20260819-sonar-high-findings/action-plan.md).
+
+---
+
+## `logoutUrl` è obbligatorio, e se lo compila da sé
+
+Il campo **URL di logout** di un provider è `required` — deciso il 2026-08-19 — e questo va scritto
+perché convive con un riempimento automatico: quando si inserisce l'URL del provider, `ProviderForm.vue`
+deriva `logoutUrl` come `<protocollo>//<host>/logout`. Quindi è obbligatorio **e** arriva già pieno, e le
+due cose insieme spiegano perché nessuno se ne accorgeva.
+
+**Cosa è stato allineato lo stesso giorno**, perché la regola da sola non basta:
+
+- i **messaggi** delle tre regole del campo (`required`, `url`, `max:255`) passano dalle traduzioni:
+  `app/Http/Requests/ProviderRequest.php`;
+- la **validazione del frontend** lo controlla come gli altri campi obbligatori, così l'errore compare
+  subito e non dopo un 422;
+- il **suggerimento** sotto il campo diceva *«Se vuoto, il valore è quello di default»* — il contrario
+  della regola. Ora dice che è obbligatorio e che si compila dall'URL del provider.
+
+**Cosa comporta**: un provider non può esistere senza URL di logout. Se un giorno servisse un provider
+che non fa logout, la regola va cambiata **assieme** al suggerimento e alla validazione del frontend —
+sono tre posti, ed è la ragione per cui questa pagina esiste.

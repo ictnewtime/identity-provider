@@ -92,6 +92,10 @@ const validate = () => {
         errors.value.domain = trans("admin.providers.form.validate.domain.mandatory");
         isValid = false;
     }
+    if (!form.value.logoutUrl) {
+        errors.value.logoutUrl = trans("admin.providers.form.validate.logout_url.mandatory");
+        isValid = false;
+    }
 
     if (!isEditMode.value && !form.value.secret_key) {
         errors.value.secret_key = trans("admin.providers.form.validate.secret_key.mandatory");
@@ -100,6 +104,25 @@ const validate = () => {
 
     return isValid;
 };
+
+const BACKEND_ERROR_FIELDS = ["name", "url", "domain", "secret_key", "logoutUrl", "protocol"];
+
+const applyBackendErrors = (error) => {
+    const backendErrors = error.response?.data?.errors;
+
+    if (!backendErrors) {
+        return;
+    }
+
+    BACKEND_ERROR_FIELDS.forEach((field) => {
+        if (backendErrors[field]) {
+            errors.value[field] = backendErrors[field][0];
+        }
+    });
+};
+
+const savedDetail = () =>
+    isEditMode.value ? trans("admin.providers.toast.detail_updated") : trans("admin.providers.toast.detail_created");
 
 const submit = async () => {
     if (!validate()) return;
@@ -125,9 +148,7 @@ const submit = async () => {
         toast.add({
             severity: "success",
             summary: trans("common.success"),
-            detail: isEditMode.value
-                ? trans("admin.providers.toast.detail_updated")
-                : trans("admin.providers.toast.detail_created"),
+            detail: savedDetail(),
             life: 3000,
         });
         emit("item-saved");
@@ -140,16 +161,7 @@ const submit = async () => {
             life: 3000,
         });
         emit("item-error", error);
-
-        if (error.response?.data?.errors) {
-            const backendErrors = error.response.data.errors;
-            if (backendErrors.name) errors.value.name = backendErrors.name[0];
-            if (backendErrors.url) errors.value.url = backendErrors.url[0];
-            if (backendErrors.domain) errors.value.domain = backendErrors.domain[0];
-            if (backendErrors.secret_key) errors.value.secret_key = backendErrors.secret_key[0];
-            if (backendErrors.logoutUrl) errors.value.logoutUrl = backendErrors.logoutUrl[0];
-            if (backendErrors.protocol) errors.value.protocol = backendErrors.protocol[0];
-        }
+        applyBackendErrors(error);
     } finally {
         loading.value = false;
     }

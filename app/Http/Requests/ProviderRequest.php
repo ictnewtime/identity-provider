@@ -26,7 +26,7 @@ class ProviderRequest extends FormRequest
 
             "secret_key" => [$this->isMethod("post") ? "required" : "sometimes", "string", "max:255"],
 
-            "logoutUrl" => "nullable|url|max:255",
+            "logoutUrl" => "required|url|max:255",
 
             "has_token_url" => ["sometimes", "boolean"],
         ];
@@ -39,7 +39,9 @@ class ProviderRequest extends FormRequest
     {
         return [
             "domain.required" => __("admin.roles.form.error.domain.mandatory"),
+            "logoutUrl.required" => __("admin.roles.form.error.logout_url.mandatory"),
             "logoutUrl.url" => __("admin.roles.form.error.logout_url.invalid"),
+            "logoutUrl.max" => __("admin.roles.form.error.logout_url.too_long"),
         ];
     }
 }
