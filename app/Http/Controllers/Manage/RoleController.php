@@ -15,6 +15,7 @@ use OpenApi\Attributes as OA;
 class RoleController extends Controller
 {
     private const OA_PATH = "/api/v1/roles";
+    private const OA_PATH_ID = self::OA_PATH . "/{id}";
 
     // protected $roleRepository;
 
@@ -223,7 +224,7 @@ class RoleController extends Controller
 
     #[
         OA\Get(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Returns role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.find",
@@ -268,7 +269,7 @@ class RoleController extends Controller
 
     #[
         OA\Put(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Update role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.update",
@@ -350,7 +351,7 @@ class RoleController extends Controller
 
     #[
         OA\Delete(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Remove role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.delete",

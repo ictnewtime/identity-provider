@@ -35,5 +35,6 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 | [./done/20260812-static-analysis-findings-v4/](./done/20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio ripetuto e costruttore vuoto. I dodici messaggi 404 passano ora dalle traduzioni — chiavi che **esistevano già** in due lingue | `TPU` | 2026-08-13 |
 | [./done/20260813-vulnerability-fixes/](./done/20260813-vulnerability-fixes/) | I difetti che non avevano un punto in nessun piano: tre già corretti e spuntati, la guardia contro le cancellazioni spostata dove si cancella, uno chiuso come comportamento voluto | `TVF` | 2026-08-13 |
 | [./done/20260819-cypress-assertions/](./done/20260819-cypress-assertions/) | Rilievi bloccanti dai file Cypress. Chiuso **senza implementare niente**: il developer ha cancellato `cypress/e2e-bk/` e uno spec con zero test, e ha scartato il resto. Quel che resta scoperto è scritto nei punti scartati | `TCY` | 2026-08-19 |
+| [./done/20260819-route-literals/](./done/20260819-route-literals/) | Tredici rilievi `high` di SonarQube sui literali duplicati. Chiusi con **una costante sola dove serviva**: per undici di essi la risposta era `whereNumber()`, già in uso nello stesso file | `TRL` | 2026-08-19 |
 
 L'elenco completo, con cosa è stato scartato e perché, sta in [done/index.md](./done/index.md).
