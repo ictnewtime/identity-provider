@@ -65,17 +65,19 @@ class PasswordResetController extends Controller
         $request->validate([
             "token" => "required",
             "email" => "required|email",
-            "password" => "required|min:12|confirmed",
+            "password" => [
+                "required",
+                "min:12",
+                "confirmed",
+                function ($attribute, $value, $fail) use ($request) {
+                    $user = User::where("email", $request->email)->first();
+                    if ($user && Hash::check($value, $user->password)) {
+                        $fail(__("auth.password_same_as_old"));
+                    }
+                },
+            ],
             "password_confirmation" => "required|min:12",
         ]);
-
-        $user = User::where("email", $request->email)->first();
-
-        if ($user && Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                "password" => [__("auth.password_same_as_old")],
-            ]);
-        }
 
         $status = Password::broker()->reset(
             $request->only("email", "password", "password_confirmation", "token"),
@@ -111,16 +113,19 @@ class PasswordResetController extends Controller
     {
         $request->validate([
             "current_password" => "required|current_password",
-            "new_password" => "required|min:12|confirmed",
+            "new_password" => [
+                "required",
+                "min:12",
+                "confirmed",
+                function ($attribute, $value, $fail) use ($request) {
+                    if (Hash::check($value, $request->user()->password)) {
+                        $fail(__("auth.password_same_as_old"));
+                    }
+                },
+            ],
         ]);
 
         $user = $request->user();
-
-        if (Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                "new_password" => [__("auth.password_same_as_old")],
-            ]);
-        }
 
         $add_day = 90;
         try {

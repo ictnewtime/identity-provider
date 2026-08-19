@@ -9,10 +9,6 @@ use Illuminate\Support\Facades\Log;
 
 class LogLoginListener implements ShouldQueue {
 
-    public function __construct(){
-
-    }
-
     public function handle(LoginEvent $event){
 
         $user = $event->getUser();
@@ -21,7 +17,7 @@ class LogLoginListener implements ShouldQueue {
             'ip'     => $ip,
             'userId' => $user->id,
             'action' => 'Login',
-            'url'    => route('login')
+            'url'    => route('loginForm')
         ]);
 
         Log::info($message);
