@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Auth\Idp\IdpProviderResolver;
 use App\Auth\Idp\IdpSessionValidator;
 use App\Auth\Idp\IdpTokenExtractor;
+use App\Auth\Idp\IdpTokenRenewer;
 use App\Models\Provider;
 use App\Models\User;
 use Closure;
@@ -20,6 +21,7 @@ class Authenticated
         private readonly IdpTokenExtractor $tokenExtractor,
         private readonly IdpProviderResolver $providerResolver,
         private readonly IdpSessionValidator $sessionValidator,
+        private readonly IdpTokenRenewer $tokenRenewer,
     ) {}
 
     public function handle($request, Closure $next)
@@ -45,17 +47,25 @@ class Authenticated
 
         try {
             $payload = $this->decode($provider->secret_key, $tokenString);
+            $user = $this->resolveUser($payload);
         } catch (TokenExpiredException $e) {
             Log::warning("Eccezione catturata: TokenExpiredException.");
 
-            return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));
+            // Scaduto non significa piu' «fuori»: se il master token regge, il token si rifa'
+            // e la richiesta prosegue senza che l'utente se ne accorga.
+            $renewal = $this->tokenRenewer->renew($request);
+
+            if (!$renewal->succeeded()) {
+                return $this->forceLogoutAndRedirect($request, __($renewal->messageKey));
+            }
+
+            $tokenString = $renewal->token;
+            $user = $renewal->user;
         } catch (\Exception $e) {
             Log::error("Errore decodifica JWT: " . $e->getMessage());
 
             return $this->forceLogoutAndRedirect($request, __("auth.token-invalid"));
         }
-
-        $user = $this->resolveUser($payload);
 
         if ($user === null) {
             // Il motivo preciso — claim mancante o utente sparito — l'ha gia' scritto nel log
