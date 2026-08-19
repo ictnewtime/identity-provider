@@ -16,6 +16,7 @@ use App\Http\Controllers\Manage\AuditController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Manage\ParametersController;
 use Laravel\Socialite\Facades\Socialite;
+use App\Support\RoutePaths;
 
 // Lingua
 Route::get("lang/{locale}", function ($locale) {
@@ -93,25 +94,25 @@ Route::prefix("admin")
             // all/find usano il controller web: espongono "secret_key" (admin)
             Route::get("providers", [WebProviderController::class, "all"]);
             Route::post("providers", [ProviderController::class, "create"]);
-            Route::get("providers/{id}", [WebProviderController::class, "find"])->whereNumber("id");
-            Route::put("providers/{id}", [ProviderController::class, "update"])->whereNumber("id");
-            Route::delete("providers/{id}", [ProviderController::class, "delete"])->whereNumber("id");
+            Route::get(RoutePaths::PROVIDERS_ID, [WebProviderController::class, "find"])->whereNumber("id");
+            Route::put(RoutePaths::PROVIDERS_ID, [ProviderController::class, "update"])->whereNumber("id");
+            Route::delete(RoutePaths::PROVIDERS_ID, [ProviderController::class, "delete"])->whereNumber("id");
             Route::patch("providers/{id}/restore", [ProviderController::class, "restore"])->whereNumber("id");
 
             // roles
             Route::get("roles", [RoleController::class, "all"]);
             Route::post("roles", [RoleController::class, "create"]);
-            Route::get("roles/{id}", [RoleController::class, "find"])->whereNumber("id");
-            Route::put("roles/{id}", [RoleController::class, "update"])->whereNumber("id");
-            Route::delete("roles/{id}", [RoleController::class, "delete"])->whereNumber("id");
+            Route::get(RoutePaths::ROLES_ID, [RoleController::class, "find"])->whereNumber("id");
+            Route::put(RoutePaths::ROLES_ID, [RoleController::class, "update"])->whereNumber("id");
+            Route::delete(RoutePaths::ROLES_ID, [RoleController::class, "delete"])->whereNumber("id");
             Route::patch("roles/{id}/restore", [RoleController::class, "restore"])->whereNumber("id");
 
             // users
             Route::get("users", [UserController::class, "all"]);
             Route::post("users", [UserController::class, "create"]);
-            Route::get("users/{id}", [UserController::class, "find"])->whereNumber("id");
-            Route::put("users/{id}", [UserController::class, "update"])->whereNumber("id");
-            Route::delete("users/{id}", [UserController::class, "delete"])->whereNumber("id");
+            Route::get(RoutePaths::USERS_ID, [UserController::class, "find"])->whereNumber("id");
+            Route::put(RoutePaths::USERS_ID, [UserController::class, "update"])->whereNumber("id");
+            Route::delete(RoutePaths::USERS_ID, [UserController::class, "delete"])->whereNumber("id");
             Route::patch("users/{id}/restore", [UserController::class, "restore"])->whereNumber("id");
             Route::delete("users/bulk-delete", [UserController::class, "bulkDelete"]);
             Route::patch("users/bulk-restore", [UserController::class, "bulkRestore"]);
@@ -120,9 +121,9 @@ Route::prefix("admin")
             // provider-user-roles
             Route::get("provider-user-roles", [ProviderUserRoleController::class, "all"]);
             Route::post("provider-user-roles", [ProviderUserRoleController::class, "create"]);
-            Route::get("provider-user-roles/{id}", [ProviderUserRoleController::class, "find"])->whereNumber("id");
-            Route::put("provider-user-roles/{id}", [ProviderUserRoleController::class, "update"])->whereNumber("id");
-            Route::delete("provider-user-roles/{id}", [ProviderUserRoleController::class, "delete"])->whereNumber("id");
+            Route::get(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "find"])->whereNumber("id");
+            Route::put(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "update"])->whereNumber("id");
+            Route::delete(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "delete"])->whereNumber("id");
             Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
             Route::delete("provider-user-roles/bulk-delete", [ProviderUserRoleController::class, "bulkDelete"]);
             Route::patch("provider-user-roles/{id}/restore", [
@@ -146,9 +147,9 @@ Route::prefix("admin")
             // parameters
             Route::get("parameters", [ParametersController::class, "all"]);
             Route::post("parameters", [ParametersController::class, "create"]);
-            Route::get("parameters/{id}", [ParametersController::class, "find"])->whereNumber("id");
-            Route::put("parameters/{id}", [ParametersController::class, "update"])->whereNumber("id");
-            Route::delete("parameters/{id}", [ParametersController::class, "delete"])->whereNumber("id");
+            Route::get(RoutePaths::PARAMETERS_ID, [ParametersController::class, "find"])->whereNumber("id");
+            Route::put(RoutePaths::PARAMETERS_ID, [ParametersController::class, "update"])->whereNumber("id");
+            Route::delete(RoutePaths::PARAMETERS_ID, [ParametersController::class, "delete"])->whereNumber("id");
             Route::patch("parameters/{id}/restore", [ParametersController::class, "restore"])->whereNumber("id");
         });
     });

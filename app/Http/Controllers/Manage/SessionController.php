@@ -157,7 +157,6 @@ class SessionController extends Controller
             $validated["ip_address"] ?? $request->ip(),
             $validated["user_agent"] ?? $request->userAgent(),
             $tokenService,
-            canCreate: false,
         );
 
         if (!$appToken) {

@@ -18,6 +18,7 @@ use OpenApi\Attributes as OA;
 class UserController extends Controller
 {
     private const OA_PATH = "/api/v1/users";
+    private const OA_PATH_ID = self::OA_PATH . "/{id}";
 
     #[
         OA\Get(
@@ -224,7 +225,7 @@ class UserController extends Controller
 
     #[
         OA\Get(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Returns user by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.find",
@@ -269,7 +270,7 @@ class UserController extends Controller
 
     #[
         OA\Put(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Update user by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.update",
@@ -408,7 +409,7 @@ class UserController extends Controller
 
     #[
         OA\Delete(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Delete user by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.delete",
