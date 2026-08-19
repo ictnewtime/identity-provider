@@ -82,7 +82,7 @@ jobs:
                   echo "${{ secrets.STAGING_HOST_IP }} ansible_user=${{ secrets.STAGING_SSH_USER }} ansible_ssh_common_args='-o StrictHostKeyChecking=no'" >> inventory
 
             - name: 🔐 Infisical Login
-              uses: https://${{/ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/infisical-auth@main
+              uses: https://${{ secrets.PAT_TOKEN }}@gitea.newtimegroup.it/New_Time_SPA/templates/infisical-auth@main
               with:
                   client_id: ${{ secrets.INFISICAL_CLIENT_ID }}
                   client_secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
