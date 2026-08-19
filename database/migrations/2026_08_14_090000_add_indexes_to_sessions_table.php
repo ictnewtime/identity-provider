@@ -43,14 +43,38 @@ return new class extends Migration {
 
     public function down(): void
     {
-        Schema::table(self::TABLE, function (Blueprint $table) {
-            if (Schema::hasIndex(self::TABLE, self::TOKEN_INDEX)) {
+        if (Schema::hasIndex(self::TABLE, self::TOKEN_INDEX)) {
+            Schema::table(self::TABLE, function (Blueprint $table) {
                 $table->dropIndex(self::TOKEN_INDEX);
-            }
+            });
+        }
 
-            if (Schema::hasIndex(self::TABLE, self::USER_PROVIDER_INDEX)) {
+        if (!Schema::hasIndex(self::TABLE, self::USER_PROVIDER_INDEX)) {
+            return;
+        }
+
+        if (!$this->isMysql()) {
+            Schema::table(self::TABLE, function (Blueprint $table) {
                 $table->dropIndex(self::USER_PROVIDER_INDEX);
-            }
+            });
+
+            return;
+        }
+
+        // Su MySQL/MariaDB questo indice non si toglie e basta (difetto `VDF19`, errore 1553:
+        // *needed in a foreign key constraint*). La tabella non ha un indice a se' su `user_id` — c'e'
+        // solo il vincolo omonimo — quindi il composto e' l'**unico** con `user_id` a sinistra, e
+        // InnoDB rifiuta di togliere l'ultimo indice che regge un vincolo.
+        //
+        // Si toglie il vincolo, poi l'indice, poi si **rimette** il vincolo: ricreandolo, il motore
+        // si riporta dietro il proprio indice, che e' esattamente lo stato di prima della migrazione.
+        //
+        // Su sqlite non serve — non protegge gli indici delle chiavi esterne — e `dropForeign()` non
+        // e' nemmeno supportato: da qui le due strade.
+        Schema::table(self::TABLE, function (Blueprint $table) {
+            $table->dropForeign(["user_id"]);
+            $table->dropIndex(self::USER_PROVIDER_INDEX);
+            $table->foreign("user_id")->references("id")->on("users")->onDelete("cascade");
         });
     }
 
