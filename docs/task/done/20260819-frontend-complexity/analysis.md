@@ -2,7 +2,7 @@
 
 **Identificatori**: `TFC` = task frontend-complexity
 
-Stato: da approvare · Data: 2026-08-19
+Stato: **chiuso** (2026-08-19) · Data: 2026-08-19
 
 ## 1. Obiettivo
 
@@ -30,7 +30,7 @@ solo, o la correzione si nasconde dentro un rifacimento.
 | F2 | In `ProviderForm.submit` la complessità è **concentrata**: sei `if (backendErrors.X) errors.value.X = backendErrors.X[0]` uno sotto l'altro, più due ternari sul messaggio del toast. Il resto della funzione è lineare | `ProviderForm.vue:135-152` |
 | F3 | `ProviderUserRoleForm.submit` ha **la stessa forma** con tre campi invece di sei, ed è **uno solo** sopra la soglia: 16 contro 15 | `ProviderUserRoleForm.vue:163-176` |
 | F4 | **Non esiste un modo di eseguire codice JavaScript in questo repository**: `package.json` non ha `vitest` né `jest` né uno script `test`; fra le dipendenze di sviluppo ci sono solo build, `prettier` e `cypress` | `npm run` non elenca nessun `test` |
-| F5 | **E Cypress oggi non gira**: manca il container ([e2e-test-container](../20260812-e2e-test-container/), `TEC`), e `cypress/e2e/provider/crud-provider.cy.js` — la specifica che avrebbe coperto `ProviderForm` — **è stata cancellata oggi**, perché conteneva zero test | `cypress/e2e/` ha 3 file: `auth/login`, `user/crud-user`, `user/search-accented` |
+| F5 | **E Cypress oggi non gira**: manca il container ([e2e-test-container](../../todo/20260812-e2e-test-container/), `TEC`), e `cypress/e2e/provider/crud-provider.cy.js` — la specifica che avrebbe coperto `ProviderForm` — **è stata cancellata oggi**, perché conteneva zero test | `cypress/e2e/` ha 3 file: `auth/login`, `user/crud-user`, `user/search-accented` |
 | F6 | **`ProviderUserRoleForm.vue:170` fa `emit("item-error", err)` dentro un `catch (error)`.** `err` in quel punto non esiste: gli altri `err` del file stanno in due `catch` diversi, righe 53 e 75. A ogni salvataggio fallito quella riga solleva `ReferenceError`, e **le righe successive non vengono eseguite** — cioè gli errori per campo del backend non compaiono mai | `grep -n "\berr\b" ProviderUserRoleForm.vue` → 53, 54, 61, 75, 76, 83, **170** |
 | F7 | `usePassword` è usato da **tre** schermate: `UserForm.vue`, `Pages/Auth/ForcePasswordChange.vue`, `Pages/Auth/ResetPassword.vue`. Un cambiamento nel punteggio si vede in tutte e tre | `grep -rln usePassword resources/js/` |
 

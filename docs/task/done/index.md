@@ -18,6 +18,7 @@ un perché.
 | [./20260819-cypress-assertions/](./20260819-cypress-assertions/) | Rilievi Cypress sul quality gate: sciolti cancellando, il resto scartato | `TCY` | 2026-08-19 |
 | [./20260819-route-literals/](./20260819-route-literals/) | Literali duplicati fra rotte, annotazioni OpenAPI e test | `TRL` | 2026-08-19 |
 | [./20260819-sonar-high-findings/](./20260819-sonar-high-findings/) | Literali nei file di configurazione e costruttori vuoti | `TSH` | 2026-08-19 |
+| [./20260819-frontend-complexity/](./20260819-frontend-complexity/) | Complessità cognitiva nel frontend: `usePassword` e i due `submit` | `TFC` | 2026-08-19 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 
