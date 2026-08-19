@@ -77,6 +77,12 @@ Tabella con le colonne: **`ID · Stato · Punto · File toccati · Rischio · V 
 - **ID**: sigla univoca in tutto `docs/` — 1 lettera d'area (`T` per `todo/`, `D` per `done/`) + 2
   lettere del task + progressivo a 2 cifre → `TPS01`. Non si riusa mai:
   [identifiers.md](docs/ai/abstract/identifiers.md).
+- **Un punto sta nella tabella, sempre.** Un intervento descritto in prosa accanto alla tabella non
+  viene letto: chi lavora scorre gli ID e gli stati. Fuori dalla tabella stanno solo l'intestazione,
+  il perché delle onde, **cosa il piano non copre** e le **dichiarazioni d'esito** che una policy
+  impone (perf/leak) — che sono risultati, non lavoro da fare. Attenzione alla forma, non solo alla
+  sostanza: **una riga vuota fra la tabella e un punto lo butta fuori** senza che si veda nel
+  sorgente. Lo rileva `./scripts/check-plan-tables.sh`.
 - **Un punto = un intervento verificabile**, col suo modo di verifica. «Migliorare la testabilità»
   non è un punto.
 - **V** è `auto` (lo stabilisce uno script) o `man` (lo legge una persona).
@@ -110,7 +116,10 @@ Tabella con le colonne: **`ID · Stato · Punto · File toccati · Rischio · V 
 Laravel 12 / PHP 8.2 — Passport, JWT, Socialite, Inertia. Il codice sta in `app/`
 (`Services/`, `Repositories/`, `Http/{Controllers,Requests,Resources,Middleware}/`, `Models/`).
 
-- **Test**: `docker exec idp_app_2 php artisan test` — non c'è PHP locale.
+- **Test**: due ambienti separati, [docs/TEST.md](docs/TEST.md) — backend su sqlite
+  (`Dockerfile.test.backend`, un `docker run`), E2E su MariaDB `idp_test`
+  (`docker-compose.test.yml`). **Mai `docker exec idp_app_2 php artisan test`**: con la config cache
+  ignora `phpunit.xml` e punta al database dell'applicazione (difetto `VDF11`).
 - **Composer**: via immagine `composer:2`, non installato in locale.
 - **Ambiente**: `docker compose up` → app su `:8001`, MariaDB su `:3307`, Mailpit su `:8025`.
 - **Controlli**: gli script in [scripts/](scripts/) (`check-ids.sh`, `check-links.sh`,

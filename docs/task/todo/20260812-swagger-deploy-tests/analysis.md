@@ -126,7 +126,7 @@ economica di tutte, e il Dockerfile fa già le due cose che le servono: i permes
 
 ### Rapporto con gli altri task
 
-- **Risolve `TOA01`** della tranche [v3](../20260812-static-analysis-findings-v3/action-plan.md):
+- **Risolve `TOA01`** della tranche [v3](../../done/20260812-static-analysis-findings-v3/action-plan.md):
   quel punto chiedeva un modo di confrontare lo specifico OpenAPI prima/dopo per verificare il
   refactoring dei literali. Questo task lo produce. I due vanno letti insieme.
 - **Scioglie `BDB01`**: `F2` dice che lo strumento di analisi statica è **SonarQube**, configurato in

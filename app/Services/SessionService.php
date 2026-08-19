@@ -68,6 +68,7 @@ class SessionService
         $ip_address,
         $user_agent,
         TokenProviderService $tokenService,
+        bool $canCreate = true,
     ) {
         // Controllo centralizzato: Abilitazione + Ruoli per il provider specifico
         if (!$user->hasAccessToProvider($provider_id)) {
@@ -80,31 +81,69 @@ class SessionService
         $existingSession = Session::where("user_id", $user->id)->where("provider_id", $provider_id)->first();
 
         if ($existingSession) {
-            $isNotExpired = !$existingSession->expires_at || $existingSession->expires_at->isFuture();
+            $sessionIsAlive = !$existingSession->expires_at || $existingSession->expires_at->isFuture();
+            $sameDevice = $existingSession->ip_address === $ip_address && $existingSession->user_agent === $user_agent;
 
-            // Se l'IP e l'User-Agent è uguale e non è scaduto, restituiamo il token vecchio
-            if (
-                $existingSession->ip_address === $ip_address &&
-                $existingSession->user_agent === $user_agent &&
-                $isNotExpired
-            ) {
-                return $existingSession->token;
+            if ($sameDevice && $sessionIsAlive) {
+                if (!$this->tokenIsExpired($existingSession->token)) {
+                    return $existingSession->token;
+                }
+
+                $token = $tokenService->generateAppToken($user, $provider_id);
+
+                if (!$token) {
+                    return null;
+                }
+
+                // Si rinnova la CHIAVE, non il rapporto di fiducia: `expires_at` resta quello della
+                // sessione, che scade col master token.
+                $existingSession->forceFill(["token" => $token])->save();
+
+                return $token;
             }
         }
 
-        // Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
+        if (!$canCreate) {
+            Log::warning(
+                $existingSession
+                    ? __("session.error.renew_refused.other_device", ["userId" => $user->id])
+                    : __("session.error.renew_refused.no_session", [
+                        "userId" => $user->id,
+                        "providerId" => $provider_id,
+                    ]),
+            );
+
+            return null;
+        }
+
         $token = $tokenService->generateAppToken($user, $provider_id);
 
         if (!$token) {
             return null;
         }
 
-        $expirationTimeInSeconds = $tokenService->getAppTokenExpiredAt();
-        $expiresAt = now()->addSeconds($expirationTimeInSeconds);
+        $expiresAt = now()->addSeconds($tokenService->getMasterTokenExpiredAt());
 
         $this->upsertSession($user->id, $provider_id, $ip_address, $user_agent, $token, null, $expiresAt);
 
         return $token;
+    }
+
+    private function tokenIsExpired(?string $token): bool
+    {
+        if (empty($token)) {
+            return true;
+        }
+
+        $parts = explode(".", $token);
+
+        if (count($parts) !== 3) {
+            return true;
+        }
+
+        $payload = json_decode(base64_decode(strtr($parts[1], "-_", "+/")), true);
+
+        return !isset($payload["exp"]) || $payload["exp"] <= time();
     }
 
     /**
