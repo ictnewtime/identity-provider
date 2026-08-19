@@ -21,6 +21,7 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 |---|---|---|---|
 | [./todo/20260813-token-refresh/](./todo/20260813-token-refresh/) | L'app token scade dopo 30 minuti e **nessuno lo rinnova**, benché il meccanismo esista già (`token/exchange`) e il codice dichiari di volerlo. Difetto `VDF13` | `TTR` | **alta** |
 | [./todo/20260819-session-bootstrap/](./todo/20260819-session-bootstrap/) | **Blocco in esercizio su staging**: nessun percorso crea più la sessione di un'applicazione esterna, quindi il primo accesso è impossibile e il client ritenta all'infinito. Regressione di `TTR08`, difetti `VDF16` e `VDF17` | `TSB` | **alta** |
+| [./todo/20260819-frontend-complexity/](./todo/20260819-frontend-complexity/) | Tre rilievi `high` di complessità cognitiva nel frontend (`usePassword`, due `submit`). Il vincolo non è la complessità: **in questo repository non c'è nulla che esegua JavaScript**. E leggendo quelle funzioni è uscito `VDF22`, un errore in esercizio | `TFC` | media |
 | [./todo/20260812-swagger-deploy-tests/](./todo/20260812-swagger-deploy-tests/) | Test che verificano che la documentazione OpenAPI sia **generata e valida**, e che **fermano la pipeline** prima del deploy. Oggi la pipeline non ha nessun job di test | `TSD` | **alta** |
 | [./todo/20260812-e2e-test-container/](./todo/20260812-e2e-test-container/) | Un container dedicato per Cypress: all'immagine dell'applicazione mancano **tutte** le librerie che gli servono. Sblocca la verifica di quattro punti già chiusi nella tranche v1 | `TEC` | **alta** |
 

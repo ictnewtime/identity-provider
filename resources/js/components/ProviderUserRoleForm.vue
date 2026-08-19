@@ -133,6 +133,27 @@ const validate = () => {
     return isValid;
 };
 
+const BACKEND_ERROR_FIELDS = ["user_id", "provider_id", "role_id"];
+
+const applyBackendErrors = (error) => {
+    const backendErrors = error.response?.data?.errors;
+
+    if (!backendErrors) {
+        return;
+    }
+
+    BACKEND_ERROR_FIELDS.forEach((field) => {
+        if (backendErrors[field]) {
+            errors.value[field] = backendErrors[field][0];
+        }
+    });
+};
+
+const savedDetail = () =>
+    isEditMode.value
+        ? trans("admin.provider_user_roles.toast.detail_updated")
+        : trans("admin.provider_user_roles.toast.detail_created");
+
 const submit = async () => {
     if (!validate()) return;
 
@@ -153,9 +174,7 @@ const submit = async () => {
         toast.add({
             severity: "success",
             summary: trans("common.success"),
-            detail: isEditMode.value
-                ? trans("admin.provider_user_roles.toast.detail_updated")
-                : trans("admin.provider_user_roles.toast.detail_created"),
+            detail: savedDetail(),
             life: 3000,
         });
         emit("item-success");
@@ -167,14 +186,8 @@ const submit = async () => {
             detail: trans("admin.provider_user_roles.toast.submit_error"),
             life: 3000,
         });
-        emit("item-error", err);
-
-        if (error.response?.data?.errors) {
-            const backendErrors = error.response.data.errors;
-            if (backendErrors.user_id) errors.value.user_id = backendErrors.user_id[0];
-            if (backendErrors.provider_id) errors.value.provider_id = backendErrors.provider_id[0];
-            if (backendErrors.role_id) errors.value.role_id = backendErrors.role_id[0];
-        }
+        emit("item-error", error);
+        applyBackendErrors(error);
     } finally {
         loadingSubmit.value = false;
     }
