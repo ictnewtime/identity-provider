@@ -61,3 +61,23 @@ nullable: gli audit di sistema non hanno attore, e una join interna li farebbe s
 **Conseguenza aperta**: un client Passport cancellato lascia i suoi audit senza attore, perché
 `Passport\Client` non ha soft delete. La regola è che **un client si revoca, non si cancella** —
 la colonna `revoked` esiste già. Difetto `VDF09`.
+
+---
+
+## Provider: il dominio non è unico, ed è voluto
+
+**Due provider possono avere lo stesso dominio.** Non è un vincolo dimenticato: in sviluppo è la norma
+— l'IdP sta su `localhost:8001`, le applicazioni su `localhost:8002` e `localhost:8003`, e per un
+cookie il dominio è `localhost` per tutte e tre. Una regola `unique` su `providers.domain` renderebbe
+impossibile l'ambiente locale.
+
+**Dove si vede**: `app/Http/Requests/ProviderRequest.php` valida `domain` come `required|string|max:255`
+e **non** come `unique`. È un'assenza, e un'assenza si legge come una dimenticanza — tanto che nel file
+erano rimasti tre residui della regola che un tempo c'era: un messaggio d'errore `domain.unique`, la
+variabile `$providerId` e l'import di `Rule`, tutti inutilizzati. Rimossi il 2026-08-19 con `TSH07`.
+
+**Cosa comporta**: il dominio non identifica un provider. Chi scrive una query che cerca un provider
+**per dominio** ne trova più di uno, e deve decidere quale — non può assumere che sia uno solo.
+
+**Traccia**: difetto `VDF21`, punti `TSH07` e `TSH08` in
+[sonar-high-findings](task/todo/20260819-sonar-high-findings/action-plan.md).

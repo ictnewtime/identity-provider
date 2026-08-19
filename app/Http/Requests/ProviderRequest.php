@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class ProviderRequest extends FormRequest
 {
@@ -22,8 +21,6 @@ class ProviderRequest extends FormRequest
      */
     public function rules(): array
     {
-        $providerId = $this->route("id");
-
         return [
             "domain" => ["required", "string", "max:255"],
 
@@ -35,12 +32,14 @@ class ProviderRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function messages(): array
     {
         return [
-            "domain.unique" => __("admin.roles.form.error.domain.unique"),
-            "admin.roles.form.error.domain.mandatory" => __("admin.providers.errors.required_domain"),
-            "admin.roles.form.error.logout_url.invalid" => __("admin.providers.errors.invalid_logout_url"),
+            "domain.required" => __("admin.roles.form.error.domain.mandatory"),
+            "logoutUrl.url" => __("admin.roles.form.error.logout_url.invalid"),
         ];
     }
 }
