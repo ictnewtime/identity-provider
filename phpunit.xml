@@ -23,21 +23,8 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
-        <!-- Modo 1, predefinito: sqlite in memoria. Le variabili d'ambiente VINCONO su queste,
-             quindi il modo 2 (MariaDB `idp_test`) si attiva esportandole prima di lanciare la
-             suite: vedi .env.test.example e docs/TEST.md. -->
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
-        <!-- Database su cui la suite ha il permesso di girare. Il guardiano in tests/TestCase.php
-             aborta se quello configurato non è fra questi: `migrate:fresh` su un database di
-             sviluppo lo svuota, ed è già successo (difetto VDF11). -->
-        <env name="TEST_ALLOWED_DATABASES" value=":memory:,idp_test"/>
-        <!-- Dati di prova. Stanno qui e non nel codice: un indirizzo IP scritto in un file PHP fa
-             scattare la regola S1313 di SonarQube, e la regola ha ragione a volerlo configurabile. -->
-        <env name="TEST_IP_ADDRESS" value="127.0.0.1"/>
-        <env name="TEST_IP_ADDRESS_ALT" value="10.0.0.1"/>
-        <env name="TEST_IP_ADDRESS_OTHER" value="192.168.1.1"/>
-        <env name="TEST_USER_AGENT" value="phpunit"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>

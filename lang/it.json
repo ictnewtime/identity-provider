@@ -8,16 +8,14 @@
     "primevue.month_names_short": "Gen,Feb,Mar,Apr,Mag,Giu,Lug,Ago,Set,Ott,Nov,Dic",
     "primevue.today": "Oggi",
     "primevue.clear": "Svuota",
+
     "validation.current_password": "Password errata",
     "auth.err-login": "Credenziali non valide",
-    "auth.token-expired": "La sessione è scaduta. Effettua di nuovo il login.",
-    "auth.token-invalid": "Token di autorizzazione non valido. Effettua di nuovo il login.",
-    "auth.renew-failed": "La sessione è terminata: non è stato possibile rinnovarla. Effettua di nuovo il login.",
-    "auth.renew-refused": "Rinnovo non consentito: la sessione è stata revocata oppure la richiesta arriva da un altro dispositivo.",
     "auth.verification.errors.invalid_code": "Il codice di verifica non è valido o è già stato utilizzato.",
     "auth.verification.errors.user_not_found": "Impossibile trovare l'utente associato a questo codice.",
     "auth.verification.errors.save_failed": "Si è verificato un errore durante l'attivazione dell'account.",
     "auth.verification.errors.delete_failed": "Account attivato, ma impossibile rimuovere il codice di sicurezza.",
+
     "auth.forgot_password": "Password dimenticata?",
     "auth.login_with_google": "Accedi con Google",
     "auth.google_login_failed": "Si è verificato un errore durante il login con Google.",
@@ -26,12 +24,14 @@
     "auth.recover_password_body": "Inserisci il tuo username. Ti invieremo un link di recupero all'indirizzo email associato al tuo profilo.",
     "auth.send_recovery_link": "Invia Link di Recupero",
     "auth.back_to_login": "Torna al Login",
+
     "auth.new_password_body": "Stai reimpostando la password per l'utente",
     "auth.password_label": "Nuova Password",
     "auth.password_confirmation_label": "Conferma Password",
     "auth.password_placeholder": "Nuova Password (min. 12)",
     "auth.password_confirmation_placeholder": "Conferma Password",
     "auth.reset_password_btn": "Salva e Accedi",
+
     "auth.username_not_found": "Questo username non è presente nei nostri sistemi.",
     "auth.no_email_configured": "Questo account non ha un indirizzo email configurato per il recupero della password. Contatta l'amministratore.",
     "auth.recovery_link_sent": "Ti abbiamo inviato un link di recupero alla mail associata al tuo profilo.",
@@ -54,8 +54,10 @@
     "auth.no_application_specified": "Nessuna applicazione specificata.",
     "auth.missing_master_token": "Master token assente.",
     "auth.sso_not_found_or_corrupted": "Sessione globale SSO non trovata o corrotta. Effettua nuovamente il login.",
+
     "jwks.public_key_not_found": "Public key non trovata.",
     "jwks.unable_to_extract_public_key_rsa": "Impossibile estrarre i dettagli RSA dalla public key.",
+
     "common.id": "ID",
     "common.actions": "Azioni",
     "common.edit": "Modifica",
@@ -72,6 +74,7 @@
     "common.restore": "Ripristina",
     "common.loading": "Caricamento...",
     "common.no_records_found": "Nessun record trovato",
+
     "admin.nav.users": "Utenti",
     "admin.nav.roles": "Ruoli",
     "admin.nav.providers": "Provider",
@@ -79,9 +82,11 @@
     "admin.nav.sessions": "Sessioni Attive",
     "admin.nav.audits": "Log di Sistema",
     "admin.nav.parameters": "Parametri",
+
     "admin.users.title": "Gestione Utenti",
     "admin.users.add_role_relations": "Associa Ruoli",
     "admin.users.new_user": "Nuovo Utente",
+
     "admin.users.table.title": "Lista Utenti",
     "admin.users.table.search_placeholder": "Cerca utente...",
     "admin.users.table.username": "Username",
@@ -104,16 +109,20 @@
     "admin.roles.search_placeholder": "Cerca ruoli...",
     "admin.users.roles.add_roles_from_user": "Aggiungi ruoli dal utente selezionato",
     "admin.roles.form.user_placeholder": "Seleziona Utente",
+
     "admin.users.form.title_create": "Nuovo Utente",
     "admin.users.form.title_edit": "Modifica Utente",
+
     "admin.users.toast.load_error": "Impossibile caricare la lista degli utenti",
     "admin.users.toast.delete_success": "Utente eliminato correttamente",
     "admin.users.toast.delete_user_error": "Si è verificato un errore durante l'eliminazione dell'utente",
     "admin.users.toast.delete_users_error": "Si è verificato un errore durante l'eliminazione degli utenti",
+
     "admin.users.delete.user_title": "Elimina Utente",
     "admin.users.delete.users_title": "Elimina Utenti",
     "admin.users.delete.prompt_user": "Sei sicuro di voler eliminare l'utente",
     "admin.users.delete.prompt_users": "Sei sicuro di voler eliminare gli utenti con id: ",
+
     "admin.users.form.username_label": "Username",
     "admin.users.form.email_label": "Email",
     "admin.users.form.name_label": "Nome",
@@ -123,24 +132,29 @@
     "admin.users.form.password_expires_at_label": "Scadenza Password",
     "admin.users.form.enabled_label": "Utente Abilitato",
     "admin.users.form.password_placeholder": "Nuova Password (min. 12)",
+
     "admin.users.form.btn_create": "Crea Utente",
     "admin.users.form.btn_clear": "Svuota",
     "admin.users.form.password_tip": "Lascia vuoto per non modificare la password attuale.",
+
     "admin.users.form.validate.username.mandatory": "Lo username è obbligatorio",
     "admin.users.form.validate.email.mandatory": "Inserisci un indirizzo email valido",
     "admin.users.form.validate.name.mandatory": "Il nome è obbligatorio",
     "admin.users.form.validate.surname.mandatory": "Il cognome è obbligatorio",
     "admin.users.form.validate.password.mandatory": "La password è obbligatoria per i nuovi utenti",
     "admin.users.form.validate.password_confirmation.mandatory": "Le password non coincidono",
+
     "users.validation.email_required": "Email è obbligatoria",
     "users.validation.email_invalid": "Email non è valida",
     "users.validation.email_unique": "Email è già in uso",
     "users.validation.username_required": "Username è obbligatorio",
     "users.validation.username_unique": "Username è già in uso",
+
     "admin.users.toast.load_user_error": "Impossibile caricare i dati dell'utente selezionato",
     "admin.users.toast.submit_error": "Si è verificato un errore durante il salvataggio dell'utente",
     "admin.users.toast.detail_created": "Il nuovo utente è stato creato con successo",
     "admin.users.toast.detail_updated": "I dati dell'utente sono stati aggiornati",
+
     "user.error.not_found": "Utente non trovato",
     "user.delete_error": "Errore durante l'eliminazione dell'utente",
     "user.delete_has_roles_error": "Impossibile eliminare l'utente perché ci sono ruoli attivi associati ad esso",
@@ -150,33 +164,42 @@
     "users.bulk_restore_error": "Errore durante la ripristinazione degli utenti",
     "users.not_found_multiple": "Errore durante il ripristino degli utenti. IDs non corrispondenti.",
     "users.bulk_restore_success": "Utenti ripristinati con successo",
+
     "admin.roles.title": "Gestione Ruoli",
     "admin.roles.new_role": "Nuovo Ruolo",
+
     "admin.roles.table.title": "Lista Ruoli",
     "admin.roles.table.search_placeholder": "Cerca ruolo o dominio...",
     "admin.roles.table.name": "Nome Ruolo",
     "admin.roles.table.provider": "Provider",
     "admin.roles.table.domain": "Dominio",
+
     "admin.roles.table.missing_provider": "Nessun Provider",
     "admin.roles.table.missing_domain": "Nessun Dominio",
     "admin.roles.table.empty": "Nessun ruolo trovato nel sistema.",
     "admin.roles.table.show_deleted_tooltip": "Visualizza Ruoli Eliminati",
     "admin.roles.table.deleted_at": "Data Eliminazione",
     "admin.roles.table.hide_deleted_tooltip": "Nascondi Ruoli Eliminati",
+
     "admin.roles.form.title_create": "Nuovo Ruolo",
     "admin.roles.form.title_edit": "Modifica Ruolo",
+
     "admin.roles.toast.load_error": "Impossibile caricare la lista dei ruoli",
     "admin.roles.toast.load_user_role_error": "Errore durante il caricamento dei ruoli dell'utente",
     "admin.roles.toast.delete_success": "Ruolo eliminato correttamente",
     "admin.roles.toast.delete_error": "Si è verificato un errore durante l'eliminazione del ruolo",
     "admin.roles.delete.prompt": "Sei sicuro di voler eliminare definitivamente il ruolo ",
     "admin.roles.form.btn_create": "Crea Ruolo",
+
     "admin.roles.form.name_label": "Nome Ruolo",
     "admin.roles.form.name_placeholder": "Inserisci il nome del ruolo",
+
     "admin.roles.form.provider_label": "Provider",
     "admin.roles.form.provider_placeholder": "Seleziona un Provider",
+
     "admin.roles.form.validate.name.mandatory": "Il nome del ruolo è obbligatorio",
     "admin.roles.form.validate.provider.mandatory": "Il provider è obbligatorio",
+
     "admin.roles.toast.load_providers_error": "Impossibile caricare la lista dei provider",
     "admin.roles.toast.load_role_error": "Impossibile caricare i dati del ruolo selezionato",
     "admin.roles.toast.submit_error": "Si è verificato un errore durante il salvataggio del ruolo",
@@ -188,17 +211,22 @@
     "admin.users.toast.restore_error": "Si è verificato un errore durante il ripristino dell'utente",
     "admin.users.toast.add_roles_success": "Ruoli aggiunti con successo",
     "admin.users.toast.add_roles_error": "Si è verificato un errore durante l'aggiunta dei ruoli",
+
     "admin.roles.form.error.domain.unique": "Il dominio del provider deve essere univoco",
     "admin.roles.form.error.domain.mandatory": "Il dominio del provider non puo' essere vuoto",
     "admin.roles.form.error.logout_url.invalid": "L'URL di logout non è valido",
     "admin.roles.restore.prompt": "Sei sicuro di voler ripristinare definitivamente il ruolo ",
     "admin.roles.btn_add_roles": "Aggiungi Ruoli",
     "admin.roles.items_selected": "{0} elementi selezionati",
+
     "role.error.not_found": "Ruolo non trovato",
     "role.error.restoring": "Errore durante il ripristino del ruolo",
+
     "role.error.is_in_use": "Questo ruolo non puo' essere eliminato perche' viene utilizzato da uno o piu' utenti",
+
     "admin.providers.title": "Gestione Providers",
     "admin.providers.new_provider": "Nuovo Provider",
+
     "admin.providers.table.title": "Lista Provider",
     "admin.providers.table.search_placeholder": "Cerca dominio...",
     "admin.providers.table.domain": "Dominio",
@@ -216,6 +244,7 @@
     "admin.users.restore.users_title": "Ripristina Utenti",
     "admin.users.restore.prompt_user": "Sei sicuro di voler ripristinare l'utente",
     "admin.users.restore.prompt_users": "Sei sicuro di voler ripristinare gli utenti selezionati con id: ",
+
     "admin.providers.form.title_create": "Nuovo Provider",
     "admin.providers.form.title_edit": "Modifica Provider",
     "admin.providers.form.name_label": "Nome",
@@ -240,6 +269,7 @@
     "admin.providers.form.validate.url.mandatory": "L'URL è obbligatorio",
     "admin.providers.form.validate.domain.mandatory": "Il dominio è obbligatorio",
     "admin.providers.form.validate.secret_key.mandatory": "La Secret Key è obbligatoria",
+
     "admin.providers.toast.load_error": "Impossibile caricare la lista dei provider",
     "admin.providers.toast.delete_success": "Provider eliminato con successo",
     "admin.providers.toast.delete_error": "Si è verificato un errore durante l'eliminazione",
@@ -252,22 +282,27 @@
     "admin.providers.toast.restore_error": "Si è verificato un errore durante il ripristino del provider",
     "admin.providers.not_found_for_delete": "Provider non trovato per l'eliminazione",
     "admin.providers.delete_error_active_roles": "Non è possibile eliminare questo provider perché ci sono ruoli attivi associati ad esso",
+
     "provider.not_found": "Provider non trovato",
     "provider.restore_error": "Errore del server",
+
     "admin.provider_user_roles.title": "Associazioni User-Ruoli",
     "admin.provider_user_roles.new_providerUserRole": "Nuova Associazione",
     "admin.provider_user_roles.form.title_create": "Nuova Associazione",
     "admin.provider_user_roles.form.title_edit": "Modifica Associazione",
     "admin.provider_user_roles.form.btn_create": "Crea Associazione",
+
     "admin.provider_user_roles.form.user_label": "Utente",
     "admin.provider_user_roles.form.user_placeholder": "Seleziona un Utente",
     "admin.provider_user_roles.form.provider_label": "Provider",
     "admin.provider_user_roles.form.provider_placeholder": "Seleziona un Provider",
     "admin.provider_user_roles.form.role_label": "Ruolo",
     "admin.provider_user_roles.form.role_placeholder": "Seleziona un Ruolo",
+
     "admin.provider_user_roles.form.validate.user.mandatory": "L'utente è obbligatorio",
     "admin.provider_user_roles.form.validate.provider.mandatory": "Il provider è obbligatorio",
     "admin.provider_user_roles.form.validate.role.mandatory": "Il ruolo è obbligatorio",
+
     "admin.provider_user_roles.toast.load_error": "Impossibile caricare i dati di base (Utenti/Provider)",
     "admin.provider_user_roles.toast.roles_error": "Impossibile caricare i ruoli per questo provider",
     "admin.provider_user_roles.toast.submit_error": "Impossibile salvare i dati dell'associazione",
@@ -280,35 +315,44 @@
     "admin.provider_user_roles.table.hide_deleted_tooltip": "Nascondi associazioni eliminate",
     "admin.provider_user_roles.restore.title": "Ripristina Associazione",
     "admin.provider_user_roles.restore.prompt": "Sei sicuro di voler ripristinare l'associazione per l'utente ",
+
     "admin.provider_user_roles.table.title": "Lista Associazioni",
     "admin.provider_user_roles.table.search_placeholder": "Cerca utente o dominio...",
     "admin.provider_user_roles.table.user": "Utente",
     "admin.provider_user_roles.table.provider": "Provider",
     "admin.provider_user_roles.table.role": "Ruolo",
+
     "admin.provider_user_roles.table.missing_user": "Utente mancante",
     "admin.provider_user_roles.table.missing_provider": "Provider mancante",
     "admin.provider_user_roles.table.missing_role": "Ruolo mancante",
     "admin.provider_user_roles.table.empty": "Nessuna associazione trovata nel sistema.",
+
     "admin.provider_user_roles.toast.delete_success": "Associazione eliminata correttamente",
     "admin.provider_user_roles.toast.delete_error": "Si è verificato un errore durante l'eliminazione",
+
     "admin.provider_user_roles.delete.prompt_user": "Sei sicuro di voler rimuovere l'associazione tra: ",
     "admin.provider_user_roles.delete.prompt_users": "Sei sicuro di voler rimuovere le associazione con id: ",
     "admin.provider_user_roles.errors.unique_role": "Questo utente possiede già questo ruolo per il provider selezionato.",
     "admin.provider_user_roles.errors.creation": "Si è verificato un errore durante la creazione.",
     "admin.provider_user_roles.table.show_deleted_tooltip": "Mostra associazioni cancellate",
     "admin.provider_user_roles.table.deleted_at": "Data Eliminazione",
+
     "provider_user_roles.bulk_delete_error": "Errore cancellazioni provider-user-roles",
     "provider_user_roles.bulk_delete_success": "Relazioni dei provider-user-roles cancellati con successo",
+
     "provider_user_roles.not_found": "Relazione Provider-user-role non trovata",
     "provider_user_roles.conflict_unique": "C'è già una relazione attiva per Provider-user-role",
     "provider_user_roles.restore_success": "Relazione Provider-user-role ripristinata",
+
     "provider_user_roles.bulk_restore_error": "Errore nel restore delle relazioni provider-user-roles",
     "provider_user_roles.not_found_multiple": "Ruoli utente del provider non trovati",
     "provider_user_roles.conflict_unique_multiple": "C'è gia' una relazione attiva per una o piu' relazioni selezionate",
     "provider_user_roles.bulk_restore_success": "Relazioni Provider-user-role ripristinate correttamente",
     "provider_user_roles.bulk_add_error": "Errore nell'aggiunta delle relazioni provider-user-roles",
     "provider_user_roles.bulk_add_success": "Relazioni provider-user-roles aggiunte correttamente",
+
     "admin.sessions.title": "Gestione Sessioni",
+
     "admin.sessions.table.title": "Lista Sessioni Attive",
     "admin.sessions.table.search_placeholder": "Cerca sessione...",
     "admin.sessions.table.username": "Username",
@@ -320,16 +364,20 @@
     "admin.sessions.table.last_modified": "Ultima Modifica",
     "admin.sessions.table.terminate": "Termina Sessione",
     "admin.sessions.table.empty": "Nessuna sessione attiva trovata nel sistema.",
+
     "admin.sessions.toast.load_error": "Impossibile caricare la lista delle sessioni",
     "admin.sessions.toast.delete_success": "La sessione è stata terminata correttamente",
     "admin.sessions.toast.delete_error": "Si è verificato un errore durante la chiusura della sessione",
+
     "admin.sessions.delete.title": "Conferma Chiusura Sessione",
     "admin.sessions.delete.prompt": "Sei sicuro di voler chiudere la sessione di ",
     "admin.sessions.delete.this_user": "questo utente",
     "admin.sessions.delete.on_domain": " sul dominio ",
     "admin.sessions.delete.btn_terminate": "Termina",
     "session.error.access_denied.user_disabled_or_missing_roles": "Accesso negato: Utente disabilitato o ruoli mancanti per il Provider :providerId.",
+
     "admin.audits.title": "Gestione Log di Sistema",
+
     "admin.audits.table.title": "Registro di Sistema (Audit Logs)",
     "admin.audits.table.search_placeholder": "Cerca IP, Utente...",
     "admin.audits.table.date": "Data",
@@ -342,6 +390,7 @@
     "admin.audits.table.unknown": "Sconosciuto",
     "admin.audits.table.inspect": "Ispeziona Modifiche",
     "admin.audits.table.empty": "Nessun log trovato nel sistema.",
+
     "admin.audits.modal.title": "Ispezione Dati Modificati",
     "admin.audits.modal.old_values": "Valori Precedenti",
     "admin.audits.modal.new_values": "Nuovi Valori",
@@ -350,9 +399,12 @@
     "admin.audits.modal.url": "URL Chiamato",
     "admin.audits.modal.user_agent": "User Agent",
     "admin.audits.modal.entity_id": "ID Entità",
+
     "admin.audits.toast.load_error": "Impossibile caricare i log di sistema",
+
     "client.unauthorized.title": "Accesso Negato",
     "client.unauthorized.message": "Non disponi delle autorizzazioni necessarie per accedere alla risorsa richiesta. Se ritieni si tratti di un errore, contatta l'amministratore di sistema.",
+
     "auth.mandatory_change_title": "Cambio Password Obbligatorio",
     "auth.mandatory_change_body": "La tua password è scaduta o è al primo accesso. Per motivi di sicurezza, devi impostare una nuova password per l'utente:",
     "auth.logout": "Esci",
@@ -364,6 +416,7 @@
     "auth.token_missing": "Token di autorizzazione mancante",
     "auth.token_invalid": "Token di autorizzazione non valido",
     "auth.provider_invalid": "Provider non valido",
+
     "admin.parameters.title": "Gestione Parametri di Sistema",
     "admin.parameters.new_parameter": "Crea Nuovo Parametro",
     "admin.parameters.toast.load_error": "Impossibile caricare la lista dei parametri",
@@ -385,6 +438,7 @@
     "admin.parameters.delete.prompt": "Sei sicuro di voler eliminare il parametro?",
     "admin.parameters.restore.title": "Ripristina Parametro",
     "admin.parameters.restore.prompt": "Sei sicuro di voler ripristinare il parametro?",
+
     "admin.parameters.form.validate.key.mandatory": "La chiave è obbligatoria",
     "admin.parameters.form.validate.value.mandatory": "Il valore è obbligatorio",
     "admin.parameters.form.validate.type.mandatory": "Il tipo è obbligatorio",
@@ -403,7 +457,5 @@
     "parameter.error.not_found": "Parametro non trovato",
     "parameter.error.restoring": "Errore durante la ripristinazione del parametro",
     "parameter.error.updating": "Errore durante l'aggiornamento del parametro",
-    "parameter.error.alredy_exists": "Esiste gia' un parametro con la stessa chiave",
-    "session.error.renew_refused.other_device": "Rinnovo rifiutato: IP o user agent diversi da quelli della sessione (Utente :userId).",
-    "session.error.renew_refused.no_session": "Rinnovo rifiutato: nessuna sessione per l'Utente :userId sul Provider :providerId. Se e' stata revocata, il rinnovo non deve ricrearla."
+    "parameter.error.alredy_exists": "Esiste gia' un parametro con la stessa chiave"
 }

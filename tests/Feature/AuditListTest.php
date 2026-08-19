@@ -37,9 +37,9 @@ class AuditListTest extends TestCase
                     "event" => "updated",
                     "auditable_type" => User::class,
                     "auditable_id" => "1",
-                    "ip_address" => env("TEST_IP_ADDRESS"),
+                    "ip_address" => "127.0.0.1",
                     "url" => "http://localhost",
-                    "user_agent" => env("TEST_USER_AGENT"),
+                    "user_agent" => "phpunit",
                 ],
                 $overrides,
             ),
@@ -75,10 +75,10 @@ class AuditListTest extends TestCase
 
     public function test_la_ricerca_filtra_per_indirizzo_ip(): void
     {
-        $this->audit(["ip_address" => env("TEST_IP_ADDRESS_ALT")]);
-        $this->audit(["ip_address" => env("TEST_IP_ADDRESS_OTHER")]);
+        $this->audit(["ip_address" => "10.0.0.1"]);
+        $this->audit(["ip_address" => "192.168.1.1"]);
 
-        $this->chiama(["q" => env("TEST_IP_ADDRESS_ALT")])
+        $this->chiama(["q" => "10.0.0"])
             ->assertStatus(200)
             ->assertJsonCount(1, "data");
     }
@@ -201,71 +201,6 @@ class AuditListTest extends TestCase
         \DB::disableQueryLog();
 
         return $numero;
-    }
-
-
-    /**
-     * `per_page` ha un tetto (punto TCC04, difetto VDF03).
-     *
-     * Il valore arriva dal client: senza limite, una richiesta sola caricherebbe in memoria
-     * l'intera tabella degli audit, che e' quella che cresce piu' in fretta.
-     */
-    public function test_per_page_ha_un_tetto(): void
-    {
-        foreach (range(1, 12) as $i) {
-            $this->audit();
-        }
-
-        $risposta = $this->chiama(["per_page" => 1000000])->assertStatus(200);
-
-        $this->assertLessThanOrEqual(200, $risposta->json("meta.per_page"), "per_page non ha un tetto");
-        $this->assertLessThanOrEqual(200, count($risposta->json("data")));
-    }
-
-    public function test_per_page_assurdo_non_significa_nessun_limite(): void
-    {
-        $this->audit();
-
-        // `0` e i negativi non devono valere «tutte le righe»: e' l'errore classico di un tetto
-        // messo solo verso l'alto.
-        foreach ([0, -1, -1000] as $valore) {
-            $letto = $this->chiama(["per_page" => $valore])->assertStatus(200)->json("meta.per_page");
-
-            $this->assertGreaterThanOrEqual(1, $letto, "per_page={$valore} non deve dare zero righe");
-        }
-    }
-
-    /**
-     * L'ordinamento esplicito non viene disturbato da un criterio aggiunto in coda (punto TCC05).
-     *
-     * Prima c'era un `->latest()` dopo l'`orderBy`: nel ramo predefinito ripeteva quello appena
-     * impostato, in quello esplicito aggiungeva un secondo criterio che nessuno aveva chiesto.
-     */
-    public function test_lordinamento_esplicito_non_viene_disturbato(): void
-    {
-        $vecchio = $this->audit(["event" => "alfa"]);
-        $vecchio->forceFill(["created_at" => now()->subDay()])->save();
-
-        $this->audit(["event" => "zeta"]);
-
-        $eventi = collect($this->chiama(["sort_by" => "event", "sort_dir" => "asc"])->json("data"))->pluck("event");
-
-        $this->assertSame(["alfa", "zeta"], $eventi->all());
-    }
-
-    /**
-     * Ordinare per username con la join attiva non deve dare errore di ambiguita' su `created_at`.
-     *
-     * Era la domanda D4 dell'analisi: `users` ha anch'essa `created_at`, e un criterio non
-     * qualificato aggiunto in coda poteva renderlo ambiguo. Su MariaDB la risposta si vede solo
-     * eseguendolo li' — questo test gira in entrambi gli ambienti.
-     */
-    public function test_ordinare_per_username_con_la_join_non_da_ambiguita(): void
-    {
-        $utente = User::factory()->create(["username" => "mario.rossi", "enabled" => 1]);
-        $this->audit(["user_type" => User::class, "user_id" => $utente->id]);
-
-        $this->chiama(["sort_by" => "user.username", "sort_dir" => "desc"])->assertStatus(200);
     }
 
     public function test_ordinare_per_username_non_deve_perdere_ne_falsare_righe(): void

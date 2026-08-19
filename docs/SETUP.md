@@ -1,7 +1,3 @@
-> **Prima di tutto il resto viene il database.** L'applicazione non parte se `idp_develop` non
-> esiste: la preparazione è in **[setup.db.md](setup.db.md)**, e va eseguita prima dei comandi qui
-> sotto.
-
 docker compose up --build
 
 ```php

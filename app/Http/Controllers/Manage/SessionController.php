@@ -92,9 +92,7 @@ class SessionController extends Controller
         $user = User::find($userId);
 
         if (!$user) {
-            // Non passa da `notFound()`: questa risposta porta anche `valid`, che il chiamante
-            // legge. L'helper darebbe il solo `message` e cambierebbe il contratto.
-            return response()->json(["valid" => false, "message" => __("user.error.not_found")], 404);
+            return response()->json(["valid" => false, "message" => "User not found"], 404);
         }
 
         $validated = $request->validate([
@@ -145,7 +143,7 @@ class SessionController extends Controller
         $user = User::find($userId);
 
         if (!$user) {
-            return $this->notFound("user.error.not_found");
+            return response()->json(["message" => "User not found"], 404);
         }
 
         $tokenService = new TokenProviderService();
@@ -157,13 +155,12 @@ class SessionController extends Controller
             $validated["ip_address"] ?? $request->ip(),
             $validated["user_agent"] ?? $request->userAgent(),
             $tokenService,
-            canCreate: false,
         );
 
         if (!$appToken) {
             return response()->json(
                 [
-                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
+                    "message" => __("session.error.access_denied.userdisabled_or_missing_roles", [
                         "providerId" => $providerId,
                     ]),
                 ],

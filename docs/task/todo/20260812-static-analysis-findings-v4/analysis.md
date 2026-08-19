@@ -3,7 +3,7 @@
 **Identificatori**: `TPU` = task provider-user-roles
 
 Stato: da approvare · Data: 2026-08-12 · Tranche **v4** di 4 —
-[v1](../../done/20260812-static-analysis-findings-v1/analysis.md) · [v2](../20260812-static-analysis-findings-v2/analysis.md) · [v3](../../done/20260812-static-analysis-findings-v3/analysis.md)
+[v1](../../done/20260812-static-analysis-findings-v1/analysis.md) · [v2](../20260812-static-analysis-findings-v2/analysis.md) · [v3](../20260812-static-analysis-findings-v3/analysis.md)
 
 ## 1. Obiettivo
 
@@ -76,56 +76,42 @@ svista. Se non è voluto, è un difetto: `update()` su un record cancellato risp
 **Rapporto con le altre tranche.** `"Provider user role not found"` arrivava nella tua lista in mezzo
 ai literali OpenAPI, ma non è un'annotazione: è un messaggio di runtime, l'utente lo legge, e la
 correzione giusta passa dalle traduzioni — niente a che vedere con le costanti di
-[v3](../../done/20260812-static-analysis-findings-v3/analysis.md). L'ho separato per questo. Il costruttore
+[v3](../20260812-static-analysis-findings-v3/analysis.md). L'ho separato per questo. Il costruttore
 vuoto è invece l'unico rilievo del lotto che si chiude **cancellando codice**.
 
 ## 4. Da decidere
 
-> **Risposte del developer, 2026-08-13.** Sei su sei. `D2` ha prodotto due fatti che cambiano la
-> forma del lavoro — `F9` e `F10` — e li scrivo qui perché senza di loro il § 3 resta più cupo di
-> quanto la realtà giustifichi.
-
-| # | Fatto emerso rispondendo | Prova |
-|---|---|---|
-| F9 | **Nessuno confronta i messaggi 404**: né il frontend, né Cypress, né un test. L'unico «not found» in `resources/js/` è un messaggio di console sul token CSRF | `grep -rn "not found" resources/js/ cypress/ tests/` |
-| F10 | **Le chiavi di traduzione esistono già**, in entrambe le lingue: `provider_user_roles.not_found`, `provider.not_found`, `user.error.not_found`, `role.error.not_found` — dodici chiavi `*not_found*` in tutto. E in inglese `provider_user_roles.not_found` vale **esattamente** il literale scritto nel controller | `lang/it.json`, `lang/en.json` |
-
 ### Vincoli
 
-- **D1** — solo `ProviderUserRoleController` o tutte e dodici le occorrenze? → **Tutte insieme.**
-- **D2** — i messaggi 404 sono confrontati da qualcuno? → **No** (`F9`), quindi tradurli non è una
-  regressione. Il developer ha chiesto di **aggiungere i test se mancavano**: fatto, `TPU01`.
+- **D1** — `F2`: si corregge solo `ProviderUserRoleController` (i tre casi segnalati) o tutte e
+  dodici le occorrenze insieme? Correggerne tre lascia un file diverso dagli altri quattro, che è il
+  modo in cui nascono le convenzioni doppie.
+- **D2** — i messaggi 404 sono confrontati da qualche client o test? Va accertato prima di tradurli.
 
 ### Conflitti
 
-- **D3** — `delete()` a 200 con corpo o 204 senza? → **204 senza corpo.** Già fatto: `TPU04`.
-- **D4** — il costruttore vuoto si cancella? → **Sì.**
+- **D3** — `F5`: `delete()` passa a **200 con corpo** o a **204 senza**? Il secondo è più corretto, il
+  primo non tocca il frontend. Non so quale dei due la tabella Vue si aspetti.
+- **D4** — `F4`: il costruttore vuoto si **cancella** (raccomandazione) o era un segnaposto per
+  un'iniezione di dipendenze già prevista?
 
 ### Ignoto
 
-- **D5** — la differenza fra `withTrashed()` in lettura e la sua assenza in scrittura è voluta? →
-  **Sì, è voluta**: la distinzione in scrittura non serve, per ora. Si consulta un record cancellato
-  logicamente, non lo si modifica. Da **scrivere** dove sta il codice, perché così com'è si legge
-  come una svista.
-- **D6** — il costruttore vuoto in `AccountService` è stato segnalato? → **No, per ora.** Resta fuori
-  da questo task.
-
-### Cosa cambia, letto tutto insieme
-
-`F10` ridimensiona il lavoro e insieme lo rende più fastidioso da guardare: le chiavi ci sono, sono
-tradotte in due lingue, e **i controller le ignorano**. Non è un lavoro da progettare — è un lavoro
-già fatto a metà e mai adottato. `TPU03` e `TPU06` passano da «creare un helper e le chiavi» a
-«smettere di ignorare quelle che esistono».
+- **D5** — `F6`: la differenza fra `withTrashed()` in lettura e la sua assenza in scrittura è voluta?
+  Se sì la scrivo e chiudo; se no è un difetto e apre un punto suo.
+- **D6** — `F7`: il costruttore vuoto in `AccountService` è stato segnalato anche lui? Se sì, va
+  ricordato che toccare un service fa scattare il controllo perf/leak completo, per una riga di
+  commento.
 
 ## 5. Consigli
 
-| Domanda | Raccomandazione | Esito |
-|---|---|---|
-| **D1** | Tutte e dodici, in un punto solo: l'helper condiviso costa quanto la costante privata. | **accolta** |
-| **D2** | Un `grep` sui test E2E e sul frontend prima di toccare le stringhe. | **accolta ed estesa**: fatto il grep (`F9`) **e** aggiunti i test che mancavano |
-| **D3** | 204 senza corpo. | **accolta** — già chiusa da `TPU04` |
-| **D4** | Cancellarlo: un costruttore senza parametri né corpo non fa niente che PHP non faccia da sé. | **accolta** |
-| **D5** | Serve la tua risposta; il mio sospetto è che sia una svista. | **sospetto sbagliato**: è voluta. Resta da scriverla |
-| **D6** | Lasciarlo stare in questo task. | **accolta** |
+| Domanda | Raccomandazione |
+|---|---|
+| **D1** | Tutte e dodici, in un punto solo: l'helper condiviso costa quanto la costante privata e chiude `F2` invece di nasconderlo. Se preferisci contenere il rischio, si fa solo `ProviderUserRoleController` **ma si apre il resto come task**, perché altrimenti non lo riapre nessuno. |
+| **D2** | Un `grep` sui test E2E e sul frontend prima di toccare le stringhe. Sono due minuti e sono la differenza fra una traduzione e una regressione. |
+| **D3** | **204 senza corpo.** È quello che il codice già dichiara con lo status; il messaggio che spedisce oggi in molti client non arriva comunque, quindi il frontend che «lo legge» probabilmente non lo legge già adesso. Da confermare guardando il consumatore. |
+| **D4** | Cancellarlo. Un costruttore vuoto senza parametri non fa niente che PHP non faccia da sé, e il commento richiesto dallo strumento sarebbe un commento che spiega perché esiste una riga che non serve. |
+| **D5** | Serve la tua risposta. Il mio sospetto è che sia una svista — le tre forme sembrano scritte in momenti diversi — ma è un sospetto, e la differenza fra svista e scelta la sai solo tu. |
+| **D6** | Lasciarlo stare in questo task. Se va corretto, va nel task che tocca quel service per altri motivi, così il controllo perf/leak si paga una volta per un lavoro vero. |
 
 Il piano: [action-plan.md](./action-plan.md).

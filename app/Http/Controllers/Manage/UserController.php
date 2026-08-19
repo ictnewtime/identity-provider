@@ -17,11 +17,9 @@ use OpenApi\Attributes as OA;
 
 class UserController extends Controller
 {
-    private const OA_PATH = "/api/v1/users";
-
     #[
         OA\Get(
-            path: self::OA_PATH,
+            path: "/api/v1/users",
             summary: "Get all users",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.all",
@@ -113,7 +111,7 @@ class UserController extends Controller
 
     #[
         OA\Post(
-            path: self::OA_PATH,
+            path: "/api/v1/users",
             summary: "Create a new user",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.create",
@@ -224,7 +222,7 @@ class UserController extends Controller
 
     #[
         OA\Get(
-            path: self::OA_PATH . "/{id}",
+            path: "/api/v1/users/{id}",
             summary: "Returns user by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.find",
@@ -234,7 +232,7 @@ class UserController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: self::OA_DESC_USER_ID,
+                    description: "User id",
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -269,7 +267,7 @@ class UserController extends Controller
 
     #[
         OA\Put(
-            path: self::OA_PATH . "/{id}",
+            path: "/api/v1/users/{id}",
             summary: "Update user by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.update",
@@ -279,7 +277,7 @@ class UserController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: self::OA_DESC_USER_ID,
+                    description: "User id",
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -367,7 +365,7 @@ class UserController extends Controller
         $user = User::find($id);
 
         if (empty($user)) {
-            return $this->notFound("user.error.not_found");
+            return response()->json(["message" => "User not found"], 404);
         }
 
         $data = $request->only("email", "username", "name", "surname", "password_expires_at");
@@ -408,7 +406,7 @@ class UserController extends Controller
 
     #[
         OA\Delete(
-            path: self::OA_PATH . "/{id}",
+            path: "/api/v1/users/{id}",
             summary: "Delete user by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "User.delete",
@@ -418,7 +416,7 @@ class UserController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: self::OA_DESC_USER_ID,
+                    description: "User id",
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),

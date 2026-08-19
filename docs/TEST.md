@@ -1,94 +1,75 @@
 # Come si eseguono i test
 
-**Due famiglie, due ambienti**, e non è simmetria: hanno vincoli opposti. I test di backend non
-hanno bisogno di niente che duri, gli E2E hanno bisogno che tutto resti in piedi. È da lì che
-discende tutto il resto di questo documento.
+Due famiglie, due ambienti diversi. **I test PHP girano dentro il container, i test E2E fuori** — e
+il perché sta in fondo, perché è il motivo per cui questo documento esiste.
 
-| Famiglia | Database | Ambiente | Perché |
-|---|---|---|---|
-| **backend** (PHPUnit) | sqlite in memoria | `Dockerfile.test.backend`, **senza compose** | il database vive dentro il processo di PHP e muore con lui: nessun servizio deve restare su |
-| **E2E** (Cypress) | MariaDB `idp_test` | `docker-compose.test.yml` | un browser vero interroga un'applicazione viva, che ha bisogno di un database per tutta la sessione |
-
-Prerequisito comune: l'ambiente preparato secondo [setup.db.md](setup.db.md) e [SETUP.md](SETUP.md).
+Prerequisito comune: l'ambiente preparato secondo [SETUP.md](SETUP.md), credenziali E2E comprese.
 
 ---
 
-## Test di backend — sqlite, senza compose
+## Test PHP (PHPUnit) — dentro il container
+
+> ⚠️ **Non lanciare `php artisan test` nudo dentro il container.** Se esiste
+> `bootstrap/cache/config.php` — e nel container esiste — `env()` è inerte, `phpunit.xml` non ha
+> effetto e i test girano su **MariaDB**: `RefreshDatabase` fa `migrate:fresh` e **svuota il database
+> di staging**. È il difetto [`VDF11`](task/vulnerability/vulnerability.md), ed è già successo.
+
+Usare `composer test`, che fa `config:clear` come primo passo:
 
 ```sh
-docker build -f Dockerfile.test.backend -t idp-test-backend .
-docker run --rm -v "$PWD":/var/www idp-test-backend
-docker run --rm -v "$PWD":/var/www idp-test-backend php artisan test --filter=AuditList
+docker exec idp_app_2 composer test
+docker exec idp_app_2 composer test -- --filter=NomeDelTest
 ```
 
-Non toccano **nessun** database: né `idp_develop` né `idp_test`. Un file compose qui sarebbe di
-troppo — un comando basta, ed è la ragione per cui non c'è.
+Dopo il `config:clear` vale quello che `phpunit.xml` dice: **sqlite in memoria**
+(`DB_CONNECTION=sqlite`, `DB_DATABASE=:memory:`), quindi nessun MariaDB necessario.
 
-Configurazione: `Dockerfile.test.backend` + [.env.test.backend.example](../.env.test.backend.example),
-copiato **dentro l'immagine** e mai sopra il `.env` dell'host.
-
----
-
-## Test E2E — MariaDB, con compose
+**In alternativa, senza toccare il container** — un contenitore usa-e-getta con la config cache
+deviata, che è il modo più sicuro perché non modifica niente nell'ambiente:
 
 ```sh
-docker compose -f docker-compose.test.yml run --rm --build e2e
+docker run --rm -v "$PWD":/app -w /app -e APP_CONFIG_CACHE=/tmp/nessuna-cache.php \
+    php:8.2-cli php artisan test
 ```
 
-Il database `idp_test` lo crea l'entrypoint a ogni avvio (`CREATE DATABASE IF NOT EXISTS`): non c'è
-un passo da ricordare. Configurazione: `Dockerfile.test.e2e` +
-[.env.test.e2e.example](../.env.test.e2e.example) + `docker-compose.test.yml`.
+---
 
-**Perché MariaDB e non sqlite**, oltre al vincolo di cui sopra: `LIKE '%MARIÒ%'` su `Mariò` trova
-**0 righe su sqlite e 1 su MariaDB** con `utf8mb4_unicode_ci` — misurato — e la ricerca di questa
-applicazione è fatta di `LIKE`, su nomi che in italiano hanno gli accenti. Un test di ricerca su
-sqlite passerebbe senza dire niente su ciò che accade in produzione.
+## Test E2E (Cypress) — **fuori** dal container
 
-### Finché Cypress non è nell'ambiente: si lancia da fuori
+Serve Node sulla macchina locale. Cypress 15 richiede Node `^20.1.0 || ^22.0.0 || >=24.0.0`
+(`node_modules/cypress/package.json`, campo `engines`).
 
 ```sh
-npm install                                                 # una volta sola
-docker compose up -d                                        # l'applicazione deve rispondere
-docker exec idp_app_2 ./scripts/prepare-e2e-credentials.sh  # utenti + cypress.env.json
+# una volta sola
+npm install
 
-npm run cy:run
-npm run cy:run -- --spec cypress/e2e/auth/login.cy.js
-npm run cy:open
+# l'applicazione deve rispondere: docker compose up -d
+
+npm run cy:run                                              # tutti i test, senza interfaccia
+npm run cy:run -- --spec cypress/e2e/auth/login.cy.js       # una specifica sola
+npm run cy:open                                             # interfaccia grafica
 ```
 
-Serve Node sulla macchina locale: Cypress 15 richiede `^20.1.0 || ^22.0.0 || >=24.0.0`
-(`node_modules/cypress/package.json`, campo `engines`). `baseUrl` è `http://localhost:8001`, cioè la
-porta pubblicata dal `docker-compose.yml`: **da fuori funziona, da dentro no**.
+`baseUrl` è `http://localhost:8001` (`cypress.config.js`), che è la porta pubblicata dal
+`docker-compose.yml` verso il container. **Da fuori funziona; da dentro no** — vedi sotto.
 
-Se il login fallisce, quasi sempre è lo script delle credenziali: `cypress.env.json` contiene le
-credenziali di utenti che devono **già esistere**, e lo script crea entrambi.
+### Prima di ogni esecuzione
 
----
+Le credenziali dei test vengono da `cypress.env.json`, che contiene le credenziali di utenti che
+devono **già esistere** nel database. Se il login fallisce, quasi sempre è questo:
 
-## Il guardiano che impedisce di cancellare il database sbagliato
+```sh
+docker exec idp_app_2 ./scripts/prepare-e2e-credentials.sh
+```
 
-`tests/TestCase.php` legge la configurazione **risolta a runtime** e **aborta** se il database in uso
-non è fra quelli di `TEST_ALLOWED_DATABASES` (`:memory:` e `idp_test`).
-
-Sta in `setUpTraits()` e non in `setUp()`, e la differenza è tutto: `RefreshDatabase` agisce dentro
-`setUpTraits()`, quindi un controllo dopo `parent::setUp()` parlerebbe **a database già ricreato**.
-Provato nei due versi — con un database non consentito la suite si ferma **senza** che nessuna
-tabella venga creata; con `idp_test` passa.
-
-Serve anche ora che gli ambienti sono separati: protegge chi lancerà la suite nel modo sbagliato
-comunque.
-
-> ⚠️ **Non lanciare `php artisan test` dentro `idp_app_2`.** Con una config cache presente ignora
-> `phpunit.xml` e punterebbe al database dell'applicazione. Non fa più danno — il guardiano ferma
-> prima — ma la strada giusta sono i due ambienti qui sopra.
-> Difetto [`VDF11`](task/vulnerability/vulnerability.md).
+Genera password nuove, crea `e2e.admin` ed `e2e.user` e riscrive `cypress.env.json`. Il file è
+condiviso col disco locale dal volume del `docker-compose.yml`, quindi Cypress lo vede da fuori.
 
 ---
 
-## Perché Cypress non è ancora nell'ambiente E2E
+## Perché i test E2E non girano dentro il container
 
-Non è una dimenticanza: all'immagine dell'applicazione manca tutto ciò che gli serve, e conviene
-saperlo prima di provarci.
+Non è una preferenza: **oggi non funzionerebbero**, e conviene sapere cosa manca prima di provarci.
 
 | Cosa serve a Cypress | Stato nell'immagine |
 |---|---|
@@ -96,22 +77,29 @@ saperlo prima di provarci.
 | il pacchetto npm `cypress` | **c'è** — il `Dockerfile` esegue `npm install`, che installa anche le dipendenze di sviluppo |
 | `libnss3`, `libgbm1`, `libxss1`, `libasound2`, `libxtst6`, `libgtk-3-0`, `libnotify4` | **nessuna presente** |
 | `xvfb` o `xauth`, per un browser senza schermo | **assenti** |
-| l'applicazione su `localhost:8001` | **no**: dentro un container nginx è sulla porta **80**, e la 8001 esiste solo sull'host |
+| l'applicazione su `localhost:8001` | **no**: dentro il container nginx è sulla porta **80**. La 8001 esiste solo sull'host |
 
 Le prime due righe ingannano — sembra che ci sia quasi tutto. Ma senza le librerie grafiche il
-binario non parte, e senza `xvfb` non avrebbe dove disegnare. Verificato con `dpkg -s`
-sull'immagine base: nessuno dei sette pacchetti è installato.
+binario di Cypress non parte, e senza `xvfb` non avrebbe dove disegnare. Verificato con
+`dpkg -s` sull'immagine base: nessuno dei sette pacchetti è installato.
 
-**La soluzione non è aggiungerle**: finirebbero anche nell'immagine di produzione, per una cosa che
-in produzione non serve mai. L'immagine ufficiale `cypress/included:15.15.0` — esattamente la
-versione dichiarata da `package.json` — porta già browser, librerie e binario. Il lavoro è
-[e2e-test-container](task/todo/20260812-e2e-test-container/action-plan.md); quando sarà chiuso, la
-sezione «si lancia da fuori» qui sopra diventerà un'alternativa e non un ripiego (`TEC07`).
+### La soluzione non è aggiungerle: è un container suo
+
+Installare quelle librerie più `xvfb` nel `Dockerfile` le farebbe finire **anche nell'immagine di
+produzione**, per una cosa che in produzione non serve mai. L'immagine `cypress/included:15.15.0` —
+esattamente la versione dichiarata da `package.json` — porta già browser, librerie e binario.
+
+Il lavoro è inquadrato in
+[docs/task/todo/20260812-e2e-test-container/](task/todo/20260812-e2e-test-container/): un servizio
+dietro un profilo del `docker-compose.yml`, sulla stessa rete, con `CYPRESS_BASE_URL=http://app` —
+perché fra container ci si raggiunge per **nome del servizio sulla porta 80**, non su `localhost:8001`.
+Quando quel task è chiuso, questa sezione diventa un terzo modo di eseguire i test e questo documento
+va aggiornato (`TEC07`).
 
 I test **nella pipeline** sono un'altra cosa ancora, e sono fermi per decisione del developer:
-[pipeline-tests](task/backlog/20260812-pipeline-tests/action-plan.md).
+[docs/task/backlog/20260812-pipeline-tests/](task/backlog/20260812-pipeline-tests/).
 
-> **Nota su cosa c'è nell'immagine di produzione.** `npm install` nel `Dockerfile` non distingue fra
-> dipendenze di sviluppo e di produzione, quindi scarica anche il **binario di Cypress** — circa
-> 1,5 GB di cache, misurati con `du -sh ~/.cache/Cypress` — dentro un'immagine dove non può
-> funzionare. È [`BDB22`](task/backlog/backlog.md).
+> **Nota su cosa c'è nell'immagine.** `npm install` nel `Dockerfile` non distingue fra dipendenze di
+> sviluppo e di produzione, quindi scarica anche il **binario di Cypress** — circa 1,5 GB di cache,
+> misurati con `du -sh ~/.cache/Cypress` — dentro un'immagine dove non può funzionare. È registrato
+> come `BDB22` in [backlog.md](task/backlog/backlog.md).
