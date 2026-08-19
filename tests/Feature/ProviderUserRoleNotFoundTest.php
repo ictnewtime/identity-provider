@@ -29,11 +29,12 @@ class ProviderUserRoleNotFoundTest extends TestCase
 
     private const CHIAVE = "provider_user_roles.not_found";
     private const ID_INESISTENTE = 999999;
+    private const ROUTE_ADMIN_V1_PUR = "/admin/v1/provider-user-roles/";
 
     public function test_find_su_un_id_inesistente_risponde_404_col_messaggio(): void
     {
         $this->withoutMiddleware()
-            ->getJson("/admin/v1/provider-user-roles/" . self::ID_INESISTENTE)
+            ->getJson(self::ROUTE_ADMIN_V1_PUR . self::ID_INESISTENTE)
             ->assertStatus(404)
             ->assertJson(["message" => __(self::CHIAVE)]);
     }
@@ -60,7 +61,7 @@ class ProviderUserRoleNotFoundTest extends TestCase
         $user = User::factory()->create(["enabled" => 1]);
 
         $this->withoutMiddleware()
-            ->putJson("/admin/v1/provider-user-roles/" . self::ID_INESISTENTE, [
+            ->putJson(self::ROUTE_ADMIN_V1_PUR . self::ID_INESISTENTE, [
                 "provider_id" => $provider->id,
                 "user_id" => $user->id,
                 "role_id" => $role->id,
@@ -72,7 +73,7 @@ class ProviderUserRoleNotFoundTest extends TestCase
     public function test_delete_su_un_id_inesistente_risponde_404_col_messaggio(): void
     {
         $this->withoutMiddleware()
-            ->deleteJson("/admin/v1/provider-user-roles/" . self::ID_INESISTENTE)
+            ->deleteJson(self::ROUTE_ADMIN_V1_PUR . self::ID_INESISTENTE)
             ->assertStatus(404)
             ->assertJson(["message" => __(self::CHIAVE)]);
     }
@@ -89,12 +90,12 @@ class ProviderUserRoleNotFoundTest extends TestCase
     {
         app()->setLocale("en");
         $inglese = $this->withoutMiddleware()
-            ->getJson("/admin/v1/provider-user-roles/" . self::ID_INESISTENTE)
+            ->getJson(self::ROUTE_ADMIN_V1_PUR . self::ID_INESISTENTE)
             ->json("message");
 
         app()->setLocale("it");
         $italiano = $this->withoutMiddleware()
-            ->getJson("/admin/v1/provider-user-roles/" . self::ID_INESISTENTE)
+            ->getJson(self::ROUTE_ADMIN_V1_PUR . self::ID_INESISTENTE)
             ->json("message");
 
         $this->assertNotSame($inglese, $italiano, "il messaggio non cambia con la lingua: non passa dalle traduzioni");

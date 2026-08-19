@@ -16,6 +16,7 @@ use OpenApi\Attributes as OA;
 class ProviderController extends Controller
 {
     private const OA_PATH = "/api/v1/providers";
+    private const OA_PATH_ID = self::OA_PATH . "/{id}";
 
     #[
         OA\Get(
@@ -126,7 +127,7 @@ class ProviderController extends Controller
 
     #[
         OA\Get(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Get provider by id",
             description: self::OA_DESC_MSG_SUCCESS,
             operationId: "Provider.find",
@@ -272,7 +273,7 @@ class ProviderController extends Controller
 
     #[
         OA\Put(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Update provider by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.update",
@@ -392,7 +393,7 @@ class ProviderController extends Controller
 
     #[
         OA\Delete(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Delete provider by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Provider.delete",
