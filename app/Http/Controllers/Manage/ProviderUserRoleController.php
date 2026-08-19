@@ -17,6 +17,7 @@ class ProviderUserRoleController extends Controller
 {
     private const OA_TAG = "Provider User Roles";
     private const OA_PATH = "/api/v1/provider-user-roles";
+    private const OA_PATH_ID = self::OA_PATH . "/{id}";
 
     #[
         OA\Get(
@@ -194,7 +195,7 @@ class ProviderUserRoleController extends Controller
 
     #[
         OA\Get(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Returns provider user role by id",
             description: self::OA_DESC_MSG_SUCCESS,
             operationId: "ProviderUserRole.find",
@@ -204,7 +205,7 @@ class ProviderUserRoleController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Provider user role id",
+                    description: self::OA_DESC_PROVIDER_USER_ROLE_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -232,7 +233,7 @@ class ProviderUserRoleController extends Controller
 
     #[
         OA\Put(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Update provider user role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.update",
@@ -242,7 +243,7 @@ class ProviderUserRoleController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Provider user role id",
+                    description: self::OA_DESC_PROVIDER_USER_ROLE_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -316,7 +317,7 @@ class ProviderUserRoleController extends Controller
 
     #[
         OA\Delete(
-            path: self::OA_PATH . "/{id}",
+            path: self::OA_PATH_ID,
             summary: "Delete provider user role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "ProviderUserRole.delete",
@@ -326,7 +327,7 @@ class ProviderUserRoleController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Provider user role id",
+                    description: self::OA_DESC_PROVIDER_USER_ROLE_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
