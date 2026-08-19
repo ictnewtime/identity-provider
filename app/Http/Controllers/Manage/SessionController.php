@@ -92,7 +92,9 @@ class SessionController extends Controller
         $user = User::find($userId);
 
         if (!$user) {
-            return response()->json(["valid" => false, "message" => "User not found"], 404);
+            // Non passa da `notFound()`: questa risposta porta anche `valid`, che il chiamante
+            // legge. L'helper darebbe il solo `message` e cambierebbe il contratto.
+            return response()->json(["valid" => false, "message" => __("user.error.not_found")], 404);
         }
 
         $validated = $request->validate([
@@ -143,7 +145,7 @@ class SessionController extends Controller
         $user = User::find($userId);
 
         if (!$user) {
-            return response()->json(["message" => "User not found"], 404);
+            return $this->notFound("user.error.not_found");
         }
 
         $tokenService = new TokenProviderService();
@@ -160,7 +162,7 @@ class SessionController extends Controller
         if (!$appToken) {
             return response()->json(
                 [
-                    "message" => __("session.error.access_denied.userdisabled_or_missing_roles", [
+                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
                         "providerId" => $providerId,
                     ]),
                 ],

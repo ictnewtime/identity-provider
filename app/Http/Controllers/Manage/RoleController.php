@@ -14,6 +14,9 @@ use OpenApi\Attributes as OA;
 
 class RoleController extends Controller
 {
+    private const OA_PATH = "/api/v1/roles";
+    private const OA_PATH_ID = self::OA_PATH . "/{id}";
+
     // protected $roleRepository;
 
     // public function __construct(RoleRepository $roleRepository)
@@ -23,7 +26,7 @@ class RoleController extends Controller
 
     #[
         OA\Get(
-            path: "/api/v1/roles",
+            path: self::OA_PATH,
             summary: "list of roles",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.all",
@@ -149,7 +152,7 @@ class RoleController extends Controller
 
     #[
         OA\Post(
-            path: "/api/v1/roles",
+            path: self::OA_PATH,
             summary: "Create a new role",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.create",
@@ -170,7 +173,7 @@ class RoleController extends Controller
                             ),
                             new OA\Property(
                                 property: "provider_id",
-                                description: "Provider id",
+                                description: self::OA_DESC_PROVIDER_ID,
                                 type: "integer",
                                 example: "1",
                             ),
@@ -221,7 +224,7 @@ class RoleController extends Controller
 
     #[
         OA\Get(
-            path: "/api/v1/roles/{id}",
+            path: self::OA_PATH_ID,
             summary: "Returns role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.find",
@@ -231,7 +234,7 @@ class RoleController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Role id",
+                    description: self::OA_DESC_ROLE_ID,
                     name: "id",
                     schema: new OA\Schema(type: "string"),
                 ),
@@ -259,14 +262,14 @@ class RoleController extends Controller
     {
         $role = Role::withTrashed()->find($id);
         if (empty($role)) {
-            return response()->json(["message" => "Role not found"], 404);
+            return $this->notFound("role.error.not_found");
         }
         return response()->json($role);
     }
 
     #[
         OA\Put(
-            path: "/api/v1/roles/{id}",
+            path: self::OA_PATH_ID,
             summary: "Update role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.update",
@@ -276,7 +279,7 @@ class RoleController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Role id",
+                    description: self::OA_DESC_ROLE_ID,
                     name: "id",
                     schema: new OA\Schema(type: "integer", minimum: 1),
                 ),
@@ -296,7 +299,7 @@ class RoleController extends Controller
                             ),
                             new OA\Property(
                                 property: "provider_id",
-                                description: "Provider id",
+                                description: self::OA_DESC_PROVIDER_ID,
                                 type: "integer",
                                 example: "1",
                             ),
@@ -334,7 +337,7 @@ class RoleController extends Controller
         $role = Role::find($id);
 
         if (empty($role)) {
-            return response()->json(["message" => "Role not found"], 404);
+            return $this->notFound("role.error.not_found");
         }
 
         try {
@@ -348,7 +351,7 @@ class RoleController extends Controller
 
     #[
         OA\Delete(
-            path: "/api/v1/roles/{id}",
+            path: self::OA_PATH_ID,
             summary: "Remove role by id",
             description: self::OA_DESC_MSG_SECURITY_ADMIN,
             operationId: "Role.delete",
@@ -358,7 +361,7 @@ class RoleController extends Controller
                 new OA\Parameter(
                     in: "path",
                     required: true,
-                    description: "Role id",
+                    description: self::OA_DESC_ROLE_ID,
                     name: "id",
                     schema: new OA\Schema(type: "integer", minimum: 1),
                 ),
@@ -387,12 +390,8 @@ class RoleController extends Controller
         $role = Role::find($id);
 
         if (empty($role)) {
-            return response()->json(
-                [
-                    "message" => "Role id not found",
-                ],
-                404,
-            );
+            // Era `"Role id not found"`: lo stesso messaggio degli altri undici, scritto male.
+            return $this->notFound("role.error.not_found");
         }
 
         $providerUserRole = ProviderUserRole::where("role_id", $role->id)->first();

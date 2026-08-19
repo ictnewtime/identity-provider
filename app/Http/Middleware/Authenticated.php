@@ -2,8 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Auth\Idp\IdpProviderResolver;
+use App\Auth\Idp\IdpSessionValidator;
+use App\Auth\Idp\IdpTokenExtractor;
 use App\Models\Provider;
-use App\Models\Session;
 use App\Models\User;
 use Closure;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
@@ -11,92 +13,113 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
-use Lcobucci\JWT\Configuration;
 
 class Authenticated
 {
+    public function __construct(
+        private readonly IdpTokenExtractor $tokenExtractor,
+        private readonly IdpProviderResolver $providerResolver,
+        private readonly IdpSessionValidator $sessionValidator,
+    ) {}
+
     public function handle($request, Closure $next)
     {
-        $idpProviderId = config("idp.provider_id");
-        $cookieName = "idp_token_" . $idpProviderId;
-
-        // Estrazione del token
-        $cookieToken = $request->cookie($cookieName);
-        $bearerToken = $request->bearerToken();
-        $tokenString = $cookieToken ?? $bearerToken;
+        $tokenString = $this->tokenExtractor->extract($request);
 
         if (empty($tokenString)) {
-            Log::warning("Fallimento: Nessun token trovato nel cookie [{$cookieName}] o nell'header Bearer.", [
-                "cookie_specifico_cercato" => $cookieName,
-                "cookie_specifico_valore" => $cookieToken ? "Presente (ma vuoto?)" : "Totalmente Assente",
-                "bearer_token_valore" => $bearerToken ? "Presente (ma vuoto?)" : "Totalmente Assente",
-                "user_agent" => $request->userAgent(),
-                "ip_client" => $request->ip(),
-            ]);
+            Log::warning(
+                "Fallimento: Nessun token trovato nel cookie [{$this->tokenExtractor->cookieName()}] o nell'header Bearer.",
+                $this->tokenExtractor->missingTokenContext($request),
+            );
 
             return $this->forceLogoutAndRedirect($request, "Token assente. Effettua il login.");
         }
 
+        $provider = $this->providerResolver->resolve();
+
+        if (!$this->providerResolver->isUsable($provider)) {
+            Log::error("Impossibile validare il token: Provider IdP non trovato o secret_key mancante.");
+
+            return $this->forceLogoutAndRedirect($request, "Configurazione di sicurezza mancante.");
+        }
+
         try {
-            $provider = Provider::find($idpProviderId);
-
-            if (!$provider || empty($provider->secret_key)) {
-                Log::error("Impossibile validare il token: Provider IdP non trovato o secret_key mancante.");
-                return $this->forceLogoutAndRedirect($request, "Configurazione di sicurezza mancante.");
-            }
-
-            $algo = config("jwt.algo", "HS256");
-            $keys = config("jwt.keys", []);
-
-            $customProvider = new Lcobucci($provider->secret_key, $algo, $keys);
-
-            $payload = $customProvider->decode($tokenString);
-
-            if (isset($payload["exp"])) {
-                $currentTime = time();
-
-                if ($payload["exp"] < $currentTime) {
-                    Log::warning("Fallimento: Il token è scaduto!");
-                    throw new TokenExpiredException("Token has expired");
-                }
-            } else {
-                Log::warning("Attenzione: Il token decodificato NON ha il claim 'exp' (scadenza).");
-            }
-
-            $userId = $payload["sub"] ?? null;
-            if (!$userId) {
-                Log::warning("Fallimento: Token decodificato ma claim 'sub' (User ID) mancante.");
-                return $this->forceLogoutAndRedirect($request, "Token corrotto (ID utente mancante).");
-            }
-
-            $user = User::find($userId);
-            if (!$user) {
-                Log::warning("Fallimento: Utente ID {$userId} non esiste più nel database.");
-                return $this->forceLogoutAndRedirect($request, "Utente non trovato.");
-            }
-
-            Auth::login($user);
-
-            $sessionExists = Session::where("token", $tokenString)->exists();
-
-            if (!$sessionExists) {
-                Log::critical(
-                    "Accesso negato: Il token è valido crittograficamente ma la sessione è stata eliminata dal database",
-                );
-                return $this->forceLogoutAndRedirect(
-                    $request,
-                    'La tua sessione è stata terminata dall\'amministratore.',
-                );
-            }
+            $payload = $this->decode($provider->secret_key, $tokenString);
         } catch (TokenExpiredException $e) {
             Log::warning("Eccezione catturata: TokenExpiredException.");
+
             return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));
         } catch (\Exception $e) {
             Log::error("Errore decodifica JWT: " . $e->getMessage());
+
             return $this->forceLogoutAndRedirect($request, __("auth.token-invalid"));
         }
 
+        $user = $this->resolveUser($payload);
+
+        if ($user === null) {
+            // Il motivo preciso — claim mancante o utente sparito — l'ha gia' scritto nel log
+            // `resolveUser()`. Qui interessa solo che non si passa.
+            return $this->forceLogoutAndRedirect($request, "Token corrotto o utente non trovato.");
+        }
+
+        Auth::login($user);
+
+        if (!$this->sessionValidator->isAlive($tokenString)) {
+            Log::critical(
+                "Accesso negato: Il token è valido crittograficamente ma la sessione è stata eliminata dal database",
+            );
+
+            return $this->forceLogoutAndRedirect($request, 'La tua sessione è stata terminata dall\'amministratore.');
+        }
+
         return $next($request);
+    }
+
+    /**
+     * Decodifica e scadenza. La verifica di `exp` resta esplicita: un token senza scadenza non e'
+     * un errore per la libreria, ma qui va almeno registrato.
+     *
+     * @throws TokenExpiredException se il token e' scaduto
+     */
+    private function decode(string $secretKey, string $tokenString): array
+    {
+        $jwt = new Lcobucci($secretKey, config("jwt.algo", "HS256"), config("jwt.keys", []));
+
+        $payload = $jwt->decode($tokenString);
+
+        if (!isset($payload["exp"])) {
+            Log::warning("Attenzione: Il token decodificato NON ha il claim 'exp' (scadenza).");
+
+            return $payload;
+        }
+
+        if ($payload["exp"] < time()) {
+            Log::warning("Fallimento: Il token è scaduto!");
+
+            throw new TokenExpiredException("Token has expired");
+        }
+
+        return $payload;
+    }
+
+    private function resolveUser(array $payload): ?User
+    {
+        $userId = $payload["sub"] ?? null;
+
+        if (!$userId) {
+            Log::warning("Fallimento: Token decodificato ma claim 'sub' (User ID) mancante.");
+
+            return null;
+        }
+
+        $user = User::find($userId);
+
+        if (!$user) {
+            Log::warning("Fallimento: Utente ID {$userId} non esiste più nel database.");
+        }
+
+        return $user;
     }
 
     protected function forceLogoutAndRedirect($request, $message)
@@ -105,8 +128,10 @@ class Authenticated
         $cookieName = "idp_token_" . $idpProviderId;
         $provider = Provider::find($idpProviderId);
 
-        Cookie::queue(Cookie::forget($cookieName, "/", $provider->domain));
-        Cookie::queue(Cookie::forget("token", "/", $provider->domain));
+        $domain = $provider?->domain;
+
+        Cookie::queue(Cookie::forget($cookieName, "/", $domain));
+        Cookie::queue(Cookie::forget("token", "/", $domain));
 
         if ($request->expectsJson() && !$request->header("X-Inertia")) {
             return response()->json(["message" => $message], 401);
