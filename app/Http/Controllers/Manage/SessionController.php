@@ -86,7 +86,7 @@ class SessionController extends Controller
         $userId = $request->attributes->get("jwt_user_id");
 
         if (!$providerId || !$userId) {
-            return response()->json(["valid" => false, "message" => "JWT Claims missing"], 401);
+            return response()->json(["valid" => false, "message" => __("session.error.jwt_claims_missing")], 401);
         }
 
         $user = User::find($userId);
@@ -111,7 +111,7 @@ class SessionController extends Controller
             return response()->json(
                 [
                     "valid" => false,
-                    "message" => "Session expired.",
+                    "message" => __("session.error.expired"),
                 ],
                 404,
             );
@@ -131,7 +131,7 @@ class SessionController extends Controller
         $userId = $request->attributes->get("jwt_user_id");
 
         if (!$userId) {
-            return response()->json(["message" => "Master Token claims missing"], 401);
+            return response()->json(["message" => __("session.error.master_token_claims_missing")], 401);
         }
 
         $validated = $request->validate([
@@ -198,7 +198,7 @@ class SessionController extends Controller
         return response()->json(
             [
                 "success" => true,
-                "message" => "Single Logout eseguito.",
+                "message" => __("session.success.single_logout"),
             ],
             200,
         );
@@ -215,7 +215,7 @@ class SessionController extends Controller
         return response()->json(
             [
                 "success" => true,
-                "message" => "Delete all session by userId",
+                "message" => __("session.success.all_destroyed"),
             ],
             200,
         );

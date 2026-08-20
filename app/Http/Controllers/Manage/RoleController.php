@@ -390,7 +390,6 @@ class RoleController extends Controller
         $role = Role::find($id);
 
         if (empty($role)) {
-            // Era `"Role id not found"`: lo stesso messaggio degli altri undici, scritto male.
             return $this->notFound("role.error.not_found");
         }
 
