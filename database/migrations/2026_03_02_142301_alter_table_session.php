@@ -42,8 +42,6 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table("sessions", function (Blueprint $table) {
-            // $table->unsignedInteger("user_id")->nullable();
-            // $table->foreign("user_id")->references("id")->on("users")->onDelete("cascade")->after("id");
             $table->text("user_agent")->nullable();
 
             $table->dropForeign(["provider_id"]);

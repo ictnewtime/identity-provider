@@ -14,10 +14,6 @@ class Role extends Migration
     public function up()
     {
         Schema::create("roles", function (Blueprint $table) {
-            // $table->engine = 'InnoDB';
-            // $table->charset = 'utf8';
-            // $table->collation = 'utf8_unicode_ci';
-
             $table->increments("id");
             $table->string("name", 50);
             $table->unsignedBigInteger("provider_id")->nullable();

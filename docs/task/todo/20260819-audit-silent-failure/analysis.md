@@ -9,7 +9,7 @@ Stato: da approvare · Data: 2026-08-19
 Decidere, e poi scrivere, **cosa deve accadere quando un audit non riesce a scriversi**.
 
 Oggi non accade niente: l'eccezione viene catturata, scritta nel log e la vita continua. Nasce come
-`D2` del task [audit-complexity](../20260819-audit-complexity/analysis.md), dove è stata messa da parte
+`D2` del task [audit-complexity](../../done/20260819-audit-complexity/analysis.md), dove è stata messa da parte
 di proposito — un rifacimento di complessità non è il posto per cambiare cosa succede quando qualcosa
 si rompe.
 
