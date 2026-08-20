@@ -1,0 +1,49 @@
+# Piano — sicurezza e affidabilità
+
+Sigla dichiarata dall'analisi: `TSR` — qui non si ridichiara.
+
+Stato: **da approvare** · Data: 2026-08-20 · Analisi: [analysis.md](./analysis.md), che questo piano
+**cita e non ripete**. `F…` e `D…` puntano lì. V — `auto`: lo stabilisce un comando · `man`: lo legge
+una persona.
+
+Sei rilievi su sei file che non c'entrano niente l'uno con l'altro: **un punto per rilievo**, e nessuna
+onda. L'ordine in tabella è per utilità, non per dipendenza — solo `TSR01` ha un effetto che si sente
+subito, perché è l'unico che ha già fatto danno.
+
+| ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
+|---|---|---|---|---|---|---|
+| TSR01 | da approvare | **`D1` — i container dei test scrivono come root nell'albero di chi sviluppa.** Il rilievo dice «assicurati che sia sicuro»; la risposta è che per un'immagine di test lo è, **ma il conto dice altro**: `3996` file dell'albero sono di root (`F7`), e uno di essi — `lang/php_en.json` — **blocca `npm run build`** (`F8`, difetto `BDB32`, di cui non si conosceva la causa). **`D1`: strada (b)**, risposta del developer — `--user "$(id -u):$(id -g)"` nei due script che lanciano i container, **senza toccare le immagini** — così i file appartengono a chi ha lanciato lo script, non a root e non a un uid inventato | `scripts/run-test-backend.sh`, `docker-compose.test.yml` | basso | auto | dopo un `composer install` dentro il container, i file nuovi appartengono all'utente dell'host; e `npm run build` arriva alla fine invece di fermarsi su `EACCES`. **I 3996 file già di root restano**: è un `chown` che esegue il developer. **Su GitHub Actions e Ansible non si fa niente** (`D1`): là l'albero è un checkout usa-e-getta e l'uid di chi scrive non interessa |
+| TSR02 | da approvare | **`F2` — la regex dell'email**: `/\S+@\S+\.\S+/` → `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`. Due difetti in una riga, non uno: il **backtracking** che il rilievo nomina, e l'**assenza di ancore** che non nomina — oggi «scrivimi a: a@b.c, grazie» passa la validazione, e il backend poi la rifiuta. La forma nuova non ha sovrapposizioni fra i quantificatori, quindi non ha niente su cui tornare indietro | `resources/js/components/UserForm.vue` | basso — stringe una validazione | man | un'email valida passa; una con spazi o testo attorno **non** passa più; e la validazione del frontend accetta esattamente ciò che il backend accetta |
+| TSR03 | **fatto dal developer** (2026-08-20) — controllato | **`F3`, `F10` — il rilievo è chiuso: `for="user-select"` ora precede `<Select id="user-select">` e nel dialogo non restano due `for` uguali** (un'unica riga cambiata, `git diff --stat`). Ma la verifica che segue parlava di **fuoco**, e quella non passa: PrimeVue mette `id` sul **contenitore**, che è un `div`, e `<label for>` vale solo verso un elemento *labelable*. L'etichetta è quindi collegata a niente — prima al campo sbagliato, adesso a nessuno. È un difetto suo, `VDF25`, e si corregge in `TSR08`: fuori dal perimetro di questo rilievo, che di `for` duplicati non ne ha più | `resources/js/components/user/AddRolesDialog.vue` | basso | man | i due `for` non sono più uguali e ognuno nomina il campo che gli sta accanto — **verificato**; il fuoco è in `TSR08` |
+| TSR04 | **scartato** (2026-08-20) — **già risolto dal developer** | L'`@import` dei font è stato **rimosso** da `resources/sass/app.scss`: verificato, `grep googleapis` non trova più niente. Il punto non ha più oggetto. **Cosa resta da guardare, e non è questo punto**: se il carattere Raleway serviva a qualcosa, ora **nessuno lo carica** — né il CSS né il `<head>` del blade. Se la resa cambia, il `<link>` va aggiunto | — | — | — | — |
+| TSR05 | fatto | **`D2`+`D4`, e la risposta cambia la decisione: l'`Head` di Inertia non si tocca — funziona.** La causa era un'altra (vedi `TSR07`): `app.blade.php` aveva un `<title>` **non marcato `inertia`**, quindi il gestore di Inertia ne aggiungeva un secondo in fondo all'`head` e il browser onorava il primo. Due interventi: l'attributo `inertia` sul titolo del blade, e la funzione `title` in `createInertiaApp` — che serve perché il titolo marcato `inertia` viene **rimosso** dal gestore, e senza quella funzione le **undici** pagine senza `<Head>` restavano senza titolo (misurato, non temuto) | `resources/views/app.blade.php`, `resources/js/app.js` | basso | man | **in produzione serve `npm run build`**: il blade non va compilato, `app.js` sì, e finché il bundle è vecchio la seconda riga della correzione non c'è. Misurato in locale con un browser headless (il server di sviluppo serve i sorgenti): `/client/v1/unauthorized` → «Accesso Negato - Identity Provider», `/admin/users` e `/` → «Identity Provider», **un solo** `<title>` nell'`head` in tutti i casi |
+| TSR07 | fatto | **`D4` — perché il titolo non arrivava. Non era nessuno dei due sospetti rimasti.** La pagina **montava** e `$t()` **risolveva**: «Accesso Negato» era già nel `body` del DOM renderizzato, quindi né traduzione tardiva né errore JavaScript. Il DOM mostrava **due** `<title>` nell'`head`: `<title>Identity Provider</title>` dal blade, riga 7, e `<title inertia="">Accesso Negato</title>` aggiunto in fondo da Inertia. Con due titoli il browser usa il **primo**, ed è la riga del blade. La correzione è in `TSR05`. Diagnosi fatta qui, senza developer: `chromium --headless --dump-dom` esegue il JavaScript e stampa il DOM vero | nessuno (diagnosi) | basso | man | il comando `chromium --headless --disable-gpu --no-sandbox --virtual-time-budget=6000 --dump-dom URL` stampa l'`head` e si contano i `<title>` |
+| TSR08 | **fatto** (2026-08-20) | **`VDF25` — le nove etichette collegate a niente.** Due forme, perché i componenti sono di due specie. `MultiSelect`, `ToggleSwitch` e `Password`: da `id` a `inputId`, che porta l'id su un `input` vero — là il `for` funziona per davvero, fuoco compreso. I cinque `Select` non hanno un input nemmeno con `inputId` (finisce su uno `span`, e labelable non è): l'etichetta prende un `id` e il componente `aria-labelledby`, misurato — Vue riconosce la forma con i trattini come la prop e l'attributo arriva sullo `span` con `role="combobox"`, non sul `div`. Più la svista di `ForgotPassword.vue:54`, dove il `for` nominava un id inesistente. **Quello che resta e non si può fare**: su un `Select`, cliccare l'etichetta non porterà mai il fuoco — senza un `input` il browser non ha dove portarlo. Il nome accessibile adesso c'è, il clic no | `resources/js/components/user/AddRolesDialog.vue`, `ProviderUserRoleForm.vue`, `RoleForm.vue`, `UserForm.vue`, `ProviderForm.vue`, `resources/js/Pages/Auth/ForgotPassword.vue` | basso | auto | `./scripts/check-label-targets.sh`: **9** prima, **0** dopo. Il controllo è stato **mutato tre volte** per vedere se accusa ancora — `aria-labelledby` togliuto, `aria-labelledby` verso un'etichetta inesistente, `inputId` rimesso a `id` — e ha trovato il rilievo tutte tre le volte. E la sola delle nove che sta su una pagina pubblica l'ho vista nel DOM vero: `<label for="username">` sopra `<input id="username">` |
+| TSR06 | da approvare | La conferma dal report: i rilievi corretti non compaiono più, e quello di `TSR05` è marcato come scartato. Dice che i numeri sono a posto e niente sul comportamento — quello lo dicono le verifiche a mano dei punti | nessuno (verifica) | basso | man | il report non elenca più i cinque corretti; il sesto è scartato con la sua ragione |
+
+## Cosa questo piano non copre
+
+- **Il Dockerfile di produzione**: non è nei rilievi, e `F6` dice perché — è `php:8.2-fpm` con
+  `user = www-data` per i processi e i `chown` al posto giusto. Non si tocca.
+- **Un titolo diverso per ogni pagina** (`F9`): `TSR05` ha chiuso la metà facile — ogni pagina **ha** un
+  titolo, ma è lo stesso per tutte e undici. Dare a ciascuna il suo è un `<Head>` per pagina e una chiave
+  di traduzione per pagina: **non è un rilievo**, va deciso a parte.
+- **Il clic sull'etichetta di un `Select`**: `TSR08` ha dato a quei cinque campi un nome accessibile, non il
+  fuoco al clic — senza un `input` vero non c'è modo, e l'unica strada sarebbe un gestore `@click` per
+  etichetta. Non è un rilievo e non è un difetto: è un pezzo di comodità che PrimeVue non offre.
+- **I 3996 file già di proprietà di root**: `TSR01` impedisce che se ne creino altri, non sistema quelli
+  che ci sono. È un `chown` su un albero di lavoro reale, e lo esegue il developer.
+
+## Perf/leak — la dichiarazione della policy per `TSR05`, `TSR07`, `TSR08` e il controllo di `TSR03`
+
+Policy dell'organizzazione, dichiarata voce per voce. `TSR05` ha toccato **due file di presentazione** —
+`resources/views/app.blade.php` e `resources/js/app.js` — e **nessun service, nessuna API Resource,
+nessuna query**. Il controllo di `TSR03` e `scripts/check-label-targets.sh` non eseguono l'applicazione: leggono file e non aprono connessioni. `TSR08` ha cambiato **attributi di template** in sei componenti — nessuna chiamata, nessun dato in più che parte o che arriva: gli id e i nomi delle etichette erano già nella pagina. Le cinque voci, con il perché di ogni «non applicabile»:
+
+| Voce | Esito | Perché |
+|---|---|---|
+| Query N+1 | non applicabile | nessuna query aggiunta né spostata: il titolo è una costante nel blade e una funzione pura in `app.js` |
+| Data leakage | **verificato applicabile, e pulito** | il titolo finisce nell'`head` di **ogni** pagina, anche per un utente non autenticato. Quello che ci arriva è il nome dell'applicazione e la chiave di traduzione della pagina — «Accesso Negato»: niente identificatori, niente dati dell'utente, niente stato della sessione |
+| Scope/tenant | non applicabile | il titolo non dipende da utente né da provider: la stessa stringa per tutti |
+| Memory/streaming | non applicabile | due stringhe |
+| Query non vincolate | non applicabile | nessuna query |

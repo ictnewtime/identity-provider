@@ -261,11 +261,12 @@ watch(
         :draggable="false"
     >
         <div class="flex flex-col gap-2">
-            <label for="roles-multiselect" class="font-medium text-surface-900 dark:text-surface-0">
+            <label id="user-select-label" for="user-select" class="font-medium text-surface-900 dark:text-surface-0">
                 {{ $t("admin.users.roles.add_roles_from_user") }}
             </label>
             <Select
                 id="user-select"
+                aria-labelledby="user-select-label"
                 v-model="selectedUser"
                 :options="userOptions"
                 optionLabel="username"
@@ -284,7 +285,7 @@ watch(
             </label>
 
             <MultiSelect
-                id="roles-multiselect"
+                inputId="roles-multiselect"
                 dataKey="id"
                 v-model="selectedRoles"
                 :options="roleOptions"

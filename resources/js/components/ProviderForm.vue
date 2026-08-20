@@ -374,7 +374,7 @@ const generateSecret = () => {
 
                 <InputGroup class="flex">
                     <Password
-                        id="secret_key"
+                        inputId="secret_key"
                         v-model="form.secret_key"
                         :invalid="!!errors.secret_key"
                         :placeholder="$t('admin.providers.form.secret_key_placeholder')"
