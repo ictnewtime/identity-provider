@@ -199,19 +199,25 @@ in mezzo, la confusione diventa un errore: si mette il valore in un file che non
 
 ## 3. Analisi
 
-### Cosa fa lo script
+### Cosa fanno gli script — e perché sono **due**
 
-Un solo comando, in `scripts/`, con tre passi nell'ordine in cui devono stare:
+**`scripts/setup-env-for-test-backend.sh`** prepara e basta: da `.env.test.backend.example` produce
+`.env.test.backend`, e per ogni variabile **dichiarata senza valore** ne **genera** una — a meno che non
+la trovi già, nell'ambiente del processo o nel file.
 
-1. **prepara** `.env.test.backend` partendo da `.env.test.backend.example`: copia le righe già complete
-   e, per ogni variabile **dichiarata senza valore**, chiede cosa scriverci — oppure, se il file esiste
-   già ed è completo, non chiede niente e lo lascia stare;
-2. **costruisce** l'immagine (`docker build -f Dockerfile.test.backend`);
-3. **esegue** la suite, passando gli argomenti che riceve — così `./scripts/test-backend.sh --filter=Audit`
-   funziona come il `docker run` a mano.
+**Generata e non chiesta** (decisione del developer, 2026-08-19): sono credenziali di prova, servono a
+esistere. Il seeder pretende una password e non ne inventa una (`G6`), ma *quale* sia non interessa a
+nessuno. Chiederla avrebbe messo un uomo in mezzo a ogni ambiente nuovo, e avrebbe reso lo script
+inutilizzabile dove un terminale non c'è — cioè in CI. Se il file è già completo non si genera niente:
+due esecuzioni di fila lavorano sullo stesso ambiente.
 
-Il passo 1 è quello che dà valore: **non chiede niente se non serve**. Uno script che interroga a ogni
-esecuzione diventa uno script che si aggira.
+**`scripts/run-test-backend.sh`** chiama il primo, poi **costruisce** l'immagine e **esegue** la suite
+passando gli argomenti che riceve, così `./scripts/run-test-backend.sh --filter=Audit` funziona come il
+`docker run` a mano.
+
+Due e non uno perché servono a **due momenti diversi**: chi lancia i test a mano — con `docker build` e
+`docker run`, per capire cosa succede — ha bisogno di preparare l'ambiente e **non** vuole che qualcuno
+gli costruisca un'immagine per conto suo. Un solo script con tre passi obbligherebbe a quello.
 
 ### Come la password arriva dentro il container
 
@@ -230,7 +236,7 @@ senza che nulla lo segnali.
 
 `DatabaseSeederTest` smette di avere una costante e legge `env("SEED_ADMIN_PASSWORD")`. E qui c'è un
 punto da non sbagliare: se la variabile **manca**, il test non deve fallire con un errore oscuro dentro il
-seeder — deve dire *«manca `SEED_ADMIN_PASSWORD`: eseguire `./scripts/test-backend.sh`»*. Un test che
+seeder — deve dire *«manca `SEED_ADMIN_PASSWORD`: eseguire `./scripts/run-test-backend.sh`»*. Un test che
 salta con un motivo è utile; uno che esplode sposta il lavoro su chi legge lo stack trace.
 
 ### Cosa cambia in `docs/TEST.md`

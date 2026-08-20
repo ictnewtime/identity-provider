@@ -22,23 +22,47 @@ class DatabaseSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const PASSWORD_DI_PROVA = "SeedProva1!";
+    /**
+     * La password dell'amministratore di prova **non sta nel sorgente**: arriva dall'ambiente
+     * (punto `TAC05`). Nel modello `.env.test.backend.example` la variabile e' dichiarata senza
+     * valore, e `scripts/setup-env-for-test-backend.sh` la chiede e la passa al container.
+     *
+     * Ricordata in una proprieta' statica perche' `test_senza_la_password_…` la cancella di
+     * proposito: senza questa copia, dal secondo test in poi non ci sarebbe piu'.
+     */
+    private static ?string $password = null;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        putenv("SEED_ADMIN_PASSWORD=" . self::PASSWORD_DI_PROVA);
-        $_ENV["SEED_ADMIN_PASSWORD"] = self::PASSWORD_DI_PROVA;
-        $_SERVER["SEED_ADMIN_PASSWORD"] = self::PASSWORD_DI_PROVA;
+        self::$password ??= (string) env("SEED_ADMIN_PASSWORD");
+
+        if (self::$password === "") {
+            $this->fail(
+                "Manca SEED_ADMIN_PASSWORD nell'ambiente: questo test semina un amministratore e la " .
+                    "password non se la inventa. Eseguire ./scripts/run-test-backend.sh, che la chiede una " .
+                    "volta e la passa al container.",
+            );
+        }
+
+        $this->impostaPassword(self::$password);
     }
 
     protected function tearDown(): void
     {
-        putenv("SEED_ADMIN_PASSWORD");
-        unset($_ENV["SEED_ADMIN_PASSWORD"], $_SERVER["SEED_ADMIN_PASSWORD"]);
+        // Si **ripristina**, non si cancella: il valore viene dall'ambiente del processo, e
+        // cancellarlo lo toglierebbe anche agli altri file di test eseguiti dopo.
+        $this->impostaPassword(self::$password ?? "");
 
         parent::tearDown();
+    }
+
+    private function impostaPassword(string $password): void
+    {
+        putenv("SEED_ADMIN_PASSWORD=" . $password);
+        $_ENV["SEED_ADMIN_PASSWORD"] = $password;
+        $_SERVER["SEED_ADMIN_PASSWORD"] = $password;
     }
 
     /** Le righe che il seeder crea, nell'ordine in cui le crea. */
