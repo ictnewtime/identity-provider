@@ -11,7 +11,6 @@ use App\Http\Middleware\Authenticated;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SetLocale;
-// use App\Http\Middleware\CheckClientCredentials;
 use App\Http\Middleware\ProviderClientCredentials;
 use App\Http\Middleware\VerifyExternalToken;
 use App\Http\Middleware\VerifyMasterToken;

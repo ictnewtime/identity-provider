@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RoleRequest;
 use App\Models\ProviderUserRole;
 use Illuminate\Database\QueryException;
-// use App\Repositories\RoleRepository;
 use App\Models\Role;
 use Illuminate\Support\Facades\Log;
 use OpenApi\Attributes as OA;
@@ -16,13 +15,6 @@ class RoleController extends Controller
 {
     private const OA_PATH = "/api/v1/roles";
     private const OA_PATH_ID = self::OA_PATH . "/{id}";
-
-    // protected $roleRepository;
-
-    // public function __construct(RoleRepository $roleRepository)
-    // {
-    //     $this->roleRepository = $roleRepository;
-    // }
 
     #[
         OA\Get(
