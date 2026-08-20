@@ -18,7 +18,7 @@ decisione di `D1` si prende a occhio.
 
 ## Cosa questo piano non copre
 
-- **La complessità di `logAudit`**: è [audit-complexity](../20260819-audit-complexity/action-plan.md),
+- **La complessità di `logAudit`**: è [audit-complexity](../../done/20260819-audit-complexity/action-plan.md),
   sigla `TAC`. Questo task non tocca la forma del metodo, solo cosa fa quando fallisce — e i due
   lavori vanno tenuti separati proprio perché il secondo è invisibile nel primo.
 - **`VDF15`**: l'indice mancante che rende quella tabella più costosa. Rimandato per decisione del

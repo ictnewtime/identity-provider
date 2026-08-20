@@ -2,7 +2,7 @@
 
 Sigla dichiarata dall'analisi: `TAC` — qui non si ridichiara.
 
-Stato: **da approvare** · Data: 2026-08-19 · Analisi: [analysis.md](./analysis.md), che questo piano
+Stato: **chiuso** (2026-08-19) — 11 punti fatti · Data: 2026-08-19 · Analisi: [analysis.md](./analysis.md), che questo piano
 **cita e non ripete**. `F…` e `D…` puntano lì. V — `auto`: lo stabilisce un comando · `man`: lo legge
 una persona.
 
@@ -28,15 +28,19 @@ di chi ha fatto cosa, e un'azione tradotta male non si vede da nessuna parte.
 | TAC09 | **fatto** (2026-08-19) | **`G-D1`: un nome solo.** Il modello diceva `cp … .env.testing`, che non era né ignorato da git né letto da nessuno: ora dice che il file locale è `.env.test.backend` e che non si copia a mano — lo fa lo script. E accanto al `COPY` del Dockerfile c'è scritto **da dove arriva la password**: non da quel `COPY`, non dal file locale, ma con `-e` — con la ragione, che è la guardia di `VDF11` | `.env.test.backend.example`, `Dockerfile.test.backend` | basso | man | nel repository esiste un solo nome per quel file, e chi legge il Dockerfile non può concludere che il valore vada messo nel modello versionato |
 | TAC10 | **fatto** (2026-08-19) | **Il messaggio del guardiano, attaccato alla realtà in due modi.** Il nome della variabile è ora una costante — `PASSWORD_VARIABLE` — usata **sia** per leggere l'ambiente **sia** per comporre il messaggio: scritto due volte, il giorno che cambia si aggiorna la lettura e si dimentica l'errore, ed è lo stesso difetto del refuso `session.error.access_denied.userdisabled_or_missing_roles` del 13 agosto. Lo script è un'altra costante, e il test verifica che **esista sul disco**: un messaggio che indica una via d'uscita inesistente è peggio di nessun messaggio. Il test è in **inglese**, che è la convenzione da qui in avanti (`TTC03` convertirà gli altri) | `tests/Feature/DatabaseSeederTest.php` | basso | auto | **provato nei due versi, entrambi**: cambiando il nome dello script il test dice «il messaggio indica uno script che non esiste»; togliendo la variabile dal messaggio, rosso. Suite intera **92 verdi** |
 | TAC11 | **fatto** (2026-08-19) | **Gli audit delle chiamate M2M hanno un attore.** `resolveActor()` legge `jwt_user_id` dagli attributi della richiesta come **ultima** strada, dopo `Auth` e dopo il client Passport: è l'identità che il middleware del master token ha già stabilito. **Non** si legge `$model->user_id`, e il perché sta scritto accanto al codice: quello è il **soggetto**, non l'attore — oggi coincidono, ma un'API che cancellasse la sessione di un altro utente attribuirebbe l'operazione alla vittima | `app/Traits/CustomAuditable.php`, `tests/Feature/Audit/CustomAuditableTest.php` | medio — cambia **chi** risulta aver fatto una modifica | auto | due test nuovi, e la coppia è il punto: con `jwt_user_id` la riga porta quell'utente e `user_type` = `App\Models\User`; **senza nessuna identità la riga resta senza attore**, perché quella è la verità. **Provato nei due versi**: togliendo la lettura cade il primo; mettendo un id che **non** viene dalla richiesta cadono **entrambi** — ed è la prova che il secondo test difende dall'inventare un attore. Suite intera **94 verdi** |
-| TAC06 | da approvare | La conferma dal report: i tre rilievi non compaiono più. Dice che i numeri sono a posto, e **niente sul comportamento** — quello lo dicono `TAC01` e il confronto di `TAC04` | nessuno (verifica) | basso | man | i tre rilievi `high` spariti dal report |
+| TAC06 | **fatto** (2026-08-19) | La conferma dal report: i tre rilievi non compaiono più. **Riferita dal developer** — lo scan lo esegue la pipeline, non l'agente. Dice che i numeri sono a posto e **niente sul comportamento**: quello lo dicono i 12 test di `TAC01`/`TAC11` e il confronto esaustivo di `TAC04` | nessuno (verifica) | basso | man | i tre rilievi `high` spariti dal report |
 
 ## Cosa questo piano non copre
 
 - **L'indice mancante su `sessions`** (`F5`, `D4`): questo piano **misura** che quella query gira a ogni
   scrittura di ogni modello auditato, e la misura sta nella voce `VDF15`. **`D4`: non è prioritario** —
   è efficienza, e si valuta dopo i rilievi di SonarQube. Correggerla è `TTR10`, in
-  [token-refresh](../20260813-token-refresh/action-plan.md).
+  [token-refresh](../../todo/20260813-token-refresh/action-plan.md).
+- **`D5`, rimasta senza risposta**: che **nessuna operazione da `artisan` produca audit** — un seeder,
+  un comando di manutenzione, una modifica da `tinker` — è ora dimostrato da un test (`TAC01`) e scritto
+  in un commento del codice, ma **non** in `project-analysis.md`, che è la pagina dove si guarda. Portata
+  in backlog come `BDB35` perché `done/` è una zona che non si apre lavorando.
 - **L'errore inghiottito di `logAudit`** (`F6`, `D2`): **ha un task suo**, deciso il 2026-08-19 —
-  [audit-silent-failure](../20260819-audit-silent-failure/analysis.md). Qui non si tocca.
+  [audit-silent-failure](../../todo/20260819-audit-silent-failure/analysis.md). Qui non si tocca.
 - **Gli altri form con la catena di `if`**: dopo `TAC04` restano `RoleForm` e `UserForm`. Non sono nei
   rilievi, e non si toccano per simmetria.

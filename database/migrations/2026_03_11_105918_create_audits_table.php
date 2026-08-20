@@ -20,7 +20,7 @@ return new class extends Migration {
             $table->string($morphPrefix . "_type")->nullable();
             $table->unsignedBigInteger($morphPrefix . "_id")->nullable();
             $table->string("event");
-            // $table->morphs('auditable');
+
             $table->string("auditable_type");
             $table->string("auditable_id");
             $table->index(["auditable_type", "auditable_id"]);
