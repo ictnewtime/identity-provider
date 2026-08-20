@@ -33,8 +33,8 @@ class CustomAuditableTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** Accende l'audit per questo test, disattivando il guardiano della console. */
-    private function fuoriDallaConsole(): void
+    /** Accende l'auditRows per questo test, disattivando il guardiano della console. */
+    private function outsideTheConsole(): void
     {
         $proprieta = new \ReflectionProperty($this->app, "isRunningInConsole");
         $proprieta->setValue($this->app, false);
@@ -53,13 +53,13 @@ class CustomAuditableTest extends TestCase
         ]);
     }
 
-    /** Le righe di audit, in ordine di scrittura. */
-    private function audit(): array
+    /** Le righe di auditRows, in ordine di scrittura. */
+    private function auditRows(): array
     {
         return DB::table("audits")->orderBy("id")->get()->all();
     }
 
-    private function ultimo(): ?object
+    private function lastRow(): ?object
     {
         return DB::table("audits")->orderByDesc("id")->first();
     }
@@ -67,22 +67,22 @@ class CustomAuditableTest extends TestCase
     // --- il guardiano della console, che ora e' un caso e non un ostacolo ----------------
 
     /** Senza la leva non si scrive niente: e' il comportamento di tutta la suite di oggi. */
-    public function test_in_console_non_scrive_nessun_audit(): void
+    public function test_in_console_it_writes_no_audit(): void
     {
         $this->provider();
 
-        $this->assertSame([], $this->audit(), "in console l'audit non deve scrivere");
+        $this->assertSame([], $this->auditRows(), "in console l'auditRows non deve scrivere");
     }
 
     // --- gli eventi ----------------------------------------------------------------------
 
-    public function test_la_creazione_scrive_un_audit_created(): void
+    public function test_a_creation_writes_a_created_audit(): void
     {
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         $provider = $this->provider();
 
-        $righe = $this->audit();
+        $righe = $this->auditRows();
         $this->assertCount(1, $righe);
         $this->assertSame("created", $righe[0]->event);
         $this->assertSame(Provider::class, $righe[0]->auditable_type);
@@ -91,48 +91,48 @@ class CustomAuditableTest extends TestCase
         $this->assertStringContainsString("esempio.it", $righe[0]->new_values);
     }
 
-    public function test_laggiornamento_scrive_i_valori_di_prima_e_di_dopo(): void
+    public function test_an_update_writes_the_values_before_and_after(): void
     {
         $provider = $this->provider();
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         $provider->update(["name" => "Nome nuovo"]);
 
-        $riga = $this->ultimo();
+        $riga = $this->lastRow();
         $this->assertSame("updated", $riga->event);
         $this->assertStringContainsString("P1", $riga->old_values, "manca il valore precedente");
         $this->assertStringContainsString("Nome nuovo", $riga->new_values);
     }
 
-    public function test_la_soft_delete_scrive_deleted(): void
+    public function test_a_soft_delete_writes_deleted(): void
     {
         $provider = $this->provider();
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         $provider->delete();
 
-        $this->assertSame("deleted", $this->ultimo()->event);
+        $this->assertSame("deleted", $this->lastRow()->event);
     }
 
-    public function test_il_ripristino_scrive_restored(): void
+    public function test_a_restore_writes_restored(): void
     {
         $provider = $this->provider();
         $provider->delete();
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         $provider->restore();
 
-        $this->assertSame("restored", $this->ultimo()->event);
+        $this->assertSame("restored", $this->lastRow()->event);
     }
 
-    public function test_la_cancellazione_definitiva_scrive_force_deleted(): void
+    public function test_a_force_delete_writes_force_deleted(): void
     {
         $provider = $this->provider();
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         $provider->forceDelete();
 
-        $this->assertSame("force_deleted", $this->ultimo()->event);
+        $this->assertSame("force_deleted", $this->lastRow()->event);
     }
 
     // --- il rumore che NON si scrive ------------------------------------------------------
@@ -141,7 +141,7 @@ class CustomAuditableTest extends TestCase
      * Una sessione toccata solo nei campi di servizio non produce audit: senza questa regola ogni
      * richiesta autenticata lascerebbe una riga, e la tabella diventerebbe illeggibile.
      */
-    public function test_una_sessione_toccata_solo_nei_campi_di_servizio_non_scrive_niente(): void
+    public function test_a_session_touched_only_in_service_fields_writes_nothing(): void
     {
         $provider = $this->provider();
         $user = User::factory()->create(["enabled" => 1]);
@@ -154,15 +154,15 @@ class CustomAuditableTest extends TestCase
             "user_agent" => env("TEST_USER_AGENT"),
             "expires_at" => now()->addHour(),
         ]);
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         $sessione->update(["last_activity" => now(), "expires_at" => now()->addHours(2)]);
 
-        $this->assertSame([], $this->audit(), "i campi di servizio della sessione non vanno auditati");
+        $this->assertSame([], $this->auditRows(), "i campi di servizio della sessione non vanno auditati");
     }
 
     /** Ma un campo che conta, sulla stessa sessione, si audita. */
-    public function test_una_sessione_col_token_cambiato_scrive_un_audit(): void
+    public function test_a_session_with_a_changed_token_writes_an_audit(): void
     {
         $provider = $this->provider();
         $user = User::factory()->create(["enabled" => 1]);
@@ -175,25 +175,25 @@ class CustomAuditableTest extends TestCase
             "user_agent" => env("TEST_USER_AGENT"),
             "expires_at" => now()->addHour(),
         ]);
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         $sessione->update(["token" => "nuovo"]);
 
-        $this->assertSame("updated", $this->ultimo()->event);
+        $this->assertSame("updated", $this->lastRow()->event);
     }
 
     // --- chi ha fatto la modifica --------------------------------------------------------
 
-    public function test_lattore_e_lutente_autenticato(): void
+    public function test_the_actor_is_the_authenticated_user(): void
     {
         $provider = $this->provider();
         $user = User::factory()->create(["enabled" => 1]);
         Auth::login($user);
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
 
-        $riga = $this->ultimo();
+        $riga = $this->lastRow();
         $this->assertSame((string) $user->id, (string) $riga->user_id);
         $this->assertSame(User::class, $riga->user_type);
     }
@@ -210,11 +210,11 @@ class CustomAuditableTest extends TestCase
         $provider = $this->provider();
         $user = User::factory()->create(["enabled" => 1]);
         request()->attributes->set("jwt_user_id", $user->id);
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
 
-        $riga = $this->ultimo();
+        $riga = $this->lastRow();
         $this->assertSame((string) $user->id, (string) $riga->user_id);
         $this->assertSame(User::class, $riga->user_type);
     }
@@ -223,11 +223,11 @@ class CustomAuditableTest extends TestCase
     public function test_without_any_identity_the_audit_row_has_no_actor(): void
     {
         $provider = $this->provider();
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
 
-        $riga = $this->ultimo();
+        $riga = $this->lastRow();
         $this->assertNull($riga->user_id, "un attore inventato e' peggio di nessun attore");
         $this->assertNull($riga->user_type);
     }
@@ -236,15 +236,15 @@ class CustomAuditableTest extends TestCase
      * Senza utente ma con un client Passport negli attributi della richiesta, l'attore diventa il
      * client — e `user_id` porta l'id del client, non di un utente.
      */
-    public function test_lattore_e_il_client_passport_quando_non_ce_un_utente(): void
+    public function test_the_actor_is_the_passport_client_when_there_is_no_user(): void
     {
         $provider = $this->provider();
         request()->attributes->set("oauth_client_id", 7);
-        $this->fuoriDallaConsole();
+        $this->outsideTheConsole();
 
         Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
 
-        $riga = $this->ultimo();
+        $riga = $this->lastRow();
         $this->assertSame("7", (string) $riga->user_id);
         $this->assertSame(Client::class, $riga->user_type);
     }

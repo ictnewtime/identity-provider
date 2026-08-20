@@ -66,19 +66,19 @@ class DatabaseSeederTest extends TestCase
             $this->fail(self::missingPasswordMessage());
         }
 
-        $this->impostaPassword(self::$password);
+        $this->setPassword(self::$password);
     }
 
     protected function tearDown(): void
     {
         // Si **ripristina**, non si cancella: il valore viene dall'ambiente del processo, e
         // cancellarlo lo toglierebbe anche agli altri file di test eseguiti dopo.
-        $this->impostaPassword(self::$password ?? "");
+        $this->setPassword(self::$password ?? "");
 
         parent::tearDown();
     }
 
-    private function impostaPassword(string $password): void
+    private function setPassword(string $password): void
     {
         putenv("SEED_ADMIN_PASSWORD=" . $password);
         $_ENV["SEED_ADMIN_PASSWORD"] = $password;
@@ -86,7 +86,7 @@ class DatabaseSeederTest extends TestCase
     }
 
     /** Le righe che il seeder crea, nell'ordine in cui le crea. */
-    private function conteggi(): array
+    private function counts(): array
     {
         return [
             "providers" => \DB::table("providers")->count(),
@@ -96,17 +96,17 @@ class DatabaseSeederTest extends TestCase
         ];
     }
 
-    public function test_la_prima_esecuzione_popola_il_database(): void
+    public function test_the_first_run_populates_the_database(): void
     {
         $this->seed(DatabaseSeeder::class);
 
         $this->assertSame(
             ["providers" => 1, "roles" => 1, "users" => 1, "provider_user_roles" => 1],
-            $this->conteggi(),
+            $this->counts(),
         );
     }
 
-    public function test_crea_i_parametri_iniziali(): void
+    public function test_it_creates_the_initial_parameters(): void
     {
         $this->seed(DatabaseSeeder::class);
 
@@ -127,7 +127,7 @@ class DatabaseSeederTest extends TestCase
         $this->assertSame(count($attesi), Parameter::count(), "ci sono parametri oltre a quelli attesi");
     }
 
-    public function test_la_seconda_esecuzione_fallisce_con_un_errore_gestito(): void
+    public function test_the_second_run_fails_with_a_handled_error(): void
     {
         $this->seed(DatabaseSeeder::class);
 
@@ -138,10 +138,10 @@ class DatabaseSeederTest extends TestCase
         $this->seed(DatabaseSeeder::class);
     }
 
-    public function test_la_seconda_esecuzione_non_lascia_niente_a_meta(): void
+    public function test_the_second_run_leaves_nothing_half_done(): void
     {
         $this->seed(DatabaseSeeder::class);
-        $prima = $this->conteggi();
+        $prima = $this->counts();
 
         try {
             $this->seed(DatabaseSeeder::class);
@@ -150,7 +150,7 @@ class DatabaseSeederTest extends TestCase
             // atteso: e' il caso di sopra. Qui interessa solo cosa resta nel database.
         }
 
-        $this->assertSame($prima, $this->conteggi(), "la seconda esecuzione ha lasciato righe dietro di se'");
+        $this->assertSame($prima, $this->counts(), "la seconda esecuzione ha lasciato righe dietro di se'");
     }
 
     /**
@@ -172,7 +172,7 @@ class DatabaseSeederTest extends TestCase
         );
     }
 
-    public function test_senza_la_password_il_seeder_si_ferma_e_non_scrive_niente(): void
+    public function test_without_the_password_the_seeder_stops_and_writes_nothing(): void
     {
         putenv("SEED_ADMIN_PASSWORD");
         unset($_ENV["SEED_ADMIN_PASSWORD"], $_SERVER["SEED_ADMIN_PASSWORD"]);
@@ -186,7 +186,7 @@ class DatabaseSeederTest extends TestCase
 
         $this->assertSame(
             ["providers" => 0, "roles" => 0, "users" => 0, "provider_user_roles" => 0],
-            $this->conteggi(),
+            $this->counts(),
         );
     }
 }

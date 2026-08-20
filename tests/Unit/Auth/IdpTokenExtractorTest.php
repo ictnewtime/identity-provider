@@ -14,7 +14,7 @@ use Tests\TestCase;
  */
 class IdpTokenExtractorTest extends TestCase
 {
-    private function richiesta(array $cookies = [], ?string $bearer = null): Request
+    private function requestWith(array $cookies = [], ?string $bearer = null): Request
     {
         $request = Request::create("/qualsiasi", "GET", [], $cookies);
 
@@ -25,46 +25,46 @@ class IdpTokenExtractorTest extends TestCase
         return $request;
     }
 
-    public function test_il_nome_del_cookie_dipende_dal_provider_configurato(): void
+    public function test_the_cookie_name_depends_on_the_configured_provider(): void
     {
         $this->assertSame("idp_token_" . config("idp.provider_id"), (new IdpTokenExtractor())->cookieName());
     }
 
-    public function test_senza_niente_non_estrae_niente(): void
+    public function test_with_nothing_it_extracts_nothing(): void
     {
-        $this->assertNull((new IdpTokenExtractor())->extract($this->richiesta()));
+        $this->assertNull((new IdpTokenExtractor())->extract($this->requestWith()));
     }
 
-    public function test_estrae_dal_cookie(): void
+    public function test_it_extracts_from_the_cookie(): void
     {
         $estrattore = new IdpTokenExtractor();
 
-        $token = $estrattore->extract($this->richiesta([$estrattore->cookieName() => "dal-cookie"]));
+        $token = $estrattore->extract($this->requestWith([$estrattore->cookieName() => "dal-cookie"]));
 
         $this->assertSame("dal-cookie", $token);
     }
 
-    public function test_estrae_dallheader_bearer_quando_il_cookie_manca(): void
+    public function test_it_extracts_from_the_bearer_header_when_the_cookie_is_missing(): void
     {
-        $this->assertSame("dal-bearer", (new IdpTokenExtractor())->extract($this->richiesta([], "dal-bearer")));
+        $this->assertSame("dal-bearer", (new IdpTokenExtractor())->extract($this->requestWith([], "dal-bearer")));
     }
 
-    public function test_il_cookie_ha_la_precedenza_sul_bearer(): void
+    public function test_the_cookie_takes_precedence_over_the_bearer(): void
     {
         $estrattore = new IdpTokenExtractor();
 
-        $token = $estrattore->extract($this->richiesta([$estrattore->cookieName() => "dal-cookie"], "dal-bearer"));
+        $token = $estrattore->extract($this->requestWith([$estrattore->cookieName() => "dal-cookie"], "dal-bearer"));
 
         // La precedenza non e' un dettaglio: e' cio' che decide quale sessione conta quando una
         // richiesta porta entrambi, e cambiarla cambierebbe chi risulta autenticato.
         $this->assertSame("dal-cookie", $token);
     }
 
-    public function test_il_contesto_del_log_dice_quale_cookie_stava_cercando(): void
+    public function test_the_log_context_says_which_cookie_it_was_looking_for(): void
     {
         $estrattore = new IdpTokenExtractor();
 
-        $contesto = $estrattore->missingTokenContext($this->richiesta());
+        $contesto = $estrattore->missingTokenContext($this->requestWith());
 
         // Senza questo, «token assente» non distingue «non l'ha mandato» da «lo cerco col nome
         // sbagliato» — che e' un errore di configurazione, non dell'utente.

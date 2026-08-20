@@ -24,7 +24,7 @@ class ProviderUserRoleDeleteTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function associazione(): ProviderUserRole
+    private function anAssociation(): ProviderUserRole
     {
         $provider = Provider::forceCreate([
             "domain" => "localhost",
@@ -45,11 +45,11 @@ class ProviderUserRoleDeleteTest extends TestCase
         ]);
     }
 
-    public function test_la_cancellazione_risponde_204_senza_corpo(): void
+    public function test_the_deletion_responds_204_with_no_body(): void
     {
-        $associazione = $this->associazione();
+        $anAssociation = $this->anAssociation();
 
-        $risposta = $this->withoutMiddleware()->deleteJson("/admin/v1/provider-user-roles/{$associazione->id}");
+        $risposta = $this->withoutMiddleware()->deleteJson("/admin/v1/provider-user-roles/{$anAssociation->id}");
 
         $risposta->assertStatus(204);
 
@@ -63,17 +63,17 @@ class ProviderUserRoleDeleteTest extends TestCase
         );
     }
 
-    public function test_la_cancellazione_avviene_davvero(): void
+    public function test_the_deletion_actually_happens(): void
     {
-        $associazione = $this->associazione();
+        $anAssociation = $this->anAssociation();
 
-        $this->withoutMiddleware()->deleteJson("/admin/v1/provider-user-roles/{$associazione->id}");
+        $this->withoutMiddleware()->deleteJson("/admin/v1/provider-user-roles/{$anAssociation->id}");
 
         // Il 204 senza corpo non deve diventare una scusa per non fare niente: si verifica l'effetto.
-        $this->assertSoftDeleted("provider_user_roles", ["id" => $associazione->id]);
+        $this->assertSoftDeleted("provider_user_roles", ["id" => $anAssociation->id]);
     }
 
-    public function test_cancellare_una_associazione_inesistente_risponde_404_con_il_messaggio(): void
+    public function test_deleting_a_missing_association_responds_404_with_the_message(): void
     {
         $risposta = $this->withoutMiddleware()->deleteJson("/admin/v1/provider-user-roles/999999");
 
@@ -81,7 +81,7 @@ class ProviderUserRoleDeleteTest extends TestCase
         $this->assertNotSame("", $risposta->getContent(), "il 404 invece un corpo ce l'ha, ed e' giusto");
     }
 
-    public function test_nessuna_risposta_204_del_controller_compone_un_corpo(): void
+    public function test_no_204_response_of_the_controller_composes_a_body(): void
     {
         // La verifica che l'HTTP non puo' dare: `response()->json([...], 204)` e `noContent()`
         // arrivano identici al client, perche' Laravel svuota il corpo dei 204 quando spedisce.
