@@ -24,7 +24,7 @@ const form = ref({
     id: null,
     key: "",
     value: "",
-    type: "string", // Impostiamo "string" come tipo predefinito
+    type: "string",
 });
 
 const errors = ref({
@@ -84,6 +84,25 @@ const validate = () => {
     return isValid;
 };
 
+const BACKEND_ERROR_FIELDS = ["key", "value", "type"];
+
+const applyBackendErrors = (error) => {
+    const backendErrors = error.response?.data?.errors;
+
+    if (!backendErrors) {
+        return;
+    }
+
+    BACKEND_ERROR_FIELDS.forEach((field) => {
+        if (backendErrors[field]) {
+            errors.value[field] = backendErrors[field][0];
+        }
+    });
+};
+
+const savedDetail = () =>
+    isEditMode.value ? trans("admin.parameters.toast.detail_updated") : trans("admin.parameters.toast.detail_created");
+
 const submit = async () => {
     if (!validate()) return;
 
@@ -104,9 +123,7 @@ const submit = async () => {
         toast.add({
             severity: "success",
             summary: trans("common.success"),
-            detail: isEditMode.value
-                ? trans("admin.parameters.toast.detail_updated")
-                : trans("admin.parameters.toast.detail_created"),
+            detail: savedDetail(),
             life: 3000,
         });
         emit("item-saved");
@@ -119,13 +136,7 @@ const submit = async () => {
             life: 3000,
         });
         emit("item-error", error);
-
-        if (error.response?.data?.errors) {
-            const backendErrors = error.response.data.errors;
-            if (backendErrors.key) errors.value.key = backendErrors.key[0];
-            if (backendErrors.value) errors.value.value = backendErrors.value[0];
-            if (backendErrors.type) errors.value.type = backendErrors.type[0];
-        }
+        applyBackendErrors(error);
     } finally {
         loading.value = false;
     }
