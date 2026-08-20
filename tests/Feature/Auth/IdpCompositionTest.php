@@ -35,7 +35,7 @@ class IdpCompositionTest extends TestCase
         Route::middleware(["web", "authenticated"])->get(self::PROBE_URI, fn() => response()->json(["ok" => true]));
     }
 
-    private function providerIdp(): Provider
+    private function idpProvider(): Provider
     {
         return Provider::forceCreate([
             "id" => (int) config("idp.provider_id"),
@@ -55,7 +55,7 @@ class IdpCompositionTest extends TestCase
         return $jwt->encode($payload);
     }
 
-    private function sessione(User $user, Provider $provider, string $token): void
+    private function sessionFor(User $user, Provider $provider, string $token): void
     {
         Session::create([
             "id" => (string) Str::uuid(),
@@ -67,7 +67,7 @@ class IdpCompositionTest extends TestCase
         ]);
     }
 
-    private function conBearer(string $token)
+    private function withBearer(string $token)
     {
         return $this->withHeaders(["Authorization" => "Bearer " . $token, "Accept" => "application/json"])->get(
             self::PROBE_URI,
@@ -78,14 +78,14 @@ class IdpCompositionTest extends TestCase
      * Il flusso completo: estrazione → provider → decodifica → utente → sessione.
      * Se una qualunque di queste passa il testimone male, qui si vede.
      */
-    public function test_il_flusso_completo_lascia_passare(): void
+    public function test_the_whole_flow_lets_the_request_through(): void
     {
-        $provider = $this->providerIdp();
+        $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
         $token = $this->token($provider, ["sub" => $user->id, "exp" => time() + 3600]);
-        $this->sessione($user, $provider, $token);
+        $this->sessionFor($user, $provider, $token);
 
-        $this->conBearer($token)
+        $this->withBearer($token)
             ->assertStatus(200)
             ->assertJson(["ok" => true]);
     }
@@ -95,63 +95,63 @@ class IdpCompositionTest extends TestCase
      * middleware si fermasse alla crittografia, un amministratore non potrebbe piu' cacciare
      * nessuno.
      */
-    public function test_un_token_valido_con_sessione_revocata_non_passa(): void
+    public function test_a_valid_token_with_a_revoked_session_does_not_pass(): void
     {
-        $provider = $this->providerIdp();
+        $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
         $token = $this->token($provider, ["sub" => $user->id, "exp" => time() + 3600]);
-        $this->sessione($user, $provider, $token);
+        $this->sessionFor($user, $provider, $token);
 
-        $this->conBearer($token)->assertStatus(200);
+        $this->withBearer($token)->assertStatus(200);
 
         Session::where("token", $token)->delete();
 
-        $this->conBearer($token)->assertStatus(401);
+        $this->withBearer($token)->assertStatus(401);
     }
 
     /**
      * La sessione c'e' ma l'utente e' sparito: due fasi che si contraddicono. Deve vincere
      * l'assenza dell'utente, non la presenza della sessione.
      */
-    public function test_sessione_viva_ma_utente_sparito_non_passa(): void
+    public function test_a_live_session_with_a_vanished_user_does_not_pass(): void
     {
-        $provider = $this->providerIdp();
+        $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
         $token = $this->token($provider, ["sub" => $user->id, "exp" => time() + 3600]);
-        $this->sessione($user, $provider, $token);
+        $this->sessionFor($user, $provider, $token);
 
         $user->forceDelete();
 
-        $this->conBearer($token)->assertStatus(401);
+        $this->withBearer($token)->assertStatus(401);
     }
 
     /**
      * Un token firmato con un'altra chiave: la decodifica fallisce e non si arriva ne' all'utente
      * ne' alla sessione, anche se entrambi esistono.
      */
-    public function test_un_token_firmato_da_un_altro_provider_non_passa(): void
+    public function test_a_token_signed_by_another_provider_does_not_pass(): void
     {
-        $provider = $this->providerIdp();
+        $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
 
         $altro = new Lcobucci(Str::random(32), config("jwt.algo", "HS256"), config("jwt.keys", []));
         $token = $altro->encode(["sub" => $user->id, "exp" => time() + 3600]);
-        $this->sessione($user, $provider, $token);
+        $this->sessionFor($user, $provider, $token);
 
-        $this->conBearer($token)->assertStatus(401);
+        $this->withBearer($token)->assertStatus(401);
     }
 
     /**
      * Cookie e bearer insieme, con valori diversi: passa quello del cookie. E' la precedenza che
      * `IdpTokenExtractor` dichiara, verificata qui end-to-end e non sul solo estrattore.
      */
-    public function test_col_cookie_e_il_bearer_insieme_vince_il_cookie(): void
+    public function test_with_both_cookie_and_bearer_the_cookie_wins(): void
     {
-        $provider = $this->providerIdp();
+        $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
 
         $buono = $this->token($provider, ["sub" => $user->id, "exp" => time() + 3600]);
-        $this->sessione($user, $provider, $buono);
+        $this->sessionFor($user, $provider, $buono);
 
         // Nel bearer un token valido ma SENZA sessione: se vincesse lui, la richiesta sarebbe 401.
         $senzaSessione = $this->token($provider, ["sub" => $user->id, "exp" => time() + 7200]);

@@ -40,7 +40,7 @@ class TokenRefreshTest extends TestCase
         Route::middleware(["web", "authenticated"])->get(self::PROBE_URI, fn() => response()->json(["ok" => true]));
     }
 
-    private function providerIdp(): Provider
+    private function idpProvider(): Provider
     {
         return Provider::forceCreate([
             "id" => (int) config("idp.provider_id"),
@@ -60,7 +60,7 @@ class TokenRefreshTest extends TestCase
         return $jwt->encode(["sub" => $user->id, "exp" => $exp]);
     }
 
-    private function sessione(User $user, Provider $provider, string $token, ?int $secondi = null): Session
+    private function sessionFor(User $user, Provider $provider, string $token, ?int $secondi = null): Session
     {
         return Session::create([
             "id" => (string) Str::uuid(),
@@ -73,7 +73,7 @@ class TokenRefreshTest extends TestCase
         ]);
     }
 
-    private function chiamaCon(string $appToken, ?string $masterToken = null)
+    private function callWith(string $appToken, ?string $masterToken = null)
     {
         $richiesta = $this->withHeaders(["Accept" => "application/json"]);
 
@@ -92,30 +92,30 @@ class TokenRefreshTest extends TestCase
      *
      * Con TTR04 questa asserzione diventera' 200, e questo test si riscrive.
      */
-    public function test_oggi_lidp_disconnette_anche_col_master_token_valido(): void
+    public function test_today_the_idp_logs_out_even_with_a_valid_master_token(): void
     {
-        $provider = $this->providerIdp();
+        $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
 
         $scaduto = $this->appToken($provider, $user, time() - 60);
-        $this->sessione($user, $provider, $scaduto, 28800);
+        $this->sessionFor($user, $provider, $scaduto, 28800);
 
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        $this->chiamaCon($scaduto, $master)->assertStatus(401);
+        $this->callWith($scaduto, $master)->assertStatus(401);
     }
 
     /** Il master token c'e' e non serve a niente: senza di lui il risultato e' identico. */
-    public function test_col_master_token_o_senza_il_risultato_e_lo_stesso(): void
+    public function test_with_or_without_the_master_token_the_result_is_the_same(): void
     {
-        $provider = $this->providerIdp();
+        $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
 
         $scaduto = $this->appToken($provider, $user, time() - 60);
-        $this->sessione($user, $provider, $scaduto, 28800);
+        $this->sessionFor($user, $provider, $scaduto, 28800);
 
-        $conMaster = $this->chiamaCon($scaduto, (new TokenProviderService())->generateMasterToken($user, $provider->id));
-        $senzaMaster = $this->chiamaCon($scaduto);
+        $conMaster = $this->callWith($scaduto, (new TokenProviderService())->generateMasterToken($user, $provider->id));
+        $senzaMaster = $this->callWith($scaduto);
 
         $this->assertSame(
             $senzaMaster->getStatusCode(),
@@ -125,14 +125,14 @@ class TokenRefreshTest extends TestCase
     }
 
     /** Il token valido passa: e' la controprova che il 401 di sopra dipende dalla SCADENZA. */
-    public function test_un_app_token_valido_passa(): void
+    public function test_a_valid_app_token_passes(): void
     {
-        $provider = $this->providerIdp();
+        $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
 
         $valido = $this->appToken($provider, $user, time() + 3600);
-        $this->sessione($user, $provider, $valido);
+        $this->sessionFor($user, $provider, $valido);
 
-        $this->chiamaCon($valido)->assertStatus(200);
+        $this->callWith($valido)->assertStatus(200);
     }
 }

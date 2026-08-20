@@ -18,7 +18,7 @@ use Tests\TestCase;
  */
 class DestructiveDatabaseGuardTest extends TestCase
 {
-    private function conDatabase(string $nome, callable $prova): void
+    private function withDatabase(string $nome, callable $prova): void
     {
         $connessione = config("database.default");
         $originale = config("database.connections.{$connessione}.database");
@@ -32,7 +32,7 @@ class DestructiveDatabaseGuardTest extends TestCase
         }
     }
 
-    public function test_lascia_passare_un_database_consentito(): void
+    public function test_it_lets_an_allowed_database_through(): void
     {
         // `:memory:` e' il database su cui gira questa suite: se la guardia gridasse qui,
         // nessun test partirebbe. E' la meta' del controllo che si dimentica di provare.
@@ -41,17 +41,17 @@ class DestructiveDatabaseGuardTest extends TestCase
         $this->assertTrue(true, "la guardia non deve fermare un database consentito");
     }
 
-    public function test_lascia_passare_anche_il_database_degli_e2e(): void
+    public function test_it_also_lets_the_e2e_database_through(): void
     {
-        $this->conDatabase("idp_test", function () {
+        $this->withDatabase("idp_test", function () {
             DestructiveDatabaseGuard::ensureTestDatabase();
             $this->assertTrue(true);
         });
     }
 
-    public function test_rifiuta_il_database_di_sviluppo(): void
+    public function test_it_rejects_the_development_database(): void
     {
-        $this->conDatabase("idp_develop", function () {
+        $this->withDatabase("idp_develop", function () {
             $this->expectException(RuntimeException::class);
             $this->expectExceptionMessageMatches("/non e' un database di test/");
 
@@ -59,9 +59,9 @@ class DestructiveDatabaseGuardTest extends TestCase
         });
     }
 
-    public function test_il_messaggio_dice_quali_sono_consentiti_e_dove_guardare(): void
+    public function test_the_message_says_which_are_allowed_and_where_to_look(): void
     {
-        $this->conDatabase("un_database_qualsiasi", function () {
+        $this->withDatabase("un_database_qualsiasi", function () {
             try {
                 DestructiveDatabaseGuard::ensureTestDatabase();
                 $this->fail("la guardia doveva rifiutare");
@@ -74,7 +74,7 @@ class DestructiveDatabaseGuardTest extends TestCase
         });
     }
 
-    public function test_senza_elenco_di_consentiti_fallisce_chiusa(): void
+    public function test_without_an_allow_list_it_fails_closed(): void
     {
         $originale = env(DestructiveDatabaseGuard::ALLOWED_ENV);
 

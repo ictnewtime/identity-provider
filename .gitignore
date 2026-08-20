@@ -6,6 +6,7 @@
 .env.testing
 .env.prod
 .env.production
+.env.test.backend
 .phpactor.json
 .phpunit.result.cache
 /.fleet

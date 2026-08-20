@@ -57,7 +57,7 @@ class OpenApiRoutesTest extends TestCase
             ->all();
     }
 
-    public function test_ogni_percorso_annotato_ha_una_rotta(): void
+    public function test_every_annotated_path_has_a_route(): void
     {
         $registrate = $this->registeredUris();
 
@@ -71,7 +71,7 @@ class OpenApiRoutesTest extends TestCase
         );
     }
 
-    public function test_il_controllo_ha_qualcosa_da_controllare(): void
+    public function test_the_check_has_something_to_check(): void
     {
         // Un controllo che non trova niente da confrontare passerebbe sempre: e' successo in questo
         // progetto con una regex che non trovava mai niente. Qui si fissa il minimo.
