@@ -1,6 +1,5 @@
 {
     "primevue.date_format": "dd/mm/yy",
-    "primevue.first_day_of_week": "1",
     "primevue.day_names": "Domenica,Lunedì,Martedì,Mercoledì,Giovedì,Venerdì,Sabato",
     "primevue.day_names_short": "Dom,Lun,Mar,Mer,Gio,Ven,Sab",
     "primevue.day_names_min": "Do,Lu,Ma,Me,Gi,Ve,Sa",
@@ -191,6 +190,7 @@
     "admin.roles.form.error.logout_url.mandatory": "L'URL di logout non può essere vuoto",
     "admin.roles.form.error.logout_url.too_long": "L'URL di logout non può superare i 255 caratteri",
     "admin.roles.form.error.logout_url.invalid": "L'URL di logout non è valido",
+    "admin.roles.restore.title": "Ripristina Ruolo",
     "admin.roles.restore.prompt": "Sei sicuro di voler ripristinare definitivamente il ruolo ",
     "admin.roles.btn_add_roles": "Aggiungi Ruoli",
     "admin.roles.items_selected": "{0} elementi selezionati",
@@ -280,6 +280,7 @@
     "admin.provider_user_roles.table.restore_selected_tooltip": "Ripristina l'associazione selezionata",
     "admin.provider_user_roles.table.hide_deleted_tooltip": "Nascondi associazioni eliminate",
     "admin.provider_user_roles.restore.title": "Ripristina Associazione",
+    "admin.provider_user_roles.restore.prompt_user": "Sei sicuro di voler ripristinare le associazioni con id: ",
     "admin.provider_user_roles.restore.prompt": "Sei sicuro di voler ripristinare l'associazione per l'utente ",
     "admin.provider_user_roles.table.title": "Lista Associazioni",
     "admin.provider_user_roles.table.search_placeholder": "Cerca utente o dominio...",

@@ -50,14 +50,30 @@ di lui un'espressione regolare rotta renderebbe verdi gli altri due, che passere
 
 ### I due testi, ricavati e non inventati
 
-| Chiave | Da dove viene il testo | `it` | `en` |
-|---|---|---|---|
-| `admin.roles.restore.title` | le tre sorelle `…restore.title` | «Ripristina Ruolo» | «Restore Role» |
-| `admin.provider_user_roles.restore.prompt_user` | `admin.users.restore.prompt_users`, e **l'uso**: il componente stampa la chiave, poi gli id in grassetto, poi `?` | «Sei sicuro di voler ripristinare le associazioni con id: » | «Are you sure you want to restore the associations with the following ids: » |
+**Cosa intendo per «chiavi sorelle»** (`D1`): le chiavi di questo progetto sono costruite come
+`admin.<entità>.<contesto>.<ruolo>`, e la stessa schermata esiste per più entità. Sorelle sono le chiavi
+**identiche tranne l'entità in mezzo**: cambiando `roles` in `providers` o in `parameters` si ottiene una
+chiave che esiste già ed è già tradotta. Il testo che manca non va inventato, va **ricavato per
+sostituzione** — è la stessa frase con un'altra parola dentro.
 
-La seconda finisce con «id: » e **senza** punto interrogativo, perché il `?` lo mette il template
-(`F3`). Copiare il testo della sorella senza guardare il componente avrebbe prodotto una frase con due
-punti interrogativi o senza nessuno.
+Per la prima chiave, la famiglia `admin.*.restore.title` è al completo tranne una:
+
+| Chiave | `it` |
+|---|---|
+| `admin.parameters.restore.title` | Ripristina Parametro |
+| `admin.providers.restore.title` | Ripristina Provider |
+| `admin.provider_user_roles.restore.title` | Ripristina Associazione |
+| **`admin.roles.restore.title`** | **manca** → «Ripristina Ruolo» / *Restore Role* |
+
+Per la seconda la sorella diretta non c'è — nessun'altra entità ha un `prompt_user` — e la più vicina è
+`admin.users.restore.prompt_users`, «Sei sicuro di voler ripristinare gli utenti selezionati con id: ».
+Da lì il testo: «Sei sicuro di voler ripristinare le associazioni con id: » / *Are you sure you want to
+restore the associations with the following ids: *.
+
+**E qui l'analogia da sola sbaglierebbe**, per questo `F3` conta: il componente stampa la chiave, poi gli
+id in grassetto, poi il `?`. Quindi la frase finisce con «id: » e **senza** punto interrogativo. Copiando
+la sorella di un'altra entità senza guardare **come** è usata si otterrebbe una frase con due punti
+interrogativi, o con nessuno.
 
 ### Cosa resta fuori anche dopo
 
@@ -92,20 +108,24 @@ accorge.
 
 ### Conflitti
 
-- **`D1`** — i due testi proposti in `F7`/§ 3 vanno bene così? Sono testi che l'utente legge, e l'analogia
-  con le sorelle è forte ma non è una firma.
+- ~~**`D1`**~~ — **chiarito il 2026-08-19 su richiesta del developer**: «chiavi sorelle» significa le
+  chiavi identiche tranne l'entità in mezzo — `admin.<entità>.restore.title` — e il § 3 ora le elenca una
+  per una, con la famiglia al completo tranne quella che manca. Resta da confermare che i due testi
+  vadano bene: sono parole che l'utente legge.
 
 ### Ignoto
 
-- **`D2`** — le lingue sono due oggi. Se un giorno se ne aggiungesse una, il controllo diventerebbe
-  rosso su **393** chiavi in un colpo: è la cosa giusta, ma va saputo prima e non scoperto quel giorno.
+- ~~**`D2`**~~ — **risposta del 2026-08-19: nessun problema.** Aggiungere una lingua renderà il controllo
+  rosso su 393 chiavi tutte insieme, e va bene così: è il conto esatto di quanto costa una lingua nuova,
+  detto prima di cominciare invece che a metà.
 
 ## 5. Consigli
 
 - **`D1` → usare i testi proposti**, e cambiarli senza remore: vengono dalle sorelle, non da me. Se
-  suonano male è perché suonano male anche le sorelle, e allora è un altro lavoro.
-- **`D2` → nessuna azione, ma è scritto qui.** Aggiungere una lingua significa tradurre 393 chiavi, e
-  il controllo lo dirà tutto insieme. Meglio saperlo da questa pagina che da una suite rossa.
+  suonano male è perché suonano male anche le sorelle — «Ripristina Parametro», «Ripristina Provider» —
+  e allora è un altro lavoro, che riguarda tutta la famiglia e non questa chiave.
+- ~~**`D2`**~~ — risposto: nessun problema. Resta scritto qui il numero — **393 chiavi** — perché è la
+  cifra da mettere sul tavolo il giorno che si valuta una lingua nuova.
 - **L'ordine dei due punti va rispettato anche nei commit**: il punto del test da solo lascia la suite
   rossa, e questa è la sua utilità — dimostra che il difetto esiste. Chi li unisce in un commit perde
   la dimostrazione.

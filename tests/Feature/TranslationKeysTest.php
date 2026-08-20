@@ -31,29 +31,39 @@ class TranslationKeysTest extends TestCase
     /** Le lingue che il prodotto dichiara di parlare. */
     private const LOCALES = ["it", "en"];
 
-    private const SOURCE_DIRECTORIES = ["app", "routes", "database"];
+    /** I sorgenti PHP, dove le traduzioni si chiedono con `__()`. */
+    private const PHP_DIRECTORIES = ["app", "routes", "database"];
+    private const PHP_EXTENSIONS = ["php"];
+    private const PHP_PATTERN = '/__\(\s*["\']([a-zA-Z0-9_.\-]+)["\']/';
 
-    /** Sotto questo numero di chiavi trovate, il controllo non sta guardando piu' niente. */
-    private const MINIMUM_KEYS_FOUND = 40;
+    /** Il frontend, dove si chiedono con `trans()` nel codice e `$t()` nei template. */
+    private const FRONTEND_DIRECTORIES = ["resources/js"];
+    private const FRONTEND_EXTENSIONS = ["vue", "js"];
+    private const FRONTEND_PATTERN = '/(?:trans|\$t)\(\s*["\']([a-zA-Z0-9_.\-]+)["\']/';
+
+    /** Sotto questi numeri, la scansione non sta guardando piu' niente. */
+    private const MINIMUM_PHP_KEYS = 40;
+    private const MINIMUM_FRONTEND_KEYS = 200;
 
     /** @return array<string, string> chiave => `file:riga` della prima occorrenza */
-    private function usedKeys(): array
+    private function keysIn(array $directories, array $extensions, string $pattern): array
     {
         $found = [];
 
-        foreach (self::SOURCE_DIRECTORIES as $directory) {
+        foreach ($directories as $directory) {
             $files = new \RecursiveIteratorIterator(
                 new \RecursiveDirectoryIterator(base_path($directory), \FilesystemIterator::SKIP_DOTS),
             );
 
             foreach ($files as $file) {
-                if ($file->getExtension() !== "php") {
+                if (!in_array($file->getExtension(), $extensions, true)) {
                     continue;
                 }
 
                 foreach (file($file->getPathname(), FILE_IGNORE_NEW_LINES) as $number => $line) {
-                    // Solo le chiavi **letterali**: `__($variabile)` non si puo' controllare qui.
-                    if (!preg_match_all('/__\(\s*["\']([a-zA-Z0-9_.\-]+)["\']/', $line, $matches)) {
+                    // Solo le chiavi **letterali**: una chiave costruita a runtime non si controlla
+                    // da fuori. Oggi nel frontend non ce n'e' nessuna, misurato.
+                    if (!preg_match_all($pattern, $line, $matches)) {
                         continue;
                     }
 
@@ -69,12 +79,22 @@ class TranslationKeysTest extends TestCase
         return $found;
     }
 
+    private function phpKeys(): array
+    {
+        return $this->keysIn(self::PHP_DIRECTORIES, self::PHP_EXTENSIONS, self::PHP_PATTERN);
+    }
+
+    private function frontendKeys(): array
+    {
+        return $this->keysIn(self::FRONTEND_DIRECTORIES, self::FRONTEND_EXTENSIONS, self::FRONTEND_PATTERN);
+    }
+
     /** @return array<string, string> chiave => dove e' usata e in quale lingua manca */
-    private function missingKeys(): array
+    private function missingAmong(array $keys): array
     {
         $missing = [];
 
-        foreach ($this->usedKeys() as $key => $where) {
+        foreach ($keys as $key => $where) {
             foreach (self::LOCALES as $locale) {
                 if (__($key, [], $locale) === $key) {
                     $missing[$key] = "{$where} (manca in '{$locale}')";
@@ -92,15 +112,68 @@ class TranslationKeysTest extends TestCase
     public function test_the_check_still_finds_the_translation_calls(): void
     {
         $this->assertGreaterThan(
-            self::MINIMUM_KEYS_FOUND,
-            count($this->usedKeys()),
-            "il controllo non trova piu' le chiamate a __(): la ricerca e' rotta, non il codice",
+            self::MINIMUM_PHP_KEYS,
+            count($this->phpKeys()),
+            "la scansione dei sorgenti PHP non trova piu' le chiamate: e' rotta la ricerca, non il codice",
         );
+
+        $this->assertGreaterThan(
+            self::MINIMUM_FRONTEND_KEYS,
+            count($this->frontendKeys()),
+            "la scansione del frontend non trova piu' le chiamate: e' rotta la ricerca, non il codice",
+        );
+    }
+
+    /**
+     * Il frontend ha **cinque volte** le chiavi del PHP, ed e' dove `VDF23` si nascondeva: due
+     * dialoghi mostravano all'utente la chiave invece del testo, e nessuno lo vedeva perche' il
+     * controllo guardava l'altra meta'.
+     *
+     * Test **a parte** e non un'aggiunta a quello di sopra: le due scansioni cercano cose diverse, e
+     * quando diventa rosso deve dirsi subito da quale lato sta il problema.
+     */
+    public function test_every_key_used_in_the_frontend_has_a_translation(): void
+    {
+        $missing = $this->missingAmong($this->frontendKeys());
+
+        $this->assertSame(
+            [],
+            $missing,
+            "chiavi usate nel frontend e senza traduzione:\n" .
+                implode("\n", array_map(fn($key, $where) => "  {$key} -> {$where}", array_keys($missing), $missing)),
+        );
+    }
+
+    /**
+     * La regola generale dietro `VDF24`: **nessun valore di traduzione puo' essere falso**.
+     *
+     * `Translator::get()` restituisce `$line ?: $key`, e in PHP `"0"` e `""` sono falsi — quindi una
+     * traduzione che vale zero o vuota si comporta **esattamente** come una che manca, e i due test di
+     * sopra non la distinguono: la chiave c'e', il valore c'e', e `__()` restituisce la chiave.
+     *
+     * Il caso reale era `primevue.first_day_of_week` a `"0"` in inglese: il calendario cominciava di
+     * lunedi' invece che di domenica, e nessuno poteva accorgersene.
+     */
+    public function test_no_translation_value_is_falsy(): void
+    {
+        foreach (self::LOCALES as $locale) {
+            $file = base_path("lang/{$locale}.json");
+            $translations = json_decode(file_get_contents($file), true);
+
+            $falsy = array_keys(array_filter($translations, fn($value) => !$value));
+
+            $this->assertSame(
+                [],
+                $falsy,
+                "in lang/{$locale}.json questi valori sono falsi, e __() restituira' la chiave: " .
+                    implode(", ", $falsy),
+            );
+        }
     }
 
     public function test_every_key_used_in_php_sources_has_a_translation(): void
     {
-        $missing = $this->missingKeys();
+        $missing = $this->missingAmong($this->phpKeys());
 
         $this->assertSame(
             [],
