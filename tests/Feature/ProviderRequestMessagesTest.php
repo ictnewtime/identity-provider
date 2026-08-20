@@ -15,7 +15,7 @@ use Tests\TestCase;
  */
 class ProviderRequestMessagesTest extends TestCase
 {
-    private function errori(array $dati, string $lingua): array
+    private function errorsFor(array $dati, string $lingua): array
     {
         app()->setLocale($lingua);
 
@@ -28,26 +28,26 @@ class ProviderRequestMessagesTest extends TestCase
         return $validatore->errors()->all();
     }
 
-    public function test_il_dominio_mancante_ha_il_messaggio_di_lang_in_italiano(): void
+    public function test_a_missing_domain_has_the_lang_message_in_italian(): void
     {
-        $errori = $this->errori([], "it");
+        $errorsFor = $this->errorsFor([], "it");
 
-        $this->assertContains(__("admin.roles.form.error.domain.mandatory", [], "it"), $errori);
-        $this->assertNotContains("The domain field is required.", $errori, "esce ancora il predefinito di Laravel");
+        $this->assertContains(__("admin.roles.form.error.domain.mandatory", [], "it"), $errorsFor);
+        $this->assertNotContains("The domain field is required.", $errorsFor, "esce ancora il predefinito di Laravel");
     }
 
-    public function test_lurl_di_logout_non_valido_ha_il_messaggio_di_lang(): void
+    public function test_an_invalid_logout_url_has_the_lang_message(): void
     {
-        $errori = $this->errori(["domain" => "esempio.it", "logoutUrl" => "non-un-url"], "it");
+        $errorsFor = $this->errorsFor(["domain" => "esempio.it", "logoutUrl" => "non-un-url"], "it");
 
-        $this->assertContains(__("admin.roles.form.error.logout_url.invalid", [], "it"), $errori);
+        $this->assertContains(__("admin.roles.form.error.logout_url.invalid", [], "it"), $errorsFor);
     }
 
     /** Il messaggio segue la lingua: e' la ragione per cui sta in `lang` e non nel codice. */
-    public function test_i_messaggi_seguono_la_lingua(): void
+    public function test_the_messages_follow_the_language(): void
     {
-        $italiano = $this->errori([], "it");
-        $inglese = $this->errori([], "en");
+        $italiano = $this->errorsFor([], "it");
+        $inglese = $this->errorsFor([], "en");
 
         $this->assertNotSame($italiano, $inglese, "il messaggio non cambia con la lingua");
         $this->assertContains(__("admin.roles.form.error.domain.mandatory", [], "en"), $inglese);
@@ -58,7 +58,7 @@ class ProviderRequestMessagesTest extends TestCase
      * sia `campo.regola` non aggancia niente, e il test qui sopra non lo vedrebbe se un domani
      * qualcuno aggiungesse una voce nuova sbagliata accanto a quelle giuste.
      */
-    public function test_ogni_chiave_di_messages_nomina_una_regola_esistente(): void
+    public function test_every_messages_key_names_an_existing_rule(): void
     {
         $request = new ProviderRequest();
         $campi = array_keys((new \ReflectionMethod($request, "rules"))->invoke($request));
