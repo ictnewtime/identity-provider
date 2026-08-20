@@ -25,6 +25,14 @@ test passando gli argomenti che riceve. Alla prima esecuzione **genera** il valo
 il modello dichiara vuote — oggi una, `SEED_ADMIN_PASSWORD` — e lo scrive in `.env.test.backend`, che
 git ignora. Dalla seconda in poi lo riusa: due esecuzioni di fila lavorano sullo stesso ambiente.
 
+**Il container gira come te, e non scrive nell'albero.** `--user "$(id -u):$(id -g)"`: i file che
+nascono dentro il container appartengono a chi ha lanciato lo script, non a root — fino al 2026-08-20 ogni
+esecuzione ne lasciava indietro, e uno di quelli bloccava `npm run build`. E ciò che la suite scriverebbe
+è deviato **fuori** dall'albero: i log su `stderr`, la cache dei risultati in `/tmp` (`phpunit.xml`),
+la config cache in `/tmp/config-test.php`. Verificato: dopo un'esecuzione, `find . -newer` non trova
+alcun file nuovo. Non è pulizia formale — `storage/logs/laravel.log` è di **www-data**, perché lo scrive
+il container dell'applicazione, e un terzo utente che ci scrive dentro non esiste.
+
 Generate e non digitate perché sono **credenziali di prova**: servono a esistere. Il seeder pretende
 una password e non ne inventa una; quale sia non interessa a nessuno. Da qui due conseguenze pratiche:
 non c'è niente da ricordare, e in CI — dove un terminale non c'è — funziona identico.
@@ -78,8 +86,13 @@ senza valore: i valori arrivano con `-e`, non da quel `COPY`.
 ## Test E2E — MariaDB, con compose
 
 ```sh
-docker compose -f docker-compose.test.yml run --rm --build e2e
+TEST_UID=$(id -u) TEST_GID=$(id -g) docker compose -f docker-compose.test.yml run --rm --build e2e
 ```
+
+**Le due variabili servono**, e senza di loro il compose si ferma dicendo cosa scrivere: danno al
+container l'utente dell'host, così i file che scrive nell'albero montato sono tuoi e non di root. Non
+hanno un valore predefinito di proposito — `1000:1000` sarebbe giusto su una macchina e sbagliato sulla
+successiva. I test backend non chiedono niente: lo script lo fa da sé.
 
 Il database `idp_test` lo crea l'entrypoint a ogni avvio (`CREATE DATABASE IF NOT EXISTS`): non c'è
 un passo da ricordare. Configurazione: `Dockerfile.test.e2e` +

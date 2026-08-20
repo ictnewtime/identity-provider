@@ -101,7 +101,7 @@ const clearPasswords = () => {
 };
 
 const validateEmail = (email) => {
-    const re = /\S+@\S+\.\S+/;
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
 };
 
@@ -499,7 +499,7 @@ watch(
                 <label for="enabled" class="font-medium text-surface-900">{{
                     $t("admin.users.form.enabled_label")
                 }}</label>
-                <ToggleSwitch id="enabled" v-model="form.enabled" />
+                <ToggleSwitch inputId="enabled" v-model="form.enabled" />
             </div>
         </div>
 
