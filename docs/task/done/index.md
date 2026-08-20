@@ -20,6 +20,7 @@ un perché.
 | [./20260819-sonar-high-findings/](./20260819-sonar-high-findings/) | Literali nei file di configurazione e costruttori vuoti | `TSH` | 2026-08-19 |
 | [./20260819-frontend-complexity/](./20260819-frontend-complexity/) | Complessità cognitiva nel frontend: `usePassword` e i due `submit` | `TFC` | 2026-08-19 |
 | [./20260819-translation-coverage/](./20260819-translation-coverage/) | Le traduzioni del frontend, e i nomi dei test in inglese | `TTC` | 2026-08-19 |
+| [./20260819-audit-complexity/](./20260819-audit-complexity/) | La complessità del trait di audit, e l'ambiente dei test | `TAC` | 2026-08-19 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 

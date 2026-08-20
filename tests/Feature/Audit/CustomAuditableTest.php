@@ -33,7 +33,7 @@ class CustomAuditableTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** Accende l'auditRows per questo test, disattivando il guardiano della console. */
+    /** Accende l'audit per questo test, disattivando il guardiano della console. */
     private function outsideTheConsole(): void
     {
         $proprieta = new \ReflectionProperty($this->app, "isRunningInConsole");
@@ -53,7 +53,17 @@ class CustomAuditableTest extends TestCase
         ]);
     }
 
-    /** Le righe di auditRows, in ordine di scrittura. */
+    /**
+     * Un ruolo qualunque, che serve solo a **provocare un evento**: questi test guardano chi risulta
+     * aver fatto la modifica, non cosa e' stato modificato. Il nome era ripetuto in quattro test —
+     * ora sta qui, e con esso la forma della creazione.
+     */
+    private function aRole(Provider $provider): Role
+    {
+        return Role::create(["name" => "role-under-audit", "provider_id" => $provider->id]);
+    }
+
+    /** Le righe di audit, in ordine di scrittura. */
     private function auditRows(): array
     {
         return DB::table("audits")->orderBy("id")->get()->all();
@@ -191,7 +201,7 @@ class CustomAuditableTest extends TestCase
         Auth::login($user);
         $this->outsideTheConsole();
 
-        Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
+        $this->aRole($provider);
 
         $riga = $this->lastRow();
         $this->assertSame((string) $user->id, (string) $riga->user_id);
@@ -212,7 +222,7 @@ class CustomAuditableTest extends TestCase
         request()->attributes->set("jwt_user_id", $user->id);
         $this->outsideTheConsole();
 
-        Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
+        $this->aRole($provider);
 
         $riga = $this->lastRow();
         $this->assertSame((string) $user->id, (string) $riga->user_id);
@@ -225,7 +235,7 @@ class CustomAuditableTest extends TestCase
         $provider = $this->provider();
         $this->outsideTheConsole();
 
-        Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
+        $this->aRole($provider);
 
         $riga = $this->lastRow();
         $this->assertNull($riga->user_id, "un attore inventato e' peggio di nessun attore");
@@ -242,7 +252,7 @@ class CustomAuditableTest extends TestCase
         request()->attributes->set("oauth_client_id", 7);
         $this->outsideTheConsole();
 
-        Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
+        $this->aRole($provider);
 
         $riga = $this->lastRow();
         $this->assertSame("7", (string) $riga->user_id);
