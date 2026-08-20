@@ -23,27 +23,47 @@ class DatabaseSeederTest extends TestCase
     use RefreshDatabase;
 
     /**
+     * Il nome della variabile sta in una costante, e la costante finisce **sia** nella lettura
+     * dell'ambiente **sia** nel messaggio d'errore (punto `TAC10`).
+     *
+     * Non e' pignoleria: scrivendo il nome due volte, il giorno che cambia si aggiorna la lettura e
+     * si dimentica il messaggio — e chi legge l'errore va a cercare una variabile che non esiste piu'.
+     * E' lo stesso difetto di `session.error.access_denied.userdisabled_or_missing_roles`, il refuso
+     * del 2026-08-13: un nome ripetuto a mano in due posti.
+     */
+    private const PASSWORD_VARIABLE = "SEED_ADMIN_PASSWORD";
+
+    /** Lo script che prepara l'ambiente. Il test qui sotto verifica che **esista davvero**. */
+    private const SETUP_SCRIPT = "scripts/setup-env-for-test-backend.sh";
+
+    /**
      * La password dell'amministratore di prova **non sta nel sorgente**: arriva dall'ambiente
      * (punto `TAC05`). Nel modello `.env.test.backend.example` la variabile e' dichiarata senza
-     * valore, e `scripts/setup-env-for-test-backend.sh` la chiede e la passa al container.
+     * valore, e lo script di preparazione la genera e la passa al container.
      *
      * Ricordata in una proprieta' statica perche' `test_senza_la_password_…` la cancella di
      * proposito: senza questa copia, dal secondo test in poi non ci sarebbe piu'.
      */
     private static ?string $password = null;
 
+    private static function missingPasswordMessage(): string
+    {
+        return sprintf(
+            "Manca %s nell'ambiente: questo test semina un amministratore e la password non se la " .
+                "inventa. Eseguire ./%s, che la genera una volta e la scrive in .env.test.backend.",
+            self::PASSWORD_VARIABLE,
+            self::SETUP_SCRIPT,
+        );
+    }
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        self::$password ??= (string) env("SEED_ADMIN_PASSWORD");
+        self::$password ??= (string) env(self::PASSWORD_VARIABLE);
 
         if (self::$password === "") {
-            $this->fail(
-                "Manca SEED_ADMIN_PASSWORD nell'ambiente: questo test semina un amministratore e la " .
-                    "password non se la inventa. Eseguire ./scripts/run-test-backend.sh, che la chiede una " .
-                    "volta e la passa al container.",
-            );
+            $this->fail(self::missingPasswordMessage());
         }
 
         $this->impostaPassword(self::$password);
@@ -131,6 +151,25 @@ class DatabaseSeederTest extends TestCase
         }
 
         $this->assertSame($prima, $this->conteggi(), "la seconda esecuzione ha lasciato righe dietro di se'");
+    }
+
+    /**
+     * Il messaggio del guardiano vale quanto la sua precisione: e' l'unica cosa che chi lo incontra
+     * legge. Questo test lo tiene attaccato alla realta' in due modi — nomina la **stessa** variabile
+     * che il codice legge (e' la stessa costante), e lo script che indica **esiste sul disco**.
+     *
+     * In inglese perche' e' la convenzione da qui in avanti (`TTC03` convertira' gli altri).
+     */
+    public function test_the_missing_password_message_names_the_variable_and_an_existing_script(): void
+    {
+        $message = self::missingPasswordMessage();
+
+        $this->assertStringContainsString(self::PASSWORD_VARIABLE, $message);
+        $this->assertStringContainsString(self::SETUP_SCRIPT, $message);
+        $this->assertFileExists(
+            base_path(self::SETUP_SCRIPT),
+            "il messaggio indica uno script che non esiste: chi lo legge non ha una via d'uscita",
+        );
     }
 
     public function test_senza_la_password_il_seeder_si_ferma_e_non_scrive_niente(): void

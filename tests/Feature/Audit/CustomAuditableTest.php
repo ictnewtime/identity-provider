@@ -199,6 +199,40 @@ class CustomAuditableTest extends TestCase
     }
 
     /**
+     * Le chiamate M2M — l'exchange del token — non hanno una sessione di navigazione, quindi `Auth`
+     * e' vuoto. L'identita' c'e' comunque: l'ha stabilita il middleware del master token, e la mette
+     * negli attributi della richiesta. Prima di `TAC11` questi audit uscivano **senza attore**.
+     *
+     * In inglese perche' e' la convenzione da qui in avanti (`TTC03` convertira' gli altri).
+     */
+    public function test_the_actor_comes_from_the_request_identity_when_there_is_no_session(): void
+    {
+        $provider = $this->provider();
+        $user = User::factory()->create(["enabled" => 1]);
+        request()->attributes->set("jwt_user_id", $user->id);
+        $this->fuoriDallaConsole();
+
+        Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
+
+        $riga = $this->ultimo();
+        $this->assertSame((string) $user->id, (string) $riga->user_id);
+        $this->assertSame(User::class, $riga->user_type);
+    }
+
+    /** La controprova: senza nessuna identita' la riga resta **senza attore**, che e' la verita'. */
+    public function test_without_any_identity_the_audit_row_has_no_actor(): void
+    {
+        $provider = $this->provider();
+        $this->fuoriDallaConsole();
+
+        Role::create(["name" => "un ruolo", "provider_id" => $provider->id]);
+
+        $riga = $this->ultimo();
+        $this->assertNull($riga->user_id, "un attore inventato e' peggio di nessun attore");
+        $this->assertNull($riga->user_type);
+    }
+
+    /**
      * Senza utente ma con un client Passport negli attributi della richiesta, l'attore diventa il
      * client — e `user_id` porta l'id del client, non di un utente.
      */
