@@ -101,7 +101,7 @@ const clearPasswords = () => {
 };
 
 const validateEmail = (email) => {
-    const re = /\S+@\S+\.\S+/;
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
 };
 
