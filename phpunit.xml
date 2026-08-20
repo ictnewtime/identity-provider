@@ -3,7 +3,14 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
+         cacheDirectory="/tmp/phpunit-cache"
 >
+    <!-- `cacheDirectory` fuori dall'albero, ed e' l'unico modo. Senza questo attributo Pest
+         inietta `vendor/pestphp/pest/.temp` come cartella della cache
+         (`src/Plugins/Cache.php:47`), e la` il container dei test non scrive: gira con l'utente
+         dell'host mentre `vendor/` e' di root. Disattivare la cache non funziona, ed e' la parte
+         che sorprende: lo stesso plugin aggiunge l'argomento che la accende, e la riga di comando
+         vince sull'XML. Provato: con `cacheResult` a `false` l'avviso restava identico. -->
     <testsuites>
         <testsuite name="Unit">
             <directory>tests/Unit</directory>
@@ -23,6 +30,12 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
+        <!-- I log della suite vanno su stderr, non in `storage/logs/laravel.log`. Quel file
+             appartiene a **www-data** — lo scrive il container dell'applicazione — e il container
+             dei test gira con l'utente dell'host: 255 scritture rifiutate e 13 test rossi, misurati
+             il 2026-08-20. Stessa scelta della config cache deviata in `/tmp`: cio' che il test
+             scrive non tocca l'albero di chi sviluppa. -->
+        <env name="LOG_CHANNEL" value="stderr"/>
         <!-- Modo 1, predefinito: sqlite in memoria. Le variabili d'ambiente VINCONO su queste,
              quindi il modo 2 (MariaDB `idp_test`) si attiva esportandole prima di lanciare la
              suite: vedi .env.test.example e docs/TEST.md. -->

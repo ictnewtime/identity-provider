@@ -48,4 +48,15 @@ else
 fi
 
 echo "==> $*"
-exec docker run --rm -v "$RADICE":/var/www "${ENV_ARGS[@]}" "$IMMAGINE" "$@"
+# `--user`: i file che il container scrive nell'albero montato appartengono a CHI HA LANCIATO lo
+# script, non a root. Senza questo, ogni esecuzione lasciava file di root nell'albero del developer —
+# 3996 al conto del 2026-08-20 — e uno di loro, `lang/php_en.json`, bloccava `npm run build` con
+# `EACCES` (difetto BDB32). Non e' una questione di sicurezza dell'immagine: e' l'albero dell'host.
+# `HOME`: l'uid dell'host dentro il container non ha una casa, e composer scrive nella sua. `/tmp`
+# non e' nell'albero montato, quindi non lascia niente in giro.
+exec docker run --rm \
+    --user "$(id -u):$(id -g)" \
+    -e HOME=/tmp \
+    -v "$RADICE":/var/www \
+    "${ENV_ARGS[@]}" \
+    "$IMMAGINE" "$@"
