@@ -25,19 +25,41 @@ use Tests\TestCase;
  * e' quindi **inerte in tutta la suite**: chi provasse «creo un modello e leggo audits» troverebbe zero
  * righe e concluderebbe che il trait e' rotto. Non lo e': non e' mai stato acceso.
  *
- * COME SI ACCENDE (`F11`): `Application::runningInConsole()` memorizza il proprio esito in una
- * proprieta'. Forzandola a `false` si ottiene il comportamento web. Non si tocca il codice di
- * produzione — e' la stessa leva che Laravel espone con `APP_RUNNING_IN_CONSOLE`.
+ * COME SI ACCENDE (`F11`, punto `TRC05`): `Application::runningInConsole()` **memorizza** il proprio
+ * esito, quindi va deciso PRIMA che l'applicazione nasca — cioe' prima di `parent::setUp()`. La leva e'
+ * la variabile `APP_RUNNING_IN_CONSOLE`, quella che Laravel legge da se': niente riflessione su
+ * proprieta' private, e niente da giustificare a uno strumento di analisi.
+ *
+ * VALE PER TUTTA LA CLASSE, ed e' il motivo per cui il test «in console non scrive niente» **non sta
+ * qui**: quello ha bisogno del guardiano ACCESO, cioe' del comportamento predefinito sotto PHPUnit, e
+ * vive in `ConsoleGuardTest`. Due condizioni diverse, due classi — invece di una leva accesa e spenta
+ * dentro lo stesso file.
  */
 class CustomAuditableTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** Accende l'audit per questo test, disattivando il guardiano della console. */
-    private function outsideTheConsole(): void
+    protected function setUp(): void
     {
-        $proprieta = new \ReflectionProperty($this->app, "isRunningInConsole");
-        $proprieta->setValue($this->app, false);
+        // PRIMA di `parent::setUp()`, che e' dove l'applicazione nasce: dopo sarebbe tardi, perche'
+        // `runningInConsole()` memorizza l'esito alla prima chiamata. Tutte e tre le forme, perche'
+        // `Env` puo' leggere da una qualunque delle tre a seconda dell'adattatore attivo — provato
+        // il 2026-08-21: ognuna da sola basta, e metterle tutte non dipende dalla configurazione.
+        putenv("APP_RUNNING_IN_CONSOLE=false");
+        $_ENV["APP_RUNNING_IN_CONSOLE"] = "false";
+        $_SERVER["APP_RUNNING_IN_CONSOLE"] = "false";
+
+        parent::setUp();
+    }
+
+    protected function tearDown(): void
+    {
+        // Si rimette come si e' trovato: la variabile non deve valere per i test che vengono dopo,
+        // che si aspettano il guardiano acceso.
+        putenv("APP_RUNNING_IN_CONSOLE");
+        unset($_ENV["APP_RUNNING_IN_CONSOLE"], $_SERVER["APP_RUNNING_IN_CONSOLE"]);
+
+        parent::tearDown();
     }
 
     private function provider(int $id = 1): Provider
@@ -74,21 +96,10 @@ class CustomAuditableTest extends TestCase
         return DB::table("audits")->orderByDesc("id")->first();
     }
 
-    // --- il guardiano della console, che ora e' un caso e non un ostacolo ----------------
-
-    /** Senza la leva non si scrive niente: e' il comportamento di tutta la suite di oggi. */
-    public function test_in_console_it_writes_no_audit(): void
-    {
-        $this->provider();
-
-        $this->assertSame([], $this->auditRows(), "in console l'auditRows non deve scrivere");
-    }
-
     // --- gli eventi ----------------------------------------------------------------------
 
     public function test_a_creation_writes_a_created_audit(): void
     {
-        $this->outsideTheConsole();
 
         $provider = $this->provider();
 
@@ -104,7 +115,6 @@ class CustomAuditableTest extends TestCase
     public function test_an_update_writes_the_values_before_and_after(): void
     {
         $provider = $this->provider();
-        $this->outsideTheConsole();
 
         $provider->update(["name" => "Nome nuovo"]);
 
@@ -117,7 +127,6 @@ class CustomAuditableTest extends TestCase
     public function test_a_soft_delete_writes_deleted(): void
     {
         $provider = $this->provider();
-        $this->outsideTheConsole();
 
         $provider->delete();
 
@@ -128,7 +137,6 @@ class CustomAuditableTest extends TestCase
     {
         $provider = $this->provider();
         $provider->delete();
-        $this->outsideTheConsole();
 
         $provider->restore();
 
@@ -138,7 +146,6 @@ class CustomAuditableTest extends TestCase
     public function test_a_force_delete_writes_force_deleted(): void
     {
         $provider = $this->provider();
-        $this->outsideTheConsole();
 
         $provider->forceDelete();
 
@@ -164,11 +171,20 @@ class CustomAuditableTest extends TestCase
             "user_agent" => env("TEST_USER_AGENT"),
             "expires_at" => now()->addHour(),
         ]);
-        $this->outsideTheConsole();
+
+        // Le righe che i dati di partenza hanno prodotto. Prima di `TRC05` la leva si accendeva
+        // **dopo** aver creato provider, utente e sessione, quindi qui bastava `assertSame([])`; ora
+        // la leva vale per tutta la classe e anche le creazioni lasciano un audit. Cio' che questo
+        // test verifica non e' cambiato: che l'`update` sui campi di servizio non ne aggiunga NESSUNO.
+        $primaDellUpdate = count($this->auditRows());
 
         $sessione->update(["last_activity" => now(), "expires_at" => now()->addHours(2)]);
 
-        $this->assertSame([], $this->auditRows(), "i campi di servizio della sessione non vanno auditati");
+        $this->assertCount(
+            $primaDellUpdate,
+            $this->auditRows(),
+            "i campi di servizio della sessione non vanno auditati",
+        );
     }
 
     /** Ma un campo che conta, sulla stessa sessione, si audita. */
@@ -185,7 +201,6 @@ class CustomAuditableTest extends TestCase
             "user_agent" => env("TEST_USER_AGENT"),
             "expires_at" => now()->addHour(),
         ]);
-        $this->outsideTheConsole();
 
         $sessione->update(["token" => "nuovo"]);
 
@@ -199,7 +214,6 @@ class CustomAuditableTest extends TestCase
         $provider = $this->provider();
         $user = User::factory()->create(["enabled" => 1]);
         Auth::login($user);
-        $this->outsideTheConsole();
 
         $this->aRole($provider);
 
@@ -220,7 +234,6 @@ class CustomAuditableTest extends TestCase
         $provider = $this->provider();
         $user = User::factory()->create(["enabled" => 1]);
         request()->attributes->set("jwt_user_id", $user->id);
-        $this->outsideTheConsole();
 
         $this->aRole($provider);
 
@@ -233,7 +246,6 @@ class CustomAuditableTest extends TestCase
     public function test_without_any_identity_the_audit_row_has_no_actor(): void
     {
         $provider = $this->provider();
-        $this->outsideTheConsole();
 
         $this->aRole($provider);
 
@@ -250,7 +262,6 @@ class CustomAuditableTest extends TestCase
     {
         $provider = $this->provider();
         request()->attributes->set("oauth_client_id", 7);
-        $this->outsideTheConsole();
 
         $this->aRole($provider);
 

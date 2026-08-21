@@ -27,6 +27,22 @@ class AuditListTest extends TestCase
 
     private const URI = "/admin/v1/audits";
 
+    /**
+     * Quante righe serve seminare, e perche' proprio quel numero. Prima erano tre `range(1, N)` con il
+     * numero nudo dentro il test, e una variabile `$i` che nessuno usava (punto TRC04).
+     */
+    private const ROWS_FOR_A_SECOND_PAGE = 5;
+    private const EXTRA_ROWS_FOR_THE_N_PLUS_ONE_CHECK = 9;
+    private const ROWS_ABOVE_THE_CEILING = 12;
+
+    /** Semina `$howMany` righe di audit. Il contatore vive qui e non si vede nei test. */
+    private function audits(int $howMany, array $overrides = []): void
+    {
+        for ($written = 0; $written < $howMany; $written++) {
+            $this->audit($overrides);
+        }
+    }
+
     private function audit(array $overrides = []): Audit
     {
         return Audit::create(
@@ -63,9 +79,7 @@ class AuditListTest extends TestCase
 
     public function test_it_honours_per_page(): void
     {
-        foreach (range(1, 5) as $i) {
-            $this->audit();
-        }
+        $this->audits(self::ROWS_FOR_A_SECOND_PAGE);
 
         $this->callIndex(["per_page" => 2])
             ->assertStatus(200)
@@ -182,9 +196,7 @@ class AuditListTest extends TestCase
         $this->audit(["user_type" => User::class, "user_id" => $utente->id]);
         $conUno = $this->countQueries();
 
-        foreach (range(1, 9) as $i) {
-            $this->audit(["user_type" => User::class, "user_id" => $utente->id]);
-        }
+        $this->audits(self::EXTRA_ROWS_FOR_THE_N_PLUS_ONE_CHECK, ["user_type" => User::class, "user_id" => $utente->id]);
         $conDieci = $this->countQueries();
 
         $this->assertSame($conUno, $conDieci, "il numero di query cresce con le righe: e' un N+1");
@@ -212,9 +224,7 @@ class AuditListTest extends TestCase
      */
     public function test_per_page_has_a_ceiling(): void
     {
-        foreach (range(1, 12) as $i) {
-            $this->audit();
-        }
+        $this->audits(self::ROWS_ABOVE_THE_CEILING);
 
         $risposta = $this->callIndex(["per_page" => 1000000])->assertStatus(200);
 
