@@ -19,6 +19,7 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 
 | Task | Obiettivo | Sigla | Priorità |
 |---|---|---|---|
+| [./todo/20260821-regex-and-counters/](./todo/20260821-regex-and-counters/) | Sette rilievi di SonarQube: due espressioni regolari troppo complesse in `usePassword.js`, `[0-9]` per `\d`, tre `$i` non usate nei test degli audit e una riflessione su una proprietà privata. Leggendo i due pattern per il rilievo sulla complessità è uscito il vero difetto: quelle liste **hanno sei buchi misurati**, e `qwertyuiop` passa il controllo | `TRC` | bassa |
 | [./todo/20260813-token-refresh/](./todo/20260813-token-refresh/) | L'app token scade dopo 30 minuti e **nessuno lo rinnova**, benché il meccanismo esista già (`token/exchange`) e il codice dichiari di volerlo. Difetto `VDF13` | `TTR` | **alta** |
 | [./todo/20260819-session-bootstrap/](./todo/20260819-session-bootstrap/) | **Blocco in esercizio su staging**: nessun percorso crea più la sessione di un'applicazione esterna, quindi il primo accesso è impossibile e il client ritenta all'infinito. Regressione di `TTR08`, difetti `VDF16` e `VDF17` | `TSB` | **alta** |
 | [./todo/20260819-audit-silent-failure/](./todo/20260819-audit-silent-failure/) | `logAudit()` inghiotte qualunque errore e prosegue: **un audit che non si scrive non lo sa nessuno**. Non è un rilievo di SonarQube — è una decisione di prodotto rimasta implicita, la stessa di `VDF07` sul deploy | `TAS` | media |

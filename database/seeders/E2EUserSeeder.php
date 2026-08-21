@@ -17,19 +17,14 @@ use App\Exceptions\SeedingException;
  * scripts/prepare-e2e-credentials.sh a ogni preparazione dell'ambiente, e le passa
  * come variabili. Un segreto che non esiste prima dell'esecuzione non si puo' esporre.
  *
- * Punto TPU/TSA11 di docs/task/todo/20260812-static-analysis-findings-v1/.
+ * Punto TPU/TSA11 di docs/task/done/20260812-static-analysis-findings-v1/.
  */
 class E2EUserSeeder extends Seeder
 {
     /**
      * Nomi delle variabili attese. I valori non compaiono mai in questo file (R6).
      */
-    private const REQUIRED_ENV = [
-        "E2E_ADMIN_USERNAME",
-        "E2E_ADMIN_PASSWORD",
-        "E2E_USER_USERNAME",
-        "E2E_USER_PASSWORD",
-    ];
+    private const REQUIRED_ENV = ["E2E_ADMIN_USERNAME", "E2E_ADMIN_PASSWORD", "E2E_USER_USERNAME", "E2E_USER_PASSWORD"];
 
     public function run(): void
     {
