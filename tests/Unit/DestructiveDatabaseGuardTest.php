@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use App\Support\DestructiveDatabaseGuard;
-use RuntimeException;
+use App\Exceptions\DestructiveDatabaseException;
 use Tests\TestCase;
 
 /**
@@ -52,7 +52,7 @@ class DestructiveDatabaseGuardTest extends TestCase
     public function test_it_rejects_the_development_database(): void
     {
         $this->withDatabase("idp_develop", function () {
-            $this->expectException(RuntimeException::class);
+            $this->expectException(DestructiveDatabaseException::class);
             $this->expectExceptionMessageMatches("/non e' un database di test/");
 
             DestructiveDatabaseGuard::ensureTestDatabase();
@@ -65,7 +65,7 @@ class DestructiveDatabaseGuardTest extends TestCase
             try {
                 DestructiveDatabaseGuard::ensureTestDatabase();
                 $this->fail("la guardia doveva rifiutare");
-            } catch (RuntimeException $e) {
+            } catch (DestructiveDatabaseException $e) {
                 // Il messaggio conta quanto il rifiuto: e' quello che dice a chi lo legge cosa fare.
                 $this->assertStringContainsString("un_database_qualsiasi", $e->getMessage());
                 $this->assertStringContainsString("idp_test", $e->getMessage());
@@ -82,7 +82,7 @@ class DestructiveDatabaseGuardTest extends TestCase
         unset($_ENV[DestructiveDatabaseGuard::ALLOWED_ENV], $_SERVER[DestructiveDatabaseGuard::ALLOWED_ENV]);
 
         try {
-            $this->expectException(RuntimeException::class);
+            $this->expectException(DestructiveDatabaseException::class);
             $this->expectExceptionMessageMatches("/non e' impostata/");
 
             DestructiveDatabaseGuard::ensureTestDatabase();

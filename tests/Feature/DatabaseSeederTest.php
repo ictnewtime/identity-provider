@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\Parameter;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use RuntimeException;
+use App\Exceptions\SeedingException;
 use Tests\TestCase;
 
 /**
@@ -131,7 +131,7 @@ class DatabaseSeederTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $this->expectException(RuntimeException::class);
+        $this->expectException(SeedingException::class);
         // Il messaggio conta quanto l'eccezione: e' quello che dice a chi lo legge come riseminare.
         $this->expectExceptionMessageMatches("/db:seed non e' rieseguibile/");
 
@@ -146,7 +146,7 @@ class DatabaseSeederTest extends TestCase
         try {
             $this->seed(DatabaseSeeder::class);
             $this->fail("la seconda esecuzione doveva fallire");
-        } catch (RuntimeException $e) {
+        } catch (SeedingException $e) {
             // atteso: e' il caso di sopra. Qui interessa solo cosa resta nel database.
         }
 
@@ -180,7 +180,7 @@ class DatabaseSeederTest extends TestCase
         try {
             $this->seed(DatabaseSeeder::class);
             $this->fail("senza SEED_ADMIN_PASSWORD il seeder doveva fermarsi");
-        } catch (RuntimeException $e) {
+        } catch (SeedingException $e) {
             $this->assertStringContainsString("SEED_ADMIN_PASSWORD", $e->getMessage());
         }
 

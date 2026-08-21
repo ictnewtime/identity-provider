@@ -14,14 +14,30 @@ describe("Scenari di CRUD per gli Utenti", () => {
 
     // --- Funzioni Helper per azioni ripetute ---
 
+    // Contatore per dare a ogni ricerca un alias suo. Sei chiamate condividono questo helper, e sei
+    // intercettazioni con lo STESSO alias sarebbero sei rotte indistinguibili: `cy.wait` non saprebbe
+    // quale delle sei aspetta, e il test tornerebbe a dipendere dall'ordine con cui arrivano.
+    let ricercheFatte = 0;
+
     /**
      * Funzione helper per cercare un utente nella tabella.
+     *
+     * Aspetta la RISPOSTA della ricerca, non un numero di millisecondi. Prima qui c'era un'attesa
+     * fissa di 500 ms, che e' esattamente il debounce di `UserTable.vue:90-95`: il tempo che serve a
+     * far PARTIRE la richiesta, non a riceverla. Su una macchina carica il test proseguiva con la
+     * tabella non ancora aggiornata.
+     *
+     * Il filtro su `q` serve: il `clear()` qui sotto fa partire una richiesta con `q` vuoto, e senza
+     * filtro l'attesa si sarebbe chiusa su quella.
+     *
      * @param {string} username - Lo username da cercare.
      */
     const searchUser = (username) => {
+        const alias = `ricercaUtenti${++ricercheFatte}`;
+
+        cy.intercept({ method: "GET", url: "**/admin/v1/users*", query: { q: username } }).as(alias);
         cy.get("#user-search").clear().type(username);
-        // Attendiamo un istante per permettere alla tabella di aggiornarsi
-        cy.wait(500);
+        cy.wait(`@${alias}`).its("response.statusCode").should("eq", 200);
     };
 
     const showDeleteSelectedUsers = () => {

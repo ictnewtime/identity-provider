@@ -122,7 +122,9 @@ perche' e' una scelta che si rimette in discussione da capo.
 
 - ~~**`D3`**~~ — **si', nello stesso lotto, come punti separati e ultimi**: le tre `throw` di
   `E2EUserSeeder.php` e il `cy.wait(500)` di `crud-user.cy.js`. Sono tre righe e una, e lasciarli
-  significa ritrovarli fra un mese.
+  significa ritrovarli fra un mese. **Sono diventati due punti e non uno** (`TEW07` per Cypress, `TEW09`
+  per il seeder): la meta' seeder ha bisogno della classe che crea `TEW01`, e un punto che non si puo'
+  chiudere non deve stare dentro uno che si chiude — altrimenti «fatto» significa «fatto a meta'».
 
 ### La spiegazione del `cy.wait(500)` — l'ipotesi del developer, e cosa dicono i file
 
