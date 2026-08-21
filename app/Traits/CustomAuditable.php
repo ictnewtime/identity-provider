@@ -68,11 +68,11 @@ trait CustomAuditable
         }
 
         if ($originalAction === "updated") {
-            return in_array("deleted_at", $changedFields)
-                ? (is_null($model->deleted_at)
-                    ? "restored"
-                    : "deleted")
-                : $originalAction;
+            if (!in_array("deleted_at", $changedFields)) {
+                return $originalAction;
+            }
+
+            return is_null($model->deleted_at) ? "restored" : "deleted";
         }
 
         if ($originalAction === "deleted") {
