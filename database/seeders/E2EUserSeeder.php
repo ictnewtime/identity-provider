@@ -8,7 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use RuntimeException;
+use App\Exceptions\SeedingException;
 
 /**
  * Crea gli utenti dedicati ai test E2E leggendo le password dall'ambiente.
@@ -17,19 +17,14 @@ use RuntimeException;
  * scripts/prepare-e2e-credentials.sh a ogni preparazione dell'ambiente, e le passa
  * come variabili. Un segreto che non esiste prima dell'esecuzione non si puo' esporre.
  *
- * Punto TPU/TSA11 di docs/task/todo/20260812-static-analysis-findings-v1/.
+ * Punto TPU/TSA11 di docs/task/done/20260812-static-analysis-findings-v1/.
  */
 class E2EUserSeeder extends Seeder
 {
     /**
      * Nomi delle variabili attese. I valori non compaiono mai in questo file (R6).
      */
-    private const REQUIRED_ENV = [
-        "E2E_ADMIN_USERNAME",
-        "E2E_ADMIN_PASSWORD",
-        "E2E_USER_USERNAME",
-        "E2E_USER_PASSWORD",
-    ];
+    private const REQUIRED_ENV = ["E2E_ADMIN_USERNAME", "E2E_ADMIN_PASSWORD", "E2E_USER_USERNAME", "E2E_USER_PASSWORD"];
 
     public function run(): void
     {
@@ -38,7 +33,7 @@ class E2EUserSeeder extends Seeder
         $provider = Provider::find(config("idp.provider_id"));
 
         if (empty($provider)) {
-            throw new RuntimeException(
+            throw new SeedingException(
                 "Provider IdP " . config("idp.provider_id") . " non trovato: eseguire prima DatabaseSeeder.",
             );
         }
@@ -46,7 +41,7 @@ class E2EUserSeeder extends Seeder
         $adminRole = Role::where("provider_id", $provider->id)->where("name", "admin")->first();
 
         if (empty($adminRole)) {
-            throw new RuntimeException("Ruolo 'admin' del provider IdP non trovato: eseguire prima DatabaseSeeder.");
+            throw new SeedingException("Ruolo 'admin' del provider IdP non trovato: eseguire prima DatabaseSeeder.");
         }
 
         // L'utente amministratore dei test: stesso ruolo dell'admin reale, identita' separata,
@@ -85,7 +80,7 @@ class E2EUserSeeder extends Seeder
         }
 
         if (!empty($missing)) {
-            throw new RuntimeException(
+            throw new SeedingException(
                 "Variabili mancanti: " .
                     implode(", ", $missing) .
                     ". Eseguire ./scripts/prepare-e2e-credentials.sh, che le genera e le esporta.",

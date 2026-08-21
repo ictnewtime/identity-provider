@@ -17,6 +17,13 @@ un perché.
 | [./20260812-static-analysis-findings-v4/](./20260812-static-analysis-findings-v4/) | `ProviderUserRoleController`: messaggio ripetuto e costruttore vuoto | `TPU` | 2026-08-13 |
 | [./20260819-cypress-assertions/](./20260819-cypress-assertions/) | Rilievi Cypress sul quality gate: sciolti cancellando, il resto scartato | `TCY` | 2026-08-19 |
 | [./20260819-route-literals/](./20260819-route-literals/) | Literali duplicati fra rotte, annotazioni OpenAPI e test | `TRL` | 2026-08-19 |
+| [./20260819-sonar-high-findings/](./20260819-sonar-high-findings/) | Literali nei file di configurazione e costruttori vuoti | `TSH` | 2026-08-19 |
+| [./20260819-frontend-complexity/](./20260819-frontend-complexity/) | Complessità cognitiva nel frontend: `usePassword` e i due `submit` | `TFC` | 2026-08-19 |
+| [./20260819-translation-coverage/](./20260819-translation-coverage/) | Le traduzioni del frontend, e i nomi dei test in inglese | `TTC` | 2026-08-19 |
+| [./20260819-audit-complexity/](./20260819-audit-complexity/) | La complessità del trait di audit, e l'ambiente dei test | `TAC` | 2026-08-19 |
+| [./20260820-security-reliability/](./20260820-security-reliability/) | Sicurezza e affidabilità: il titolo della scheda, le etichette scollegate e i file di root nell'albero | `TSR` | 2026-08-21 |
+| [./20260821-exceptions-and-waits/](./20260821-exceptions-and-waits/) | Eccezioni dedicate al posto di `RuntimeException`, un ternario annidato e due attese fisse nei test | `TEW` | 2026-08-21 |
+| [./20260821-regex-and-counters/](./20260821-regex-and-counters/) | Regex generate al posto di liste scritte a mano, contatori con un nome, e la riflessione nei test sostituita da una variabile d'ambiente | `TRC` | 2026-08-21 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 

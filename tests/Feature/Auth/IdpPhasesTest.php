@@ -21,7 +21,7 @@ class IdpPhasesTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function providerIdp(array $overrides = []): Provider
+    private function idpProvider(array $overrides = []): Provider
     {
         return Provider::forceCreate(
             array_merge(
@@ -39,7 +39,7 @@ class IdpPhasesTest extends TestCase
         );
     }
 
-    public function test_senza_provider_configurato_restituisce_null(): void
+    public function test_without_a_configured_provider_it_returns_null(): void
     {
         $resolver = new IdpProviderResolver();
 
@@ -49,30 +49,30 @@ class IdpPhasesTest extends TestCase
         $this->assertFalse($resolver->isUsable(null));
     }
 
-    public function test_un_provider_senza_secret_key_non_e_utilizzabile(): void
+    public function test_a_provider_without_a_secret_key_is_not_usable(): void
     {
         // Senza chiave non si verifica niente: e' come se non ci fosse, ed e' lo stesso ramo.
-        $this->assertFalse((new IdpProviderResolver())->isUsable($this->providerIdp(["secret_key" => ""])));
+        $this->assertFalse((new IdpProviderResolver())->isUsable($this->idpProvider(["secret_key" => ""])));
     }
 
-    public function test_un_provider_con_la_chiave_e_utilizzabile(): void
+    public function test_a_provider_with_a_key_is_usable(): void
     {
-        $this->providerIdp();
+        $this->idpProvider();
         $resolver = new IdpProviderResolver();
 
         $this->assertTrue($resolver->isUsable($resolver->resolve()));
     }
 
-    public function test_un_token_senza_riga_in_sessions_non_e_vivo(): void
+    public function test_a_token_without_a_row_in_sessions_is_not_alive(): void
     {
         // E' la fase con la conseguenza piu' grave: senza, un amministratore non puo' piu'
         // cacciare nessuno — il token continuerebbe a verificare.
         $this->assertFalse((new IdpSessionValidator())->isAlive("un-token-qualsiasi"));
     }
 
-    public function test_un_token_con_la_sua_sessione_e_vivo(): void
+    public function test_a_token_with_its_session_is_alive(): void
     {
-        $provider = $this->providerIdp();
+        $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
 
         Session::create([

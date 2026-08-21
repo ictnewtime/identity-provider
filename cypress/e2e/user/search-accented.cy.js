@@ -46,8 +46,18 @@ describe("Ricerca utenti con caratteri accentati", () => {
         cy.get('input[name="surname"]').type(utente.surname);
         cy.get("form").submit();
 
-        cy.get("#user-search").clear().type(utente.username.toUpperCase());
-        cy.wait(500);
+        // L'intercettazione filtra sul parametro `q`, e non e' pignoleria: la lista si ricarica anche
+        // dopo il salvataggio del form qui sopra, con lo stesso indirizzo e `q` vuoto. Senza il
+        // filtro, l'attesa si sarebbe chiusa su QUELLA richiesta — cioe' su una condizione
+        // osservabile sbagliata, che e' il modo elegante di avere lo stesso difetto di prima.
+        const cercato = utente.username.toUpperCase();
+        cy.intercept({ method: "GET", url: "**/admin/v1/users*", query: { q: cercato } }).as("ricercaUtenti");
+
+        cy.get("#user-search").clear().type(cercato);
+
+        // Il debounce resta 500 ms, ed e' giusto: e' comportamento dell'applicazione, non del test.
+        // Cypress aspetta la richiesta fino al suo timeout, quindi un ritardo non fa piu' fallire niente.
+        cy.wait("@ricercaUtenti").its("response.statusCode").should("eq", 200);
 
         cy.contains(utente.username).should("be.visible");
     });

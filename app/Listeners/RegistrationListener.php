@@ -22,10 +22,6 @@ use Illuminate\Support\Facades\Mail;
  */
 class RegistrationListener implements ShouldQueue {
 
-    public function __construct(){
-
-    }
-
     public function handle(RegistrationEvent $event){
 
         $user = $event->getUser();

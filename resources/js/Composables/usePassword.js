@@ -1,8 +1,126 @@
 import { computed, unref } from "vue";
 import { trans } from "laravel-vue-i18n";
 
+const MAX_SCORE = 5;
+
+/** Il tetto che uno schema prevedibile impone: qualunque sia la varieta', resta «debole». */
+const PREDICTABLE_MAX_SCORE = 2;
+
+/** Punti per lunghezza, **cumulativi**: 16 caratteri prendono 1 + 2 + 3. */
+const LENGTH_POINTS = [
+    { from: 8, points: 1 },
+    { from: 12, points: 2 },
+    { from: 16, points: 3 },
+];
+
+/** Le famiglie di caratteri che contano per la varieta'. */
+const CHARACTER_FAMILIES = [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z0-9]/];
+
+/** Punti per varieta', **non** cumulativi: tre famiglie valgono 1, quattro valgono 2. */
+const VARIETY_POINTS = { 3: 1, 4: 2 };
+
+/** Quanti caratteri di fila fanno una «sequenza»: `abcd` si', `abc` no. */
+const SEQUENCE_LENGTH = 4;
+
+/**
+ * Un alfabeto ricavato dai codici dei caratteri: `a` e' 97, `A` e' 65, `0` e' 48.
+ */
+function alphabetFromCodes(firstCode, howMany) {
+    return Array.from({ length: howMany }, (_, i) => String.fromCodePoint(firstCode + i)).join("");
+}
+
+/**
+ * Gli insiemi che hanno un ordine, e quindi delle sequenze.
+ */
+const SEQUENCE_SOURCES = [alphabetFromCodes(97, 26), alphabetFromCodes(48, 10), "qwertyuiop", "asdfghjkl", "zxcvbnm"];
+
+const OBVIOUS_WORDS = ["pass", "admin", "login"];
+
+/** Gli schemi che restano una regex, perche' non sono elenchi ma **forme**. */
+const PREDICTABLE_PATTERNS = [
+    // Tre o piu' caratteri identici consecutivi (AAA, 111, !!!)
+    /(.)\1{2,}/,
+    // Blocchi ripetuti (abcabcabc, 121212)
+    /(.{2,})\1{2,}/,
+];
+
+/** Sopra questa quota, un solo carattere ripetuto rende la password monotona. */
+const MONOTONY_THRESHOLD = 0.3;
+
+/** La monotonia si valuta solo da questa lunghezza in su: sotto, la percentuale non dice niente. */
+const MONOTONY_MIN_LENGTH = 8;
+
+function lengthPoints(password) {
+    return LENGTH_POINTS.reduce((total, { from, points }) => (password.length >= from ? total + points : total), 0);
+}
+
+function varietyPoints(password) {
+    const families = CHARACTER_FAMILIES.filter((family) => family.test(password)).length;
+
+    return VARIETY_POINTS[families] ?? 0;
+}
+
+function hasSequence(password) {
+    const lowercased = password.toLowerCase();
+
+    return SEQUENCE_SOURCES.some((source) => {
+        const bothWays = [source, [...source].reverse().join("")];
+
+        return bothWays.some((text) => {
+            for (let start = 0; start + SEQUENCE_LENGTH <= text.length; start++) {
+                if (lowercased.includes(text.slice(start, start + SEQUENCE_LENGTH))) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+    });
+}
+
+function containsObviousWord(password) {
+    const lowercased = password.toLowerCase();
+
+    return OBVIOUS_WORDS.some((word) => lowercased.includes(word));
+}
+
+function isMonotonous(password) {
+    if (password.length < MONOTONY_MIN_LENGTH) {
+        return false;
+    }
+
+    const counts = {};
+    let highest = 0;
+
+    for (const character of password) {
+        counts[character] = (counts[character] || 0) + 1;
+        highest = Math.max(highest, counts[character]);
+    }
+
+    return highest / password.length > MONOTONY_THRESHOLD;
+}
+
+function isPredictable(password) {
+    return (
+        PREDICTABLE_PATTERNS.some((pattern) => pattern.test(password)) ||
+        hasSequence(password) ||
+        containsObviousWord(password) ||
+        isMonotonous(password)
+    );
+}
+
+export function passwordStrength(password) {
+    if (!password) {
+        return 0;
+    }
+
+    const earned = Math.min(MAX_SCORE, lengthPoints(password) + varietyPoints(password));
+    const ceiling = isPredictable(password) ? PREDICTABLE_MAX_SCORE : MAX_SCORE;
+
+    return Math.max(1, Math.min(earned, ceiling));
+}
+
 export function usePassword(passwordRef, confirmPasswordRef, currentPasswordRef = null) {
-    // Usiamo unref() per estrarre il valore, sia che tu passi un toRef, un getter, o una stringa
     const getPwd = () => unref(passwordRef) || "";
     const getConfirm = () => unref(confirmPasswordRef) || "";
     const getCurrent = () => unref(currentPasswordRef) || "";
@@ -17,76 +135,7 @@ export function usePassword(passwordRef, confirmPasswordRef, currentPasswordRef 
         differentFromCurrent: !currentPasswordRef ? true : getPwd().length > 0 && getPwd() !== getCurrent(),
     }));
 
-    const strength = computed(() => {
-        const pwd = getPwd();
-        if (!pwd) return 0;
-
-        let score = 0;
-
-        // Punti per lunghezza
-        if (pwd.length >= 8) score += 1;
-        if (pwd.length >= 12) score += 2;
-        if (pwd.length >= 16) score += 3;
-
-        // Punti per varietà
-        let variety = 0;
-        if (/[A-Z]/.test(pwd)) variety++;
-        if (/[a-z]/.test(pwd)) variety++;
-        if (/[0-9]/.test(pwd)) variety++;
-        if (/[^A-Za-z0-9]/.test(pwd)) variety++;
-
-        if (variety === 3) score += 1;
-        if (variety === 4) score += 2;
-
-        // Punteggio massimo teorico di base
-        score = Math.min(5, score);
-
-        // Se si verifica una di queste condizioni, il punteggio MASSIMO non può superare 2 (Debole)
-        let maxAllowedScore = 5;
-
-        // Tre o più caratteri identici consecutivi (es. AAA, 111, !!!)
-        if (/(.)\1{2,}/.test(pwd)) {
-            maxAllowedScore = Math.min(maxAllowedScore, 2);
-        }
-
-        // Sequenze da tastiera, numeriche o parole ovvie (qwerty, 1234, admin...)
-        const commonSequences =
-            /(1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|qwer|wert|erty|asdf|sdfg|dfgh|zxcv|xcvb|pass|admin|login)/i;
-        if (commonSequences.test(pwd)) {
-            maxAllowedScore = Math.min(maxAllowedScore, 2);
-        }
-
-        // Sequenze alfabetiche ovvie (abcd, bcde...)
-        const alphaSequences =
-            /(abcd|bcde|cdef|defg|efgh|fghi|ghij|hijk|ijkl|jklm|klmn|lmno|mnop|nopq|opqr|pqrs|qrst|rstu|stuv|tuvw|uvwx|vwxy|wxyz)/i;
-        if (alphaSequences.test(pwd)) {
-            maxAllowedScore = Math.min(maxAllowedScore, 2);
-        }
-
-        // Pattern ripetuti a blocchi (es. abcabcabc, 121212)
-        if (/(.{2,})\1{2,}/.test(pwd)) {
-            maxAllowedScore = Math.min(maxAllowedScore, 2);
-        }
-
-        // Monotonia: se un singolo carattere compone più del 30% dell'intera password
-        if (pwd.length >= 8) {
-            const charCounts = {};
-            let maxCharCount = 0;
-            for (const char of pwd) {
-                charCounts[char] = (charCounts[char] || 0) + 1;
-                if (charCounts[char] > maxCharCount) {
-                    maxCharCount = charCounts[char];
-                }
-            }
-            if (maxCharCount / pwd.length > 0.3) {
-                maxAllowedScore = Math.min(maxAllowedScore, 2);
-            }
-        }
-
-        score = Math.min(score, maxAllowedScore);
-
-        return Math.max(1, score);
-    });
+    const strength = computed(() => passwordStrength(getPwd()));
 
     // Colori e Testi
     const strengthColorClass = computed(() => {
