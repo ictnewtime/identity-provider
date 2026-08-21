@@ -6,6 +6,13 @@ i sei rilievi, il breaking change nei test e le alternative scartate stanno la'.
 **Priorita' bassa**: sei rilievi di severita' media, nessuno rompe qualcosa che funziona. Il lotto si
 lavora quando non c'e' altro davanti.
 
+**Chiuso il 2026-08-21 con una verifica sospesa, e va detto qui perche' e' la prima cosa che si legge**:
+`TEW06` e `TEW07` sono **scritti e mai eseguiti**. I due spec Cypress non si possono lanciare senza il
+container dei test E2E — task [20260812-e2e-test-container](../../todo/20260812-e2e-test-container/action-plan.md) —
+oppure senza il permesso di girare contro l'ambiente di sviluppo, che creerebbe utenti in `idp_develop`.
+**Decisione del developer: si provano in futuro**, quando il container esiste. Cio' che si e' potuto
+verificare senza eseguire sta nelle due righe dei punti.
+
 **Le quattro decisioni sono chiuse** (2026-08-21, § 4 dell'analisi): eccezioni che estendono
 `RuntimeException`, **una classe per modulo**, test stretti alla classe nuova, e i due punti fuori dal
 report dentro questo lotto. Nessun punto resta in attesa di una risposta.
@@ -23,7 +30,7 @@ poi i test che le pretendono (`TEW04`). Il ternario e le attese sono indipendent
 | TEW06 | **fatto, non eseguito** (2026-08-21) | `cypress/e2e/user/search-accented.cy.js`: al posto dell'attesa fissa, `cy.intercept` sulla ricerca e `cy.wait("@ricercaUtenti")` con l'asserzione sul `200`. **L'intercettazione filtra sul parametro `q`**, e non è pignoleria: il salvataggio del form qui sopra ricarica la lista con lo **stesso indirizzo** e `q` vuoto, quindi un filtro solo sull'URL avrebbe chiuso l'attesa su quella richiesta — la stessa fragilità di prima, vestita meglio. Il debounce di 500 ms resta: è dell'applicazione (`UserTable.vue:90-95`), non del test. **Quei 500 ms non proteggevano dal caricamento della pagina**: non c'è SSR quindi non c'è hydration, le pagine non sono chunk separati e `cy.get("#user-search")` aspetta già il montaggio — misurato, § 4 dell'analisi | `cypress/e2e/user/search-accented.cy.js` | basso | man | **quello che ho potuto verificare**: `node --check` pulito; la forma `{ query: { q } }` esiste nel Cypress installato (`net-stubbing.d.ts:385`, versione 15.15.0); l'indirizzo intercettato è quello che l'applicazione chiama (`UserTable.vue:51`); nel file non resta nessuna attesa a numero. **Quello che manca**: eseguire il test. Serve il container Cypress (task `TEC`, non esiste) oppure il permesso di lanciarlo contro l'ambiente di sviluppo — creerebbe un utente in `idp_develop` e richiede `cypress.env.json`, che oggi non c'è. Per questo lo stato dice **non eseguito** |
 | TEW07 | **fatto, non eseguito** (2026-08-21) | **`D3`, metà Cypress**: il `cy.wait(500)` di `cypress/e2e/user/crud-user.cy.js:24` sta dentro l'helper `searchUser`, che **sei test** chiamano. Diventa un'intercettazione filtrata su `q` più l'attesa sulla risposta. Due dettagli che il numero nascondeva: il `clear()` fa partire una richiesta con `q` **vuoto** — senza filtro l'attesa si chiuderebbe su quella — e sei chiamate con lo **stesso alias** sarebbero sei rotte indistinguibili, quindi l'alias è numerato da un contatore | `cypress/e2e/user/crud-user.cy.js` | basso | man | `node --check` pulito; in tutto `cypress/` non resta **nessuna** attesa a numero (`grep -rnE "^[^/*]*cy\.wait\([0-9]"` → vuoto). **Non eseguito**, come `TEW06`: serve il container Cypress (`TEC`) o il permesso di lanciarlo sull'ambiente di sviluppo |
 | TEW09 | **fatto** (2026-08-21) | Le tre `throw` di `E2EUserSeeder` passano a `SeedingException`. Era bloccato da `TEW01`: chiuso quello, il blocco è caduto e il punto è stato eseguito subito, perché era già approvato | `database/seeders/E2EUserSeeder.php` | basso | auto | `grep -c RuntimeException` → **0**; suite **96 passed** |
-| TEW08 | da approvare | La conferma dal report: i sei rilievi non compaiono più, e non ne sono comparsi altri sulle stesse regole (`S112` per le eccezioni, il ternario annidato, l'attesa fissa) | nessuno (verifica) | basso | man | il report non elenca più i sei; se ne restano, il numero e il perché stanno scritti qui |
+| TEW08 | **chiuso dal developer** (2026-08-21) | La conferma dal report. **Il report l'ha guardato il developer, non l'agente**: qui non c'è una misura mia, c'è la sua parola — e va detto, perché è l'unico punto del lotto senza un comando che lo dimostri | nessuno (verifica) | basso | man | il developer ha chiuso il punto dopo aver letto il report |
 
 ## Cosa questo piano non copre
 
@@ -32,7 +39,7 @@ poi i test che le pretendono (`TEW04`). Il ternario e le attese sono indipendent
   passata su tutto l'albero. Il conto lo dà `grep -rn "new RuntimeException" app/ database/`.
 - **Il rendere eseguibili i test Cypress**: `TEW06` e la metà Cypress di `TEW07` si scrivono adesso ma
   si verificano quando esiste il container, che è il task
-  [20260812-e2e-test-container](../20260812-e2e-test-container/action-plan.md). Finché non c'è, il loro
+  [20260812-e2e-test-container](../../todo/20260812-e2e-test-container/action-plan.md). Finché non c'è, il loro
   stato può arrivare a `fatto` solo per la parte scritta, e va detto.
 
 ## Perf/leak — la dichiarazione della policy per i punti chiusi
