@@ -26,7 +26,7 @@ const SEQUENCE_LENGTH = 4;
  * Un alfabeto ricavato dai codici dei caratteri: `a` e' 97, `A` e' 65, `0` e' 48.
  */
 function alphabetFromCodes(firstCode, howMany) {
-    return Array.from({ length: howMany }, (_, i) => String.fromCharCode(firstCode + i)).join("");
+    return Array.from({ length: howMany }, (_, i) => String.fromCodePoint(firstCode + i)).join("");
 }
 
 /**
@@ -68,7 +68,7 @@ function hasSequence(password) {
 
         return bothWays.some((text) => {
             for (let start = 0; start + SEQUENCE_LENGTH <= text.length; start++) {
-                if (lowercased.includes(text.substr(start, SEQUENCE_LENGTH))) {
+                if (lowercased.includes(text.slice(start, start + SEQUENCE_LENGTH))) {
                     return true;
                 }
             }
