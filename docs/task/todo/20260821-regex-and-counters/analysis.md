@@ -43,6 +43,12 @@ il posto dove un difetto non si vede perche' «i test passano».
 **Il fatto che cambia il lavoro**: le due liste scritte a mano **non sono complete**, e l'ho misurato
 generando le finestre di quattro caratteri e confrontandole con quelle presenti nel pattern.
 
+**ATTENZIONE AL NUMERO, l'ho corretto il 2026-08-21**: la tabella qui sotto conta le finestre **in
+avanti**, e sono sei. Ma il codice — sia il vecchio per le cifre, sia il nuovo per tutto — riconosce
+anche il **verso all'indietro**, e contando i due versi le finestre non riconosciute erano **51 su 94**:
+tutto l'alfabeto all'indietro (`zyxw`…`dcba`), le righe di tastiera in entrambi i versi, piu' `0123` e
+`3210`. Sei era il conto parziale; cinquantuno e' quello vero, misurato in `TRC03`.
+
 | Insieme | Finestre esistenti | Presenti nel pattern | Mancanti |
 |---|---|---|---|
 | cifre crescenti `0123456789` | 7 | 6 | **`0123`** |
@@ -129,7 +135,11 @@ esse.
 
 ### Ignoto
 
-- **`D4` — le righe da tastiera: generate anche loro, o esplicite come chiede il developer?** Nasce da
+- ~~**`D4`**~~ — **risposta del developer, condizionale: «se `qwer|wert|erty` si possono generare allora
+  generale, altrimenti raggruppale in un controllo esplicito». Si possono, quindi si generano** — al
+  generatore non serve un ordine numerico, serve una **stringa ordinata**, e `"qwertyuiop"` lo e' quanto
+  `"abcdefghij"`. Le tre righe sono entrate in `SEQUENCE_SOURCES`, il punto `TRC08` e' **scartato** e il
+  meccanismo e' uno solo. La domanda com'era posta: Nasce da
   una contraddizione fra due risposte, e va sciolta perche' cambia il risultato:
   - `D3` dice **(b)**, generare, e la (b) chiudeva **sei** buchi;
   - ma la risposta su `qwer|wert|erty|asdf|sdfg|dfgh|zxcv|xcvb` dice di lasciarlo **esplicito**, perche'
