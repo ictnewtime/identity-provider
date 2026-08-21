@@ -8,7 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use RuntimeException;
+use App\Exceptions\SeedingException;
 
 /**
  * Crea gli utenti dedicati ai test E2E leggendo le password dall'ambiente.
@@ -38,7 +38,7 @@ class E2EUserSeeder extends Seeder
         $provider = Provider::find(config("idp.provider_id"));
 
         if (empty($provider)) {
-            throw new RuntimeException(
+            throw new SeedingException(
                 "Provider IdP " . config("idp.provider_id") . " non trovato: eseguire prima DatabaseSeeder.",
             );
         }
@@ -46,7 +46,7 @@ class E2EUserSeeder extends Seeder
         $adminRole = Role::where("provider_id", $provider->id)->where("name", "admin")->first();
 
         if (empty($adminRole)) {
-            throw new RuntimeException("Ruolo 'admin' del provider IdP non trovato: eseguire prima DatabaseSeeder.");
+            throw new SeedingException("Ruolo 'admin' del provider IdP non trovato: eseguire prima DatabaseSeeder.");
         }
 
         // L'utente amministratore dei test: stesso ruolo dell'admin reale, identita' separata,
@@ -85,7 +85,7 @@ class E2EUserSeeder extends Seeder
         }
 
         if (!empty($missing)) {
-            throw new RuntimeException(
+            throw new SeedingException(
                 "Variabili mancanti: " .
                     implode(", ", $missing) .
                     ". Eseguire ./scripts/prepare-e2e-credentials.sh, che le genera e le esporta.",

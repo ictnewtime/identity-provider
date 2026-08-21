@@ -43,7 +43,7 @@ class UserRequest extends FormRequest
                 "nullable",
                 "min:12",
                 "confirmed",
-                function ($attribute, $value, $fail) use ($userId) {
+                function ($_attribute, $value, $fail) use ($userId) {
                     if (!$value || !$userId) {
                         return;
                     }

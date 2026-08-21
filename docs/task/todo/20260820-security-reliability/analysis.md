@@ -135,6 +135,24 @@ Inertia interroga a ogni pagina — anche con la stringa vuota, che e' il caso d
 Cosi' `F9` — «le altre undici pagine non hanno titolo» — e' **meta' chiuso** da questo stesso intervento:
 ognuna ha un titolo, ma ancora lo stesso per tutte. Dare a ciascuna il suo resta un lavoro suo.
 
+### `F1`, `F6` — perche' `--user` non spegne il rilievo
+
+La risposta a `D1` — strada (b), l'utente si passa a chi lancia, **senza toccare le immagini** — risolve
+il problema reale: i file scritti nell'albero. Ma **non chiude il rilievo**, e il developer lo ha
+verificato il 2026-08-20: SonarQube continua a segnalare i due Dockerfile. Ha ragione lo strumento —
+`--user` sta in `scripts/run-test-backend.sh` e in `docker-compose.test.yml`, e chi guarda l'immagine non
+li vede. L'unica cosa che l'immagine dichiara di se stessa e' l'istruzione `USER`, che non c'e'.
+
+Le due cose non sono in conflitto e non si sostituiscono: `--user` a runtime **vince** su `USER`, quindi
+aggiungere l'istruzione non cambia una virgola di come girano i test oggi. Cambia il caso di chi lancia
+l'immagine a mano, che adesso e' root. Misurato su una copia usa-e-getta: con `USER www-data` la suite da'
+`96 passed` in entrambi i modi, con e senza `--user`.
+
+Resta che e' un *security hotspot* — «assicurati che sia sicuro», non «e' sbagliato» — e la seconda
+strada era segnarlo come rivisto in SonarQube con la motivazione. **Scelta la prima il 2026-08-20**
+(`TSR11`, applicato): un'immagine che dichiara il proprio utente non ha bisogno che qualcuno, l'anno
+prossimo, si ricordi perche' quella motivazione era valida.
+
 ### `F3`, `F10` — la label corretta, e cosa si è visto correggendola
 
 Il developer ha corretto il `for` il 2026-08-20 e il rilievo è chiuso. Ma **verificandolo** è venuto

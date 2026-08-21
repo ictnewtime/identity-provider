@@ -11,7 +11,7 @@ use App\Models\User;
 use App\Models\Provider;
 use App\Models\Role;
 use App\Models\ProviderUserRole;
-use RuntimeException;
+use App\Exceptions\SeedingException;
 
 class DatabaseSeeder extends Seeder
 {
@@ -35,7 +35,7 @@ class DatabaseSeeder extends Seeder
         $password = env("SEED_ADMIN_PASSWORD");
 
         if (empty($password)) {
-            throw new RuntimeException(
+            throw new SeedingException(
                 "SEED_ADMIN_PASSWORD non impostata: il seeder non inventa la password di un amministratore. " .
                     "Impostarla nell'ambiente prima di eseguire db:seed (docs/setup.db.md).",
             );
@@ -57,7 +57,7 @@ class DatabaseSeeder extends Seeder
             return;
         }
 
-        throw new RuntimeException(
+        throw new SeedingException(
             "Il database contiene gia' i dati iniziali (utente '" .
                 self::ADMIN_USERNAME .
                 "'): db:seed non e' rieseguibile.\n" .
