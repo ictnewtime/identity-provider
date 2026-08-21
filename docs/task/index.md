@@ -19,6 +19,7 @@ leggono insieme: sono divise per obiettivo, non per priorità. La `-v1` è **chi
 
 | Task | Obiettivo | Sigla | Priorità |
 |---|---|---|---|
+| [./todo/20260821-deprecated-string-api/](./todo/20260821-deprecated-string-api/) | Tre rilievi su due righe: `String.fromCharCode` e `substr`, entrambe in `usePassword.js`. **Le ha introdotte il lotto chiuso poco prima** (`TRC02`), e il lotto è corto per questo: due parole e una verifica ai bordi | `TDS` | bassa |
 | [./todo/20260813-token-refresh/](./todo/20260813-token-refresh/) | L'app token scade dopo 30 minuti e **nessuno lo rinnova**, benché il meccanismo esista già (`token/exchange`) e il codice dichiari di volerlo. Difetto `VDF13` | `TTR` | **alta** |
 | [./todo/20260819-session-bootstrap/](./todo/20260819-session-bootstrap/) | **Blocco in esercizio su staging**: nessun percorso crea più la sessione di un'applicazione esterna, quindi il primo accesso è impossibile e il client ritenta all'infinito. Regressione di `TTR08`, difetti `VDF16` e `VDF17` | `TSB` | **alta** |
 | [./todo/20260819-audit-silent-failure/](./todo/20260819-audit-silent-failure/) | `logAudit()` inghiotte qualunque errore e prosegue: **un audit che non si scrive non lo sa nessuno**. Non è un rilievo di SonarQube — è una decisione di prodotto rimasta implicita, la stessa di `VDF07` sul deploy | `TAS` | media |
