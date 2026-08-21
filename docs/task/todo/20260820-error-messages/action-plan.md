@@ -13,6 +13,27 @@ Il resto dipende da `D1` e `D2`, e tocca cosa l'utente legge quando qualcosa va 
 chi incontra un errore legge una frase sbagliata, non una schermata bianca. `TER01` resta l'eccezione,
 perché costa tre righe e chiude la segnalazione da cui il task è nato.
 
+## Ricontrollo del 2026-08-21 — i punti sono ancora validi?
+
+Chiesto dal developer dopo quattro lotti che hanno toccato gli stessi file. **Tutti e sei restano
+validi: nessuno e' stato risolto per strada e nessuno e' decaduto.** Ma due numeri erano sbagliati e uno
+va allargato, e le righe qui sotto sono state corrette.
+
+| Punto | Verifica fatta | Esito |
+|---|---|---|
+| `TER01` | `grep` su `UserController` | **valido**: i tre `json([], 404)` sono ancora la', righe **454**, **471**, **550**, e `notFound()` e' ancora la forma usata altrove (`:370`) |
+| `TER02` | le due chiavi in `lang/` | **valido**: `server_unreachable` e `unexpected_error` non esistono in nessuna delle due lingue |
+| `TER06` | riscritta la scansione e rifatto il conto | **valido, e il conto del piano e' esatto**: **39** gestori con un toast, **5** leggono il messaggio, **34** no — e i cinque che leggono sono esattamente quelli che `F5` nomina |
+| `TER03` | `ls resources/js/Composables/` | **valido**: c'e' solo `usePassword.js`, nessuna funzione condivisa per gli errori |
+| `TER04` | contati i file, non i gestori | **valido, ma il numero era sbagliato**: i 34 gestori stanno su **19 file**, non nove — 5 form, 7 tabelle, 7 dialoghi |
+| `TER05` | `grep` sulla forma del corpo | **valido, e piu' largo di com'era scritto**: due punti con l'eccezione **intera** e tre con il suo messaggio |
+
+**La trappola della scansione, che vale per `TER06`**: contando solo `try { } catch (e) { }` vengono
+**13** gestori, non 39. Gli altri **26** sono `.catch(err => { … })`, la forma a promessa — e una
+scansione che guarda solo la prima forma dice un terzo del vero. E' la seconda volta in due giorni che
+un `grep` scritto in fretta conta la cosa sbagliata (la prima e' in `TDS03`): il conto giusto viene solo
+togliendo stringhe e commenti **e** cercando entrambe le forme.
+
 ## Onda 1 — il lato server, che non dipende da niente
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
@@ -31,13 +52,13 @@ perché costa tre righe e chiude la segnalazione da cui il task è nato.
 |---|---|---|---|---|---|---|
 | TER06 | da approvare | **L'inventario: dove i toast non seguono la regola.** La regola è nel § 3 — il messaggio del server ha la precedenza, la frase locale è il ripiego — e `DeleteUserDialog.vue` è il modello. Questo punto produce l'**elenco puntuale** dei `catch` che non la seguono: `file:riga` per ognuno, il componente, e per ciascuno se **può** seguirla o se rientra in una delle due eccezioni (messaggio non mostrabile, risposta mai arrivata). Il conto è già noto — **34 su 39** (`F4`) — la lista no, e senza lista `TER04` non si può dividere per componente. Lo produce uno script, non una rilettura: un `catch` dimenticato è un `catch` che resta sordo | nessuno (verifica, l'esito va in questa analisi) | basso | auto | l'elenco è nell'analisi, e **rieseguendo lo script il conto coincide**: se non coincide, la scansione non guarda tutto — è lo stesso controllo che `TranslationKeysTest` fa su se stesso |
 | TER03 | da approvare | **`D2` — il posto dove sta la decisione**: una funzione condivisa che, dato l'errore di axios, restituisce il testo da mostrare — il messaggio del server se c'è, `common.server_unreachable` se la risposta non è arrivata, altrimenti la frase specifica del caso. Consigliata **(b)** e non la ripetizione: qui non si duplica un elenco di campi come in `TFC05`, si duplica **una decisione**, e 34 copie di una decisione divergono | `resources/js/Composables/` (nuovo) | medio | man | dato un errore senza `response`, esce la frase della rete; con `data.message`, esce quella del server; con `response` ma senza messaggio, quella del caso |
-| TER04 | da approvare | **`D1` — i 34 `catch` che ignorano il messaggio** (`F4`), uno **per componente** e non tutti in un punto: nove componenti, nove interventi che si possono rivedere guardando lo schermo. Un punto unico da 34 file non si rivede, si approva | `resources/js/components/` — nove file | medio — cambia cosa l'utente legge in caso d'errore | man | per ogni componente: con il server che risponde 4xx **con** messaggio, l'utente legge quello; senza, la frase del caso; con il server spento, quella della rete |
+| TER04 | da approvare | **`D1` — i 34 `catch` che ignorano il messaggio** (`F4`), uno **per componente** e non tutti in un punto. **Ricontato il 2026-08-21: sono 19 file, non nove** — 5 form (12 gestori), 7 tabelle (12), 7 dialoghi (10). Diciannove interventi che si possono rivedere guardando lo schermo; un punto unico da 19 file non si rivede, si approva | `resources/js/components/` — **19 file** | medio — cambia cosa l'utente legge in caso d'errore | man | per ogni componente: con il server che risponde 4xx **con** messaggio, l'utente legge quello; senza, la frase del caso; con il server spento, quella della rete |
 
 ## Onda 4 — il difetto che l'interfaccia stava nascondendo
 
 | ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
 |---|---|---|---|---|---|---|
-| TER05 | da approvare | **`D4`, e va guardato prima di `TER04`**: `RoleController::delete()` fa `response()->json(["message" => $e], 500)` — **l'eccezione intera** nel corpo. Finché i `catch` ignorano `data.message` nessuno la vede; il giorno che cominciano a mostrarla, quel messaggio finisce **sullo schermo dell'utente**, con dentro quello che l'eccezione porta. Il difetto è del server, e `TER04` lo renderebbe visibile: va corretto prima, non dopo | `app/Http/Controllers/Manage/RoleController.php`, e ogni altro punto con la stessa forma | medio — è una possibile fuga di dettagli interni | auto | `grep -rn 'json(\["message" => \$e' app/` non trova più niente; un test verifica che il 500 porti un messaggio **scritto**, non l'eccezione |
+| TER05 | da approvare | **`D4`, e va guardato prima di `TER04`**: `RoleController::delete()` fa `response()->json(["message" => $e], 500)` — **l'eccezione intera** nel corpo. Finché i `catch` ignorano `data.message` nessuno la vede; il giorno che cominciano a mostrarla, quel messaggio finisce **sullo schermo dell'utente**, con dentro quello che l'eccezione porta. Il difetto è del server, e `TER04` lo renderebbe visibile: va corretto prima, non dopo | **Ricontato il 2026-08-21, sono cinque punti e non uno**: l'eccezione **intera** in `RoleController.php:400` e in `ParametersController.php:106`; il suo **messaggio** in `UserController.php:221` e `:540` e in `ProviderUserRoleController.php:448`. I primi due sono il difetto vero — un oggetto eccezione serializzato — gli altri tre espongono un testo interno, che è meno grave e resta da decidere | medio — è una possibile fuga di dettagli interni | auto | `grep -rn 'json(\["message" => \$e' app/` non trova più niente in nessuna delle due forme; un test verifica che il 500 porti un messaggio **scritto**, non l'eccezione |
 
 ## Cosa questo piano non copre
 

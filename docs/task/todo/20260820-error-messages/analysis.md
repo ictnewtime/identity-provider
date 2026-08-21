@@ -25,7 +25,7 @@ quello sospettato (§ 2).
 | F2 | **L'helper per farlo bene esiste già** e lo usano dodici altri punti: `Controller::notFound(string $chiave)` compone `{"message": __(chiave)}` con stato 404. E la chiave giusta c'è: `user.error.not_found` → «Utente non trovato» | `app/Http/Controllers/Controller.php:46-49`; `lang/it.json` |
 | F3 | **`DeleteUserDialog.vue` legge il messaggio del server**, contrariamente al sospetto: `error.response.data.message ? … : trans("admin.users.toast.delete_user_error")`. Fa esattamente la cosa giusta — il problema è che il server non gli manda niente da leggere | `resources/js/components/user/DeleteUserDialog.vue:32-40` |
 | F4 | **Ma è una minoranza.** Su **39** blocchi `catch` che mostrano un toast, **5** leggono `data.message` e **34** lo ignorano: mostrano una frase fissa, qualunque cosa il server abbia spiegato | scansione dei `catch` in `resources/js/`, corpo per corpo |
-| F5 | I cinque che lo leggono: `ProviderTable`, `RoleTable`, `UserForm`, `DeleteUserDialog`, `DeleteUsersDialog`. Gli altri 34 sono sparsi su nove componenti — form, tabelle e dialoghi. **L'elenco puntuale, `file:riga` per ognuno, è il punto `TER06`**: qui c'è il conto, non la lista, e una lista scritta a mano in un'analisi invecchia al primo componente nuovo | stessa scansione |
+| F5 | I cinque che lo leggono: `ProviderTable`, `RoleTable`, `UserForm`, `DeleteUserDialog`, `DeleteUsersDialog`. Gli altri 34 sono sparsi su **19 file** — corretto il 2026-08-21, prima diceva «nove componenti» — form, tabelle e dialoghi. **L'elenco puntuale, `file:riga` per ognuno, è il punto `TER06`**: qui c'è il conto, non la lista, e una lista scritta a mano in un'analisi invecchia al primo componente nuovo | stessa scansione |
 | F6 | **Non esiste una frase generica.** `common.error` è «Errore», e serve da **titolo** del toast; il testo generico non c'è, e ogni componente ne ha uno suo specifico del caso — «errore durante l'eliminazione dell'utente», «errore durante il ripristino del parametro» | `lang/it.json`, chiavi `*.toast.*_error` |
 | F7 | Il caso «il server non risponde» oggi non è distinto da «il server ha risposto male»: senza `error.response` i cinque buoni ripiegano sul loro messaggio specifico, e i 34 mostrano il proprio. In entrambi i casi l'utente legge una frase che parla dell'operazione, non del fatto che la rete è caduta | `F3`, `F4` |
 
@@ -149,3 +149,24 @@ Niente. Tre risposte cambiano forma, e i `catch` guadagnano una riga.
 - **`D4` → guardarlo prima di toccare i `catch`.** Se `RoleController` mette un'eccezione nel corpo,
   mostrare `data.message` all'utente diventa una fuga di dettagli interni: va corretto **lì**, e in quel
   caso il difetto è del server, non dell'interfaccia.
+
+## Ricontrollo del 2026-08-21
+
+Il developer ha chiesto se i punti fossero ancora validi, dopo quattro lotti che hanno toccato gli
+stessi file. **Lo sono tutti e sei**, e l'esito voce per voce sta in testa al
+[piano](./action-plan.md). Qui restano le due correzioni che riguardano l'analisi:
+
+- **`F4` e `F5` sono esatti nei conti** — 39 gestori con un toast, 5 che leggono `data.message`, 34 che
+  lo ignorano — e i cinque nominati sono i cinque giusti. Rimisurati con una scansione riscritta.
+- **«nove componenti» era sbagliato**: sono **19 file** — 5 form (12 gestori), 7 tabelle (12), 7
+  dialoghi (10). Il numero conta perche' `TER04` e' «un punto per componente»: sono diciannove
+  interventi, non nove.
+- **`F8`/`D4` era piu' stretto del vero**: `response()->json(["message" => $e], 500)` non e' solo in
+  `RoleController::delete()`. L'eccezione **intera** sta in due punti — `RoleController.php:400` e
+  `ParametersController.php:106` — e il suo **messaggio** in altri tre: `UserController.php:221` e
+  `:540`, `ProviderUserRoleController.php:448`.
+
+**La cosa che la rimisurazione ha insegnato, e che vale oltre questo task**: contando solo
+`try { } catch (e) { }` i gestori con un toast sono **13**. Gli altri **26** sono `.catch(err => { … })`.
+Una scansione che guarda una forma sola dice un terzo del vero, e lo dice con l'aria di essere completa.
+
