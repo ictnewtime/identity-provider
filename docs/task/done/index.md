@@ -21,6 +21,8 @@ un perché.
 | [./20260819-frontend-complexity/](./20260819-frontend-complexity/) | Complessità cognitiva nel frontend: `usePassword` e i due `submit` | `TFC` | 2026-08-19 |
 | [./20260819-translation-coverage/](./20260819-translation-coverage/) | Le traduzioni del frontend, e i nomi dei test in inglese | `TTC` | 2026-08-19 |
 | [./20260819-audit-complexity/](./20260819-audit-complexity/) | La complessità del trait di audit, e l'ambiente dei test | `TAC` | 2026-08-19 |
+| [./20260820-security-reliability/](./20260820-security-reliability/) | Sicurezza e affidabilità: il titolo della scheda, le etichette scollegate e i file di root nell'albero | `TSR` | 2026-08-21 |
+| [./20260821-exceptions-and-waits/](./20260821-exceptions-and-waits/) | Eccezioni dedicate al posto di `RuntimeException`, un ternario annidato e due attese fisse nei test | `TEW` | 2026-08-21 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 

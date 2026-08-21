@@ -14,19 +14,32 @@ const LENGTH_POINTS = [
 ];
 
 /** Le famiglie di caratteri che contano per la varieta'. */
-const CHARACTER_FAMILIES = [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/];
+const CHARACTER_FAMILIES = [/[A-Z]/, /[a-z]/, /\d/, /[^A-Za-z0-9]/];
 
 /** Punti per varieta', **non** cumulativi: tre famiglie valgono 1, quattro valgono 2. */
 const VARIETY_POINTS = { 3: 1, 4: 2 };
 
-/** Gli schemi che rendono una password indovinabile a prescindere da lunghezza e varieta'. */
+/** Quanti caratteri di fila fanno una «sequenza»: `abcd` si', `abc` no. */
+const SEQUENCE_LENGTH = 4;
+
+/**
+ * Un alfabeto ricavato dai codici dei caratteri: `a` e' 97, `A` e' 65, `0` e' 48.
+ */
+function alphabetFromCodes(firstCode, howMany) {
+    return Array.from({ length: howMany }, (_, i) => String.fromCharCode(firstCode + i)).join("");
+}
+
+/**
+ * Gli insiemi che hanno un ordine, e quindi delle sequenze.
+ */
+const SEQUENCE_SOURCES = [alphabetFromCodes(97, 26), alphabetFromCodes(48, 10), "qwertyuiop", "asdfghjkl", "zxcvbnm"];
+
+const OBVIOUS_WORDS = ["pass", "admin", "login"];
+
+/** Gli schemi che restano una regex, perche' non sono elenchi ma **forme**. */
 const PREDICTABLE_PATTERNS = [
     // Tre o piu' caratteri identici consecutivi (AAA, 111, !!!)
     /(.)\1{2,}/,
-    // Sequenze da tastiera, numeriche o parole ovvie (qwerty, 1234, admin...)
-    /(1234|2345|3456|4567|5678|6789|9876|8765|7654|6543|5432|4321|qwer|wert|erty|asdf|sdfg|dfgh|zxcv|xcvb|pass|admin|login)/i,
-    // Sequenze alfabetiche ovvie (abcd, bcde...)
-    /(abcd|bcde|cdef|defg|efgh|fghi|ghij|hijk|ijkl|jklm|klmn|lmno|mnop|nopq|opqr|pqrs|qrst|rstu|stuv|tuvw|uvwx|vwxy|wxyz)/i,
     // Blocchi ripetuti (abcabcabc, 121212)
     /(.{2,})\1{2,}/,
 ];
@@ -47,6 +60,30 @@ function varietyPoints(password) {
     return VARIETY_POINTS[families] ?? 0;
 }
 
+function hasSequence(password) {
+    const lowercased = password.toLowerCase();
+
+    return SEQUENCE_SOURCES.some((source) => {
+        const bothWays = [source, [...source].reverse().join("")];
+
+        return bothWays.some((text) => {
+            for (let start = 0; start + SEQUENCE_LENGTH <= text.length; start++) {
+                if (lowercased.includes(text.substr(start, SEQUENCE_LENGTH))) {
+                    return true;
+                }
+            }
+
+            return false;
+        });
+    });
+}
+
+function containsObviousWord(password) {
+    const lowercased = password.toLowerCase();
+
+    return OBVIOUS_WORDS.some((word) => lowercased.includes(word));
+}
+
 function isMonotonous(password) {
     if (password.length < MONOTONY_MIN_LENGTH) {
         return false;
@@ -64,7 +101,12 @@ function isMonotonous(password) {
 }
 
 function isPredictable(password) {
-    return PREDICTABLE_PATTERNS.some((pattern) => pattern.test(password)) || isMonotonous(password);
+    return (
+        PREDICTABLE_PATTERNS.some((pattern) => pattern.test(password)) ||
+        hasSequence(password) ||
+        containsObviousWord(password) ||
+        isMonotonous(password)
+    );
 }
 
 export function passwordStrength(password) {
