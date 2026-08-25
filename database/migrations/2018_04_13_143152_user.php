@@ -14,10 +14,6 @@ class User extends Migration
     public function up()
     {
         Schema::create("users", function (Blueprint $table) {
-            // $table->engine = 'InnoDB';
-            // $table->charset = 'utf8';
-            // $table->collation = 'utf8_unicode_ci';
-
             $table->id();
             $table->string("email", 60)->nullable();
             $table->string("password")->nullable();

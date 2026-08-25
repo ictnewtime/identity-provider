@@ -65,7 +65,6 @@ class User extends Authenticatable
      */
     public function idpRoles()
     {
-        // $user_roles = $this->hasMany(UserRole::class, "user_id");
         $provider_id = config("app.provider_id");
         $provider_user_roles = ProviderUserRole::where("user_id", $this->id)
             ->where("provider_id", $provider_id)

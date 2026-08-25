@@ -11,7 +11,7 @@ import Password from "primevue/password";
 import Checkbox from "primevue/checkbox";
 import Button from "primevue/button";
 import Message from "primevue/message";
-import { getDomain } from "../utils/urls";
+import { cookieDomain } from "../utils/urls";
 
 const props = defineProps({
     providerSelected: {
@@ -223,7 +223,7 @@ const parseUrlAndFill = () => {
     }
     const parsed = new URL(rawUrl);
     form.value.protocol = parsed.protocol.replace(":", "");
-    form.value.domain = getDomain(rawUrl);
+    form.value.domain = cookieDomain(rawUrl);
     try {
         form.value.logoutUrl = `${parsed.protocol}//${parsed.host}/logout`;
     } catch (error) {
@@ -374,7 +374,7 @@ const generateSecret = () => {
 
                 <InputGroup class="flex">
                     <Password
-                        id="secret_key"
+                        inputId="secret_key"
                         v-model="form.secret_key"
                         :invalid="!!errors.secret_key"
                         :placeholder="$t('admin.providers.form.secret_key_placeholder')"

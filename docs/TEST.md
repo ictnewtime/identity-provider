@@ -16,24 +16,83 @@ Prerequisito comune: l'ambiente preparato secondo [setup.db.md](setup.db.md) e [
 ## Test di backend — sqlite, senza compose
 
 ```sh
-docker build -f Dockerfile.test.backend -t idp-test-backend .
-docker run --rm -v "$PWD":/var/www idp-test-backend
-docker run --rm -v "$PWD":/var/www idp-test-backend php artisan test --filter=AuditList
+./scripts/run-test-backend.sh                    # tutta la suite
+./scripts/run-test-backend.sh --filter=Audit     # una parte
 ```
 
-Non toccano **nessun** database: né `idp_develop` né `idp_test`. Un file compose qui sarebbe di
-troppo — un comando basta, ed è la ragione per cui non c'è.
+**Basta questo, e non chiede niente.** Lo script prepara l'ambiente, costruisce l'immagine ed esegue i
+test passando gli argomenti che riceve. Alla prima esecuzione **genera** il valore delle variabili che
+il modello dichiara vuote — oggi una, `SEED_ADMIN_PASSWORD` — e lo scrive in `.env.test.backend`, che
+git ignora. Dalla seconda in poi lo riusa: due esecuzioni di fila lavorano sullo stesso ambiente.
+
+**Il container gira come te, e non scrive nell'albero.** `--user "$(id -u):$(id -g)"`: i file che
+nascono dentro il container appartengono a chi ha lanciato lo script, non a root — fino al 2026-08-20 ogni
+esecuzione ne lasciava indietro, e uno di quelli bloccava `npm run build`. E ciò che la suite scriverebbe
+è deviato **fuori** dall'albero: i log su `stderr`, la cache dei risultati in `/tmp` (`phpunit.xml`),
+la config cache in `/tmp/config-test.php`. Verificato: dopo un'esecuzione, `find . -newer` non trova
+alcun file nuovo. Non è pulizia formale — `storage/logs/laravel.log` è di **www-data**, perché lo scrive
+il container dell'applicazione, e un terzo utente che ci scrive dentro non esiste.
+
+Generate e non digitate perché sono **credenziali di prova**: servono a esistere. Il seeder pretende
+una password e non ne inventa una; quale sia non interessa a nessuno. Da qui due conseguenze pratiche:
+non c'è niente da ricordare, e in CI — dove un terminale non c'è — funziona identico.
+
+Se una variabile è già nell'ambiente, quella vince e non viene scritta nel file:
+
+```sh
+SEED_ADMIN_PASSWORD='…' ./scripts/run-test-backend.sh
+```
+
+**La preparazione ha un comando suo**, e serve a chi i test li lancia a mano:
+
+```sh
+./scripts/setup-env-for-test-backend.sh
+```
+
+Da `.env.test.backend.example` produce `.env.test.backend`, generando **solo** le variabili dichiarate
+senza valore e **solo** se non le trova già — nell'ambiente o nel file. Non costruisce niente e non
+esegue niente: prepara, e si ferma. È la ragione per cui gli script sono due.
+
+### A mano, se serve capire cosa fanno gli script
+
+Prima si prepara l'ambiente — `./scripts/setup-env-for-test-backend.sh`, oppure a mano copiando il
+modello e riempiendo le variabili vuote — e poi:
+
+```sh
+docker build -f Dockerfile.test.backend -t idp-test-backend .
+docker run --rm -v "$PWD":/var/www -e SEED_ADMIN_PASSWORD='…' idp-test-backend
+docker run --rm -v "$PWD":/var/www -e SEED_ADMIN_PASSWORD='…' idp-test-backend php artisan test --filter=AuditList
+```
+
+Il `-e` non è un dettaglio: **prima va preparato `.env.test.backend`** — si copia
+[.env.test.backend.example](../.env.test.backend.example) e si riempiono le variabili dichiarate
+**senza valore**, che sono le credenziali. Senza di esse `DatabaseSeederTest` fallisce con un messaggio
+che dice quale variabile manca; gli altri test girano ugualmente.
+
+**Perché `-e` e non `--env-file`**: un `--env-file` passerebbe tutto il file locale, compreso
+`TEST_ALLOWED_DATABASES` — il guardiano che impedisce alla suite di cancellare `idp_develop`. Un file
+locale sbagliato lo disarmerebbe in silenzio. Con `-e` si passano solo le credenziali, e tutto il resto
+resta quello dell'immagine.
+
+Questi test non toccano **nessun** database: né `idp_develop` né `idp_test`. Un file compose qui sarebbe
+di troppo — un comando basta, ed è la ragione per cui non c'è.
 
 Configurazione: `Dockerfile.test.backend` + [.env.test.backend.example](../.env.test.backend.example),
-copiato **dentro l'immagine** e mai sopra il `.env` dell'host.
+copiato **dentro l'immagine** e mai sopra il `.env` dell'host. Nel modello le credenziali sono dichiarate
+senza valore: i valori arrivano con `-e`, non da quel `COPY`.
 
 ---
 
 ## Test E2E — MariaDB, con compose
 
 ```sh
-docker compose -f docker-compose.test.yml run --rm --build e2e
+TEST_UID=$(id -u) TEST_GID=$(id -g) docker compose -f docker-compose.test.yml run --rm --build e2e
 ```
+
+**Le due variabili servono**, e senza di loro il compose si ferma dicendo cosa scrivere: danno al
+container l'utente dell'host, così i file che scrive nell'albero montato sono tuoi e non di root. Non
+hanno un valore predefinito di proposito — `1000:1000` sarebbe giusto su una macchina e sbagliato sulla
+successiva. I test backend non chiedono niente: lo script lo fa da sé.
 
 Il database `idp_test` lo crea l'entrypoint a ogni avvio (`CREATE DATABASE IF NOT EXISTS`): non c'è
 un passo da ricordare. Configurazione: `Dockerfile.test.e2e` +

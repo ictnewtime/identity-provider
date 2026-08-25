@@ -20,14 +20,14 @@ class AuditSearchFilterTest extends TestCase
         return (new AuditSearchFilter())->apply(Audit::query(), $termine)->toSql();
     }
 
-    public function test_un_termine_vuoto_lascia_la_query_intatta(): void
+    public function test_an_empty_term_leaves_the_query_untouched(): void
     {
         foreach ([null, "", "   "] as $vuoto) {
             $this->assertSame(Audit::query()->toSql(), $this->sql($vuoto), "un termine vuoto non deve filtrare");
         }
     }
 
-    public function test_cerca_su_indirizzo_evento_e_tipo_di_entita(): void
+    public function test_it_searches_address_event_and_entity_type(): void
     {
         $sql = $this->sql("mario");
 
@@ -36,7 +36,7 @@ class AuditSearchFilterTest extends TestCase
         }
     }
 
-    public function test_cerca_anche_nellattore_polimorfo(): void
+    public function test_it_also_searches_the_polymorphic_actor(): void
     {
         $sql = $this->sql("mario");
 
@@ -46,7 +46,7 @@ class AuditSearchFilterTest extends TestCase
         $this->assertStringContainsString("oauth_clients", $sql);
     }
 
-    public function test_il_termine_viene_legato_e_non_concatenato(): void
+    public function test_the_term_is_bound_and_not_concatenated(): void
     {
         $query = (new AuditSearchFilter())->apply(Audit::query(), "mario' or 1=1 --");
 

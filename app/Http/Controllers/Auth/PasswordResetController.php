@@ -69,7 +69,7 @@ class PasswordResetController extends Controller
                 "required",
                 "min:12",
                 "confirmed",
-                function ($attribute, $value, $fail) use ($request) {
+                function ($_attribute, $value, $fail) use ($request) {
                     $user = User::where("email", $request->email)->first();
                     if ($user && Hash::check($value, $user->password)) {
                         $fail(__("auth.password_same_as_old"));
@@ -117,7 +117,7 @@ class PasswordResetController extends Controller
                 "required",
                 "min:12",
                 "confirmed",
-                function ($attribute, $value, $fail) use ($request) {
+                function ($_attribute, $value, $fail) use ($request) {
                     if (Hash::check($value, $request->user()->password)) {
                         $fail(__("auth.password_same_as_old"));
                     }

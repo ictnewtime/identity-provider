@@ -26,12 +26,12 @@ class AuditSortOrderTest extends TestCase
         return str_replace(['"', "`"], "", $sql);
     }
 
-    public function test_senza_campo_ordina_per_data_decrescente(): void
+    public function test_without_a_field_it_sorts_by_date_descending(): void
     {
         $this->assertStringContainsString('order by created_at desc', $this->sql(null));
     }
 
-    public function test_un_campo_non_ammesso_ricade_sullordine_predefinito(): void
+    public function test_a_field_that_is_not_allowed_falls_back_to_the_default_order(): void
     {
         // `id` non e' fra le colonne ammesse: il campo arriva dal client, e cio' che non e'
         // nell'elenco non deve finire in un `order by`.
@@ -41,7 +41,7 @@ class AuditSortOrderTest extends TestCase
         $this->assertStringNotContainsString("id asc", $sql);
     }
 
-    public function test_ordina_su_una_colonna_ammessa_qualificandola(): void
+    public function test_it_sorts_on_an_allowed_column_qualifying_it(): void
     {
         $sql = $this->sql("event", "asc");
 
@@ -49,12 +49,12 @@ class AuditSortOrderTest extends TestCase
         $this->assertStringContainsString('order by audits.event asc', $sql);
     }
 
-    public function test_una_direzione_non_valida_diventa_crescente(): void
+    public function test_an_invalid_direction_becomes_ascending(): void
     {
         $this->assertStringContainsString("asc", $this->sql("event", "qualsiasi-cosa"));
     }
 
-    public function test_ordinare_per_username_usa_una_left_join_sul_tipo(): void
+    public function test_sorting_by_username_uses_a_left_join_on_the_type(): void
     {
         $sql = $this->sql("user.username", "asc");
 

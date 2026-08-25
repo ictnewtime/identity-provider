@@ -193,11 +193,12 @@ onMounted(() => {
             </div>
 
             <div class="flex flex-col gap-1">
-                <label for="provider" class="font-medium text-surface-900">
+                <label id="provider-label" for="provider" class="font-medium text-surface-900">
                     {{ $t("admin.roles.form.provider_label") }}
                 </label>
                 <Select
                     id="provider"
+                    aria-labelledby="provider-label"
                     v-model="form.provider_id"
                     :options="providers"
                     optionLabel="name"

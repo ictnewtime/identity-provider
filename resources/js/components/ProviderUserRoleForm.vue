@@ -224,11 +224,12 @@ onMounted(() => {
     <form @submit.prevent="submit" class="flex flex-col gap-6 w-full pt-2">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="flex flex-col gap-1 md:col-span-2">
-                <label for="user_id" class="font-medium text-surface-900">
+                <label id="user_id-label" for="user_id" class="font-medium text-surface-900">
                     {{ $t("admin.provider_user_roles.form.user_label") }}
                 </label>
                 <Select
                     id="user_id"
+                    aria-labelledby="user_id-label"
                     v-model="form.user_id"
                     :options="users"
                     optionLabel="username"
@@ -245,11 +246,12 @@ onMounted(() => {
             </div>
 
             <div class="flex flex-col gap-1">
-                <label for="provider_id" class="font-medium text-surface-900">
+                <label id="provider_id-label" for="provider_id" class="font-medium text-surface-900">
                     {{ $t("admin.provider_user_roles.form.provider_label") }}
                 </label>
                 <Select
                     id="provider_id"
+                    aria-labelledby="provider_id-label"
                     v-model="form.provider_id"
                     :options="providers"
                     optionLabel="name"
@@ -267,11 +269,12 @@ onMounted(() => {
             </div>
 
             <div class="flex flex-col gap-1">
-                <label for="role_id" class="font-medium text-surface-900">
+                <label id="role_id-label" for="role_id" class="font-medium text-surface-900">
                     {{ $t("admin.provider_user_roles.form.role_label") }}
                 </label>
                 <Select
                     id="role_id"
+                    aria-labelledby="role_id-label"
                     v-model="form.role_id"
                     :options="roles"
                     optionLabel="name"

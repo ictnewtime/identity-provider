@@ -44,6 +44,8 @@ const BrandPreset = definePreset(Aura, {
 });
 
 createInertiaApp({
+    title: (titolo) => (titolo ? `${titolo} - Identity Provider` : "Identity Provider"),
+
     resolve: (name) => {
         const pages = import.meta.glob("./Pages/**/*.vue", { eager: true });
         return pages[`./Pages/${name}.vue`];

@@ -89,7 +89,7 @@ class AuthenticatedTest extends TestCase
 
     // --- Ramo 1: nessun token ------------------------------------------------------------
 
-    public function test_rifiuta_quando_non_ce_nessun_token(): void
+    public function test_it_rejects_when_there_is_no_token(): void
     {
         $this->idpProvider();
 
@@ -98,13 +98,13 @@ class AuthenticatedTest extends TestCase
 
     // --- Ramo 2: provider mancante, o senza secret_key -----------------------------------
 
-    public function test_rifiuta_quando_il_provider_idp_non_esiste(): void
+    public function test_it_rejects_when_the_idp_provider_does_not_exist(): void
     {
         // Nessun provider creato: la configurazione di sicurezza manca del tutto.
         $this->callWithToken("un.token.qualsiasi")->assertStatus(401);
     }
 
-    public function test_rifiuta_quando_il_provider_non_ha_secret_key(): void
+    public function test_it_rejects_when_the_provider_has_no_secret_key(): void
     {
         $this->idpProvider(["secret_key" => ""]);
 
@@ -113,7 +113,7 @@ class AuthenticatedTest extends TestCase
 
     // --- Ramo 3: token scaduto -----------------------------------------------------------
 
-    public function test_rifiuta_un_token_scaduto(): void
+    public function test_it_rejects_an_expired_token(): void
     {
         $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
@@ -125,7 +125,7 @@ class AuthenticatedTest extends TestCase
 
     // --- Ramo 4: claim `sub` mancante ----------------------------------------------------
 
-    public function test_rifiuta_un_token_senza_claim_sub(): void
+    public function test_it_rejects_a_token_without_the_sub_claim(): void
     {
         $provider = $this->idpProvider();
 
@@ -136,7 +136,7 @@ class AuthenticatedTest extends TestCase
 
     // --- Ramo 5: utente inesistente ------------------------------------------------------
 
-    public function test_rifiuta_quando_lutente_del_token_non_esiste_piu(): void
+    public function test_it_rejects_when_the_token_user_no_longer_exists(): void
     {
         $provider = $this->idpProvider();
 
@@ -147,7 +147,7 @@ class AuthenticatedTest extends TestCase
 
     // --- Ramo 6: sessione eliminata dal database -----------------------------------------
 
-    public function test_rifiuta_un_token_valido_la_cui_sessione_e_stata_eliminata(): void
+    public function test_it_rejects_a_valid_token_whose_session_was_deleted(): void
     {
         $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
@@ -160,7 +160,7 @@ class AuthenticatedTest extends TestCase
 
     // --- Ramo felice ---------------------------------------------------------------------
 
-    public function test_lascia_passare_un_token_valido_con_sessione_viva(): void
+    public function test_it_lets_through_a_valid_token_with_a_live_session(): void
     {
         $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);

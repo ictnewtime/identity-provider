@@ -51,7 +51,7 @@ const submit = () => {
                             :disabled="form.processing"
                             required
                         />
-                        <label for="password" class="font-medium text-gray-700 z-10">Username</label>
+                        <label for="username" class="font-medium text-gray-700 z-10">Username</label>
                     </FloatLabel>
                     <Message v-if="form.errors.username" severity="error" size="small" variant="simple">
                         {{ form.errors.username }}
@@ -66,7 +66,7 @@ const submit = () => {
                         :loading="form.processing"
                         :disabled="!form.username"
                     />
-                    <Link method="get" href="/loginForm" class="w-full">
+                    <Link method="get" href="/" class="w-full">
                         <Button
                             type="button"
                             :label="trans('auth.back_to_login')"

@@ -2,17 +2,23 @@
 import { onMounted } from "vue";
 import DatePicker from "primevue/datepicker";
 import { usePrimeVue } from "primevue/config";
-import { trans } from "laravel-vue-i18n";
+import { getActiveLanguage, trans } from "laravel-vue-i18n";
 
 const model = defineModel();
 
 const primevue = usePrimeVue();
 
+/**
+ * Il primo giorno della settimana per lingua: 0 e' domenica, 1 e' lunedi'.
+ */
+const FIRST_DAY_OF_WEEK = { it: 1, en: 0 };
+const FIRST_DAY_OF_WEEK_FALLBACK = 1;
+
 onMounted(() => {
-    const firstDayOfWeek = Number.parseInt(trans("primevue.first_day_of_week"), 10);
+    const firstDayOfWeek = FIRST_DAY_OF_WEEK[getActiveLanguage()] ?? FIRST_DAY_OF_WEEK_FALLBACK;
 
     primevue.config.locale = {
-        firstDayOfWeek: Number.isNaN(firstDayOfWeek) ? 1 : firstDayOfWeek,
+        firstDayOfWeek,
         dayNames: trans("primevue.day_names").split(","),
         dayNamesShort: trans("primevue.day_names_short").split(","),
         dayNamesMin: trans("primevue.day_names_min").split(","),

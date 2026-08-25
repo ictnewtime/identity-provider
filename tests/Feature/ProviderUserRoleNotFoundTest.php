@@ -31,7 +31,7 @@ class ProviderUserRoleNotFoundTest extends TestCase
     private const ID_INESISTENTE = 999999;
     private const ROUTE_ADMIN_V1_PUR = "/admin/v1/provider-user-roles/";
 
-    public function test_find_su_un_id_inesistente_risponde_404_col_messaggio(): void
+    public function test_find_on_a_missing_id_responds_404_with_the_message(): void
     {
         $this->withoutMiddleware()
             ->getJson(self::ROUTE_ADMIN_V1_PUR . self::ID_INESISTENTE)
@@ -47,7 +47,7 @@ class ProviderUserRoleNotFoundTest extends TestCase
      * risposta e' 422 e il ramo «non trovato» resta irraggiungibile. Scoperto scrivendo il test —
      * la prima versione asseriva 404 e riceveva 422.
      */
-    public function test_update_su_un_id_inesistente_risponde_404_col_messaggio(): void
+    public function test_update_on_a_missing_id_responds_404_with_the_message(): void
     {
         $provider = Provider::forceCreate([
             "domain" => "localhost",
@@ -70,7 +70,7 @@ class ProviderUserRoleNotFoundTest extends TestCase
             ->assertJson(["message" => __(self::CHIAVE)]);
     }
 
-    public function test_delete_su_un_id_inesistente_risponde_404_col_messaggio(): void
+    public function test_delete_on_a_missing_id_responds_404_with_the_message(): void
     {
         $this->withoutMiddleware()
             ->deleteJson(self::ROUTE_ADMIN_V1_PUR . self::ID_INESISTENTE)
@@ -86,7 +86,7 @@ class ProviderUserRoleNotFoundTest extends TestCase
      * Il guadagno vero di TPU03: la stessa rotta risponde nella lingua della richiesta.
      * Col literale scritto a mano era impossibile, e le chiavi esistevano gia' — inutilizzate.
      */
-    public function test_il_messaggio_segue_la_lingua_della_richiesta(): void
+    public function test_the_message_follows_the_request_language(): void
     {
         app()->setLocale("en");
         $inglese = $this->withoutMiddleware()
@@ -103,7 +103,7 @@ class ProviderUserRoleNotFoundTest extends TestCase
         $this->assertSame("Provider user role not found", $inglese, "in inglese resta il testo di prima");
     }
 
-    public function test_nessun_messaggio_not_found_resta_scritto_a_mano(): void
+    public function test_no_not_found_message_is_left_hardcoded(): void
     {
         // La verifica che l'HTTP non da': dodici literali su cinque file, ora zero.
         $trovati = shell_exec('grep -rn \'message" => "[A-Za-z ]*not found"\' ' . app_path("Http/Controllers"));

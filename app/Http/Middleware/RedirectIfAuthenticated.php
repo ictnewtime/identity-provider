@@ -20,7 +20,6 @@ class RedirectIfAuthenticated
     {
         $idpProviderId = config("idp.provider_id");
         $cookieName = "idp_token_" . $idpProviderId;
-        // $cookieName = config("idp.jwt.master_token_name");
 
         $user = $this->resolveAuthenticatedUser($request, $guard, $idpProviderId, $cookieName);
 

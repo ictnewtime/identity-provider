@@ -2,7 +2,7 @@
 
 namespace App\Support;
 
-use RuntimeException;
+use App\Exceptions\DestructiveDatabaseException;
 
 /**
  * Rifiuta le operazioni distruttive su un database che non sia quello di test.
@@ -28,7 +28,7 @@ class DestructiveDatabaseGuard
     public const ALLOWED_ENV = "TEST_ALLOWED_DATABASES";
 
     /**
-     * @throws RuntimeException se il database in uso non e' fra quelli consentiti
+     * @throws DestructiveDatabaseException se il database in uso non e' fra quelli consentiti
      */
     public static function ensureTestDatabase(?string $connection = null): void
     {
@@ -38,7 +38,7 @@ class DestructiveDatabaseGuard
         $allowed = self::allowedDatabases();
 
         if (empty($allowed)) {
-            throw new RuntimeException(
+            throw new DestructiveDatabaseException(
                 self::ALLOWED_ENV .
                     " non e' impostata: un'operazione distruttiva sul database non parte senza " .
                     "un elenco di database consentiti, perche' non c'e' modo di sapere se sta per " .
@@ -50,7 +50,7 @@ class DestructiveDatabaseGuard
             return;
         }
 
-        throw new RuntimeException(
+        throw new DestructiveDatabaseException(
             sprintf(
                 "Operazione distruttiva rifiutata: '%s' (connessione '%s') non e' un database di test.\n" .
                     "Consentiti: %s.\n" .

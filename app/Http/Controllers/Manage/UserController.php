@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Manage;
 
 use Illuminate\Http\Request;
-// use App\Http\Services\Mailer;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;

@@ -27,6 +27,22 @@ class AuditListTest extends TestCase
 
     private const URI = "/admin/v1/audits";
 
+    /**
+     * Quante righe serve seminare, e perche' proprio quel numero. Prima erano tre `range(1, N)` con il
+     * numero nudo dentro il test, e una variabile `$i` che nessuno usava (punto TRC04).
+     */
+    private const ROWS_FOR_A_SECOND_PAGE = 5;
+    private const EXTRA_ROWS_FOR_THE_N_PLUS_ONE_CHECK = 9;
+    private const ROWS_ABOVE_THE_CEILING = 12;
+
+    /** Semina `$howMany` righe di audit. Il contatore vive qui e non si vede nei test. */
+    private function audits(int $howMany, array $overrides = []): void
+    {
+        for ($written = 0; $written < $howMany; $written++) {
+            $this->audit($overrides);
+        }
+    }
+
     private function audit(array $overrides = []): Audit
     {
         return Audit::create(
@@ -46,99 +62,97 @@ class AuditListTest extends TestCase
         );
     }
 
-    private function chiama(array $query = [])
+    private function callIndex(array $query = [])
     {
         return $this->withoutMiddleware()->getJson(self::URI . "?" . http_build_query($query));
     }
 
-    public function test_elenca_gli_audit_in_forma_paginata(): void
+    public function test_it_lists_audits_paginated(): void
     {
         $this->audit();
         $this->audit();
 
-        $this->chiama()
+        $this->callIndex()
             ->assertStatus(200)
             ->assertJsonStructure(["data", "meta" => ["current_page", "per_page", "total"]]);
     }
 
-    public function test_rispetta_per_page(): void
+    public function test_it_honours_per_page(): void
     {
-        foreach (range(1, 5) as $i) {
-            $this->audit();
-        }
+        $this->audits(self::ROWS_FOR_A_SECOND_PAGE);
 
-        $this->chiama(["per_page" => 2])
+        $this->callIndex(["per_page" => 2])
             ->assertStatus(200)
             ->assertJsonPath("meta.per_page", 2)
             ->assertJsonCount(2, "data");
     }
 
-    public function test_la_ricerca_filtra_per_indirizzo_ip(): void
+    public function test_the_search_filters_by_ip_address(): void
     {
         $this->audit(["ip_address" => env("TEST_IP_ADDRESS_ALT")]);
         $this->audit(["ip_address" => env("TEST_IP_ADDRESS_OTHER")]);
 
-        $this->chiama(["q" => env("TEST_IP_ADDRESS_ALT")])
+        $this->callIndex(["q" => env("TEST_IP_ADDRESS_ALT")])
             ->assertStatus(200)
             ->assertJsonCount(1, "data");
     }
 
-    public function test_la_ricerca_filtra_per_evento(): void
+    public function test_the_search_filters_by_event(): void
     {
         $this->audit(["event" => "created"]);
         $this->audit(["event" => "deleted"]);
 
-        $this->chiama(["q" => "creat"])
+        $this->callIndex(["q" => "creat"])
             ->assertStatus(200)
             ->assertJsonCount(1, "data");
     }
 
-    public function test_la_ricerca_filtra_per_username_dellattore(): void
+    public function test_the_search_filters_by_actor_username(): void
     {
         $utente = User::factory()->create(["username" => "mario.rossi", "enabled" => 1]);
 
         $this->audit(["user_type" => User::class, "user_id" => $utente->id]);
         $this->audit();
 
-        $this->chiama(["q" => "mario"])
+        $this->callIndex(["q" => "mario"])
             ->assertStatus(200)
             ->assertJsonCount(1, "data");
     }
 
-    public function test_ordina_sulle_colonne_consentite(): void
+    public function test_it_sorts_on_the_allowed_columns(): void
     {
         $this->audit(["event" => "zeta"]);
         $this->audit(["event" => "alfa"]);
 
-        $risposta = $this->chiama(["sort_by" => "event", "sort_dir" => "asc"])->assertStatus(200);
+        $risposta = $this->callIndex(["sort_by" => "event", "sort_dir" => "asc"])->assertStatus(200);
 
         $this->assertSame("alfa", $risposta->json("data.0.event"));
     }
 
-    public function test_ignora_una_colonna_non_consentita(): void
+    public function test_it_ignores_a_column_that_is_not_allowed(): void
     {
         $this->audit();
 
         // `id` non e' fra le colonne ammesse: la richiesta non deve fallire, solo ignorarla.
-        $this->chiama(["sort_by" => "id", "sort_dir" => "asc"])->assertStatus(200);
+        $this->callIndex(["sort_by" => "id", "sort_dir" => "asc"])->assertStatus(200);
     }
 
-    public function test_lordine_predefinito_e_il_piu_recente_per_primo(): void
+    public function test_the_default_order_is_most_recent_first(): void
     {
         $vecchio = $this->audit(["event" => "vecchio"]);
         $vecchio->forceFill(["created_at" => now()->subDay()])->save();
 
         $this->audit(["event" => "recente"]);
 
-        $this->assertSame("recente", $this->chiama()->json("data.0.event"));
+        $this->assertSame("recente", $this->callIndex()->json("data.0.event"));
     }
 
-    public function test_la_risposta_espone_solo_i_campi_dichiarati(): void
+    public function test_the_response_exposes_only_the_declared_fields(): void
     {
         $utente = User::factory()->create(["username" => "mario.rossi", "enabled" => 1]);
         $this->audit(["user_type" => User::class, "user_id" => $utente->id]);
 
-        $riga = $this->chiama()->json("data.0");
+        $riga = $this->callIndex()->json("data.0");
 
         $this->assertEqualsCanonicalizing(
             [
@@ -162,11 +176,11 @@ class AuditListTest extends TestCase
         $this->assertSame("mario.rossi", $riga["user"]["username"]);
     }
 
-    public function test_lattore_di_un_audit_di_sistema_e_nullo(): void
+    public function test_the_actor_of_a_system_audit_is_null(): void
     {
         $this->audit(["user_id" => null]);
 
-        $this->assertNull($this->chiama()->json("data.0.user"));
+        $this->assertNull($this->callIndex()->json("data.0.user"));
     }
 
     /**
@@ -175,27 +189,25 @@ class AuditListTest extends TestCase
      * Il numero di query non deve dipendere da quanti audit ci sono. Se AuditResource
      * risolvesse l'attore riga per riga, questo test lo direbbe subito.
      */
-    public function test_il_numero_di_query_non_cresce_con_le_righe(): void
+    public function test_the_number_of_queries_does_not_grow_with_the_rows(): void
     {
         $utente = User::factory()->create(["username" => "mario.rossi", "enabled" => 1]);
 
         $this->audit(["user_type" => User::class, "user_id" => $utente->id]);
-        $conUno = $this->contaQuery();
+        $conUno = $this->countQueries();
 
-        foreach (range(1, 9) as $i) {
-            $this->audit(["user_type" => User::class, "user_id" => $utente->id]);
-        }
-        $conDieci = $this->contaQuery();
+        $this->audits(self::EXTRA_ROWS_FOR_THE_N_PLUS_ONE_CHECK, ["user_type" => User::class, "user_id" => $utente->id]);
+        $conDieci = $this->countQueries();
 
         $this->assertSame($conUno, $conDieci, "il numero di query cresce con le righe: e' un N+1");
     }
 
-    private function contaQuery(): int
+    private function countQueries(): int
     {
         \DB::flushQueryLog();
         \DB::enableQueryLog();
 
-        $this->chiama()->assertStatus(200);
+        $this->callIndex()->assertStatus(200);
 
         $numero = count(\DB::getQueryLog());
         \DB::disableQueryLog();
@@ -210,26 +222,24 @@ class AuditListTest extends TestCase
      * Il valore arriva dal client: senza limite, una richiesta sola caricherebbe in memoria
      * l'intera tabella degli audit, che e' quella che cresce piu' in fretta.
      */
-    public function test_per_page_ha_un_tetto(): void
+    public function test_per_page_has_a_ceiling(): void
     {
-        foreach (range(1, 12) as $i) {
-            $this->audit();
-        }
+        $this->audits(self::ROWS_ABOVE_THE_CEILING);
 
-        $risposta = $this->chiama(["per_page" => 1000000])->assertStatus(200);
+        $risposta = $this->callIndex(["per_page" => 1000000])->assertStatus(200);
 
         $this->assertLessThanOrEqual(200, $risposta->json("meta.per_page"), "per_page non ha un tetto");
         $this->assertLessThanOrEqual(200, count($risposta->json("data")));
     }
 
-    public function test_per_page_assurdo_non_significa_nessun_limite(): void
+    public function test_an_absurd_per_page_does_not_mean_no_limit(): void
     {
         $this->audit();
 
         // `0` e i negativi non devono valere «tutte le righe»: e' l'errore classico di un tetto
         // messo solo verso l'alto.
         foreach ([0, -1, -1000] as $valore) {
-            $letto = $this->chiama(["per_page" => $valore])->assertStatus(200)->json("meta.per_page");
+            $letto = $this->callIndex(["per_page" => $valore])->assertStatus(200)->json("meta.per_page");
 
             $this->assertGreaterThanOrEqual(1, $letto, "per_page={$valore} non deve dare zero righe");
         }
@@ -241,14 +251,14 @@ class AuditListTest extends TestCase
      * Prima c'era un `->latest()` dopo l'`orderBy`: nel ramo predefinito ripeteva quello appena
      * impostato, in quello esplicito aggiungeva un secondo criterio che nessuno aveva chiesto.
      */
-    public function test_lordinamento_esplicito_non_viene_disturbato(): void
+    public function test_an_explicit_sort_is_not_disturbed(): void
     {
         $vecchio = $this->audit(["event" => "alfa"]);
         $vecchio->forceFill(["created_at" => now()->subDay()])->save();
 
         $this->audit(["event" => "zeta"]);
 
-        $eventi = collect($this->chiama(["sort_by" => "event", "sort_dir" => "asc"])->json("data"))->pluck("event");
+        $eventi = collect($this->callIndex(["sort_by" => "event", "sort_dir" => "asc"])->json("data"))->pluck("event");
 
         $this->assertSame(["alfa", "zeta"], $eventi->all());
     }
@@ -260,15 +270,15 @@ class AuditListTest extends TestCase
      * qualificato aggiunto in coda poteva renderlo ambiguo. Su MariaDB la risposta si vede solo
      * eseguendolo li' — questo test gira in entrambi gli ambienti.
      */
-    public function test_ordinare_per_username_con_la_join_non_da_ambiguita(): void
+    public function test_sorting_by_username_with_the_join_is_not_ambiguous(): void
     {
         $utente = User::factory()->create(["username" => "mario.rossi", "enabled" => 1]);
         $this->audit(["user_type" => User::class, "user_id" => $utente->id]);
 
-        $this->chiama(["sort_by" => "user.username", "sort_dir" => "desc"])->assertStatus(200);
+        $this->callIndex(["sort_by" => "user.username", "sort_dir" => "desc"])->assertStatus(200);
     }
 
-    public function test_ordinare_per_username_non_deve_perdere_ne_falsare_righe(): void
+    public function test_sorting_by_username_must_not_lose_or_falsify_rows(): void
     {
         $utente = User::factory()->create(["username" => "mario.rossi", "enabled" => 1]);
         $this->audit(["user_type" => User::class, "user_id" => $utente->id]);
@@ -288,7 +298,7 @@ class AuditListTest extends TestCase
         ]);
         $this->audit(["user_type" => PassportClient::class, "user_id" => $client->id, "event" => "audit-di-client"]);
 
-        $righe = $this->chiama(["sort_by" => "user.username", "sort_dir" => "asc"])->json("data");
+        $righe = $this->callIndex(["sort_by" => "user.username", "sort_dir" => "asc"])->json("data");
         $eventi = collect($righe)->pluck("event");
 
         $this->assertContains("audit-di-sistema", $eventi, "gli audit senza utente non devono sparire");
