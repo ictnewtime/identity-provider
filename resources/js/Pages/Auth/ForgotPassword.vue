@@ -66,7 +66,7 @@ const submit = () => {
                         :loading="form.processing"
                         :disabled="!form.username"
                     />
-                    <Link method="get" href="/loginForm" class="w-full">
+                    <Link method="get" href="/" class="w-full">
                         <Button
                             type="button"
                             :label="trans('auth.back_to_login')"

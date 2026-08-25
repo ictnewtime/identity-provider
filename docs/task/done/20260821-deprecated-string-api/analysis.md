@@ -5,7 +5,7 @@
 Stato: da approvare · Data: 2026-08-21
 
 Elenco passato dal developer il **2026-08-21**, subito dopo la chiusura di
-[regex-and-counters](../../done/20260821-regex-and-counters/action-plan.md).
+[regex-and-counters](../20260821-regex-and-counters/action-plan.md).
 
 **Questi tre rilievi sono il residuo di quel lotto, e vanno detti per quello che sono: li ha
 introdotti il codice scritto oggi in `TRC02`.** Non c'erano prima, perche' prima non c'era una
