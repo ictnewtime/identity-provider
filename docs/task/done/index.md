@@ -25,6 +25,7 @@ un perché.
 | [./20260821-exceptions-and-waits/](./20260821-exceptions-and-waits/) | Eccezioni dedicate al posto di `RuntimeException`, un ternario annidato e due attese fisse nei test | `TEW` | 2026-08-21 |
 | [./20260821-regex-and-counters/](./20260821-regex-and-counters/) | Regex generate al posto di liste scritte a mano, contatori con un nome, e la riflessione nei test sostituita da una variabile d'ambiente | `TRC` | 2026-08-21 |
 | [./20260821-deprecated-string-api/](./20260821-deprecated-string-api/) | `fromCodePoint` e `slice` al posto di due API vecchie, con la verifica portata sui bordi | `TDS` | 2026-08-21 |
+| [./20260813-token-refresh/](./20260813-token-refresh/) | Il rinnovo dell'app token — **rettificato da `TMT`**, non eseguito: i punti sono stati portati nel task nuovo | `TTR` | 2026-08-28 |
 
 ## `20260812-static-analysis-findings-v1` — com'è finita
 
