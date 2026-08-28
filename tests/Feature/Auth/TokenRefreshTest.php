@@ -3,30 +3,18 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\Provider;
+use App\Models\Role;
 use App\Models\Session;
 use App\Models\User;
+use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
 
-/**
- * Il rinnovo dell'app token nell'IdP (punto TTR02, difetto VDF13).
- *
- * ATTENZIONE, questo file nasce al contrario: **fotografa il difetto**, non la correzione.
- * Oggi e' verde perche' descrive il comportamento attuale — app token scaduto, master token
- * ancora valido, e l'IdP disconnette lo stesso. Con `TTR04` dovra' diventare **rosso**, e allora
- * si riscrive sul comportamento nuovo.
- *
- * Perche' scriverlo prima: il difetto e' in un percorso di autenticazione, e senza una prova
- * eseguibile «l'IdP si slogga dopo 30 minuti» resta un racconto. Cosi' e' un comando.
- *
- * Nota sull'asimmetria che il test rende evidente: i client esterni **rinnovano gia' da soli** —
- * l'estensione chiama `token/exchange` col master token (F11 dell'analisi). L'IdP, che il master
- * token ce l'ha nel cookie, e' l'unico a non farlo.
- */
 class TokenRefreshTest extends TestCase
 {
     use RefreshDatabase;
@@ -81,16 +69,16 @@ class TokenRefreshTest extends TestCase
             $richiesta = $richiesta->withUnencryptedCookie(config("idp.jwt.master_token_name"), $masterToken);
         }
 
-        return $richiesta->withUnencryptedCookie("idp_token_" . config("idp.provider_id"), $appToken)->get(
-            self::PROBE_URI,
-        );
+        return $richiesta
+            ->withUnencryptedCookie("idp_token_" . config("idp.provider_id"), $appToken)
+            ->get(self::PROBE_URI);
     }
 
     /**
      * IL DIFETTO, fotografato: app token scaduto, master token valido per altre ore, sessione viva.
      * L'IdP **disconnette** invece di rinnovare.
      *
-     * Con TTR04 questa asserzione diventera' 200, e questo test si riscrive.
+     * Con TMT08 questa asserzione diventera' 200, e questo test si riscrive.
      */
     public function test_today_the_idp_logs_out_even_with_a_valid_master_token(): void
     {
@@ -134,5 +122,85 @@ class TokenRefreshTest extends TestCase
         $this->sessionFor($user, $provider, $valido);
 
         $this->callWith($valido)->assertStatus(200);
+    }
+
+    // --- cio' che TMT01…TMT05 hanno cambiato, e che non deve tornare indietro -----------------
+
+    /** `TMT01`: l'exchange stacca sempre un token nuovo, non riusa quello salvato. */
+    public function test_the_exchange_always_mints_a_new_app_token(): void
+    {
+        $provider = $this->idpProvider();
+        $user = $this->userWithAccess($provider);
+
+        $tokenService = new TokenProviderService();
+        $sessionService = new SessionService();
+
+        $primo = $sessionService->getValidProviderToken($user, $provider->id, "1.2.3.4", "phpunit", $tokenService);
+        sleep(1); // il JWT porta `iat`: due firme nello stesso secondo sarebbero identiche
+        $secondo = $sessionService->getValidProviderToken($user, $provider->id, "1.2.3.4", "phpunit", $tokenService);
+
+        $this->assertNotSame($primo, $secondo, "l'exchange ha riusato il token salvato: TMT01 e' tornato indietro");
+    }
+
+    /** `TMT02`: la riga porta il master token e dura quanto lui, non quanto l'app token. */
+    public function test_the_session_row_carries_the_master_token_and_lasts_as_long(): void
+    {
+        $provider = $this->idpProvider();
+        $user = $this->userWithAccess($provider);
+        $master = "un.master.token";
+
+        (new SessionService())->getValidProviderToken(
+            $user,
+            $provider->id,
+            "1.2.3.4",
+            "phpunit",
+            new TokenProviderService(),
+            $master,
+        );
+
+        $riga = Session::where("user_id", $user->id)->first();
+
+        $this->assertSame($master, $riga->refresh_token, "il master token non e' finito in refresh_token");
+        $this->assertNotSame($master, $riga->token, "in `token` deve restare l'app token: due ricerche lo cercano li'");
+        $this->assertGreaterThanOrEqual(
+            7,
+            now()->diffInHours($riga->expires_at),
+            "la riga non dura quanto il master token",
+        );
+    }
+
+    /** `TMT05`: la rotta v2 esiste, e la protegge lo stesso middleware della v1. */
+    public function test_the_v2_exchange_route_exists_and_is_protected(): void
+    {
+        $this->postJson("/api/v2/token/exchange", ["provider_id" => "1"])->assertStatus(401);
+    }
+
+    /** `TMT04`: il master token si accetta in tutte e tre le forme, e senza header no. */
+    public function test_the_master_token_is_read_from_both_headers(): void
+    {
+        $provider = $this->idpProvider();
+        $user = $this->userWithAccess($provider);
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        $corpo = ["provider_id" => (string) $provider->id];
+
+        $this->postJson("/api/v2/token/exchange", $corpo, ["Authorization" => "Bearer {$master}"])->assertStatus(200);
+        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => "Bearer {$master}"])->assertStatus(200);
+    }
+
+    /** Un utente con accesso al provider: senza ruolo, `getValidProviderToken()` rifiuta ed e' giusto. */
+    private function userWithAccess(Provider $provider): User
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $ruolo = Role::create(["name" => "admin", "provider_id" => $provider->id]);
+
+        DB::table("provider_user_roles")->insert([
+            "user_id" => $user->id,
+            "provider_id" => $provider->id,
+            "role_id" => $ruolo->id,
+        ]);
+
+        return $user;
     }
 }
