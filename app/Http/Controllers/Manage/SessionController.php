@@ -151,12 +151,24 @@ class SessionController extends Controller
         $tokenService = new TokenProviderService();
         $sessionService = $this->sessionService ?? new SessionService();
 
+        // Il master token che ha autorizzato questa richiesta finisce nella riga (TMT02): e' cio' che
+        // la riga rappresenta, ed e' quello che permettera' il rinnovo.
+        $masterToken = $request->bearerToken() ?: $request->header("x-master-token");
+
+        Log::debug("[EXCHANGE] richiesta", [
+            "user_id" => $userId,
+            "provider_id" => $providerId,
+            "master_token" => SessionService::tokenFingerprint($masterToken),
+            "ip_address" => $validated["ip_address"] ?? $request->ip(),
+        ]);
+
         $appToken = $sessionService->getValidProviderToken(
             $user,
             $providerId,
             $validated["ip_address"] ?? $request->ip(),
             $validated["user_agent"] ?? $request->userAgent(),
             $tokenService,
+            $masterToken,
         );
 
         if (!$appToken) {

@@ -2,9 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Provider;
 use App\Models\Session;
-use App\Models\User;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -21,12 +19,20 @@ class SessionService
         $user_agent,
         $token,
         $refresh_token = null,
-        Carbon $expires_at = null,
+        ?Carbon $expires_at = null,
     ) {
         // Cerchiamo la sessione
         $session = Session::where("user_id", $user_id)->where("provider_id", $provider_id)->first();
 
         if ($session) {
+            Log::debug("[SESSION] riga aggiornata", [
+                "session_id" => $session->id,
+                "user_id" => $user_id,
+                "provider_id" => $provider_id,
+                "expires_at" => $expires_at?->toDateTimeString(),
+                "aveva_refresh_token" => !empty($session->refresh_token),
+            ]);
+
             // Aggiorniamo se esiste (mantenendo lo stesso UUID)
             $session->update([
                 "ip_address" => $ip_address,
@@ -50,6 +56,13 @@ class SessionService
                 "last_activity" => now(),
             ]);
 
+            Log::debug("[SESSION] riga creata", [
+                "session_id" => $session->id,
+                "user_id" => $user_id,
+                "provider_id" => $provider_id,
+                "expires_at" => $expires_at?->toDateTimeString(),
+            ]);
+
             // TODO da gestire
             // $provider = Provider::find($provider_id);
             // $user = User::find($user_id);
@@ -62,13 +75,33 @@ class SessionService
     /**
      * Recupera o rigenera il token al login.
      */
+    /**
+     * L'app token per un utente su un provider, staccandone **sempre uno nuovo** (punto TMT01).
+     *
+     * PERCHE' SEMPRE NUOVO: fino al 2026-08-28 questa funzione restituiva il token **salvato** se la
+     * riga non era scaduta, e funzionava per un motivo fragile — riga e token scadevano insieme, quindi
+     * «riga viva» implicava «token valido». Con TMT02 la riga dura quanto il **master** token (otto ore)
+     * e l'app token resta a trenta minuti: quell'implicazione non vale piu', e riusare il token salvato
+     * significherebbe restituirne uno scaduto per sette ore e mezza. Rigenerare costa una firma.
+     *
+     * @param string|null $masterToken il master token che ha autorizzato la richiesta: finisce in
+     *                                 `refresh_token` (punto TMT02), ed e' cio' che la riga rappresenta.
+     */
     public function getValidProviderToken(
         $user,
         $provider_id,
         $ip_address,
         $user_agent,
         TokenProviderService $tokenService,
+        ?string $masterToken = null,
     ) {
+        Log::debug("[SESSION] getValidProviderToken", [
+            "user_id" => $user->id ?? null,
+            "provider_id" => $provider_id,
+            "ip_address" => $ip_address,
+            "master_token" => self::tokenFingerprint($masterToken),
+        ]);
+
         // Controllo centralizzato: Abilitazione + Ruoli per il provider specifico
         if (!$user->hasAccessToProvider($provider_id)) {
             Log::warning(
@@ -77,34 +110,57 @@ class SessionService
             return null;
         }
 
-        $existingSession = Session::where("user_id", $user->id)->where("provider_id", $provider_id)->first();
-
-        if ($existingSession) {
-            $isNotExpired = !$existingSession->expires_at || $existingSession->expires_at->isFuture();
-
-            // Se l'IP e l'User-Agent è uguale e non è scaduto, restituiamo il token vecchio
-            if (
-                $existingSession->ip_address === $ip_address &&
-                $existingSession->user_agent === $user_agent &&
-                $isNotExpired
-            ) {
-                return $existingSession->token;
-            }
-        }
-
-        // Creazione Nuova Sessione (se IP cambiato o token scaduto/inesistente)
         $token = $tokenService->generateAppToken($user, $provider_id);
 
         if (!$token) {
+            Log::error("[SESSION] App token non generato", [
+                "user_id" => $user->id,
+                "provider_id" => $provider_id,
+                "motivo" => "generateAppToken() ha restituito null: provider inesistente o senza secret_key",
+            ]);
             return null;
         }
 
-        $expirationTimeInSeconds = $tokenService->getAppTokenExpiredAt();
-        $expiresAt = now()->addSeconds($expirationTimeInSeconds);
+        // La riga rappresenta il MASTER token, non l'app token (TMT02): dura quanto lui.
+        $expiresAt = now()->addSeconds($tokenService->getMasterTokenExpiredAt());
 
-        $this->upsertSession($user->id, $provider_id, $ip_address, $user_agent, $token, null, $expiresAt);
+        $sessione = $this->upsertSession(
+            $user->id,
+            $provider_id,
+            $ip_address,
+            $user_agent,
+            $token,
+            $masterToken,
+            $expiresAt,
+        );
+
+        Log::debug("[SESSION] App token staccato", [
+            "user_id" => $user->id,
+            "provider_id" => $provider_id,
+            "app_token" => self::tokenFingerprint($token),
+            "master_token" => self::tokenFingerprint($masterToken),
+            "expires_at" => $expiresAt->toDateTimeString(),
+            "session_id" => $sessione->id ?? null,
+        ]);
 
         return $token;
+    }
+
+    /**
+     * L'impronta di un token per i log: le ultime otto lettere e la lunghezza.
+     *
+     * I log di questa applicazione **escono dalla macchina** — `LOG_SERVICE_URL` in `.env` li manda a un
+     * servizio esterno — e un JWT firmato e non scaduto e' una credenziale al portatore: chi lo legge
+     * **e'** quell'utente. L'impronta basta per seguire un token attraverso il flusso, che e' cio' per
+     * cui questi log esistono, e non e' utilizzabile da nessuno.
+     */
+    public static function tokenFingerprint(?string $token): ?string
+    {
+        if (empty($token)) {
+            return null;
+        }
+
+        return "…" . substr($token, -8) . " (" . strlen($token) . " car.)";
     }
 
     /**
@@ -117,11 +173,21 @@ class SessionService
 
         // Se la sessione non esiste, ritorniamo 404
         if (!$session) {
+            Log::warning("[SESSION] validateSession: nessuna riga", [
+                "user_id" => $clientId,
+                "provider_id" => $providerId,
+            ]);
             return ["status" => 404];
         }
 
         // Se la sessione è scaduta la eliminiamo e ritorniamo 404
         if ($session->expires_at && !$session->expires_at->isFuture()) {
+            Log::warning("[SESSION] validateSession: riga scaduta, la cancello", [
+                "session_id" => $session->id,
+                "user_id" => $clientId,
+                "provider_id" => $providerId,
+                "expires_at" => $session->expires_at->toDateTimeString(),
+            ]);
             $session->delete();
             return ["status" => 404];
         }

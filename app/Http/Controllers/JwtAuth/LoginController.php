@@ -131,6 +131,12 @@ class LoginController extends Controller
         $masterProvider = Provider::find($idpProviderId);
 
         $masterToken = $tokenService->generateMasterToken($user, $masterProvider->id);
+
+        Log::debug("[LOGIN] Master token generato", [
+            "user_id" => $user->id,
+            "provider_id_richiesto" => $provider_id,
+            "master_token" => SessionService::tokenFingerprint($masterToken),
+        ]);
         $provider = Provider::find($provider_id);
         // se il providerIdMaster->domain contiene il provider->doamin allora posso creare il cookie
         // altrimenti usare appendTokenIfLocalUrl( redirect_url, token)
@@ -160,13 +166,24 @@ class LoginController extends Controller
             $sessionService = new SessionService();
 
             $ip_address = $request->ip();
+            // Il master token va nella riga anche qui (punto TMT03): senza, l'IdP sarebbe l'unico
+            // posto che non puo' rinnovare — cioe' proprio quello da cui nasce il difetto delle
+            // disconnessioni a trenta minuti.
             $appToken = $sessionService->getValidProviderToken(
                 $user,
                 $idpProviderId,
                 $ip_address,
                 $request->userAgent(),
                 $tokenService,
+                $masterToken,
             );
+
+            Log::debug("[LOGIN] Sessione IdP aperta", [
+                "user_id" => $user->id,
+                "provider_id" => $idpProviderId,
+                "app_token" => SessionService::tokenFingerprint($appToken),
+                "master_token" => SessionService::tokenFingerprint($masterToken),
+            ]);
 
             if (!$appToken) {
                 Log::warning("AppToken non generato (nessun ruolo valido per admin). Fallback su sso.unauthorized.");
