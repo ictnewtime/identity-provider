@@ -177,6 +177,50 @@ vecchio — che resta valido fino alle otto ore — e la rotazione non fa niente
 vecchio **non vale piu'**, chi non ha ricevuto il nuovo viene disconnesso. Le due cose vanno decise
 insieme, e stanno nel § 4.
 
+### Cosa resta fuori, e perche' — con le risposte del developer
+
+Spostato qui dal piano il 2026-08-28, su richiesta del developer: sono decisioni di **perimetro**, e il
+perimetro e' materia d'analisi.
+
+**Il rinnovo del master token: per ora si fa a mano, e c'e' un problema che il developer ha visto per
+primo.** Con `TMT02` la disconnessione non arriva piu' a trenta minuti ma a **otto ore**: quando il
+master token scade, l'utente rifa' il login. Il developer propone di studiare una rotta di refresh —
+«ti do il token vecchio, se e' valido ricevo quello nuovo», verificato con le JWKS — e nota subito il
+buco: **se il master token e' stato rubato, chi ce l'ha lo rinnova all'infinito**.
+
+E' esatto, ed e' il problema noto di qualunque token che si rinnova da se': senza un modo di accorgersi
+del furto, la rotazione **allunga** la vita di un token rubato invece di limitarla. La difesa standard
+ha un nome — *rotazione con rilevamento del riuso* — e funziona cosi': il token vecchio, una volta
+scambiato, **non vale piu'**; se qualcuno lo ripresenta, non e' un errore, e' la **prova** che due
+soggetti hanno lo stesso token, e allora si butta giu' **tutta** la sessione, non solo quella richiesta.
+
+Il pezzo che serve per farlo **c'e' gia' da oggi**: il master token e' salvato nella riga
+(`refresh_token`, punto `TMT02`). Confrontare quello presentato con quello salvato e' una `where` in
+piu'. Oggi **nessuno lo confronta** — ed e' l'implicazione 11 del § 6, che li' era un avvertimento e qui
+diventa la strada. Non e' pero' lavoro di questo lotto: **e' il task
+[token-reuse-detection](../20260828-token-reuse-detection/analysis.md) (`TRR`), aperto il 2026-08-28**, e
+va deciso sapendo che rende il sistema **piu' fragile ai falsi positivi** — due dispositivi o una
+richiesta ripetuta dalla rete possono somigliare a un furto. `TRR` viene **dopo** questo lotto, perche'
+il confronto che gli serve usa la colonna che riempie `TMT02`.
+
+**Una sessione per dispositivo: non si fa, e si accetta cosa comporta.** La chiave e' utente+provider,
+quindi la sessione del dispositivo 2 **sovrascrive** quella del dispositivo 1. Risposta del developer:
+va bene, e chi vuole il rinnovo sul dispositivo 1 **si riautentica**. Va detto perche' non e' evidente:
+`TMT02` allunga la riga a otto ore, quindi la sovrascrittura dura di piu' e si nota di piu' di prima.
+Cambiarlo sarebbe una migrazione — la chiave dovrebbe comprendere il dispositivo — e non e' di questo
+lotto.
+
+**Le estensioni si aggiornano tutte e due, e sono nel lotto.** `tmp/idp-extension` (PHP) e
+`tmp/idp-extension-node` sono copie di lavoro di altri due repository: qui si scrive la modifica, il
+developer la replica di la'. Sono i punti `TMT24` e `TMT25`, e sono **necessari** perche' la `v2` serva a
+qualcosa: oggi la PHP legge `json("token")` (`IdpAuthMiddleware.php:204`) e la Node costruisce l'URL da
+`IDP_URL_TOKEN_EXCHANGE`, che vale `api/v1/…` per difetto (`IdpService.js:7`) — nessuna delle due saprebbe
+cosa fare di un master token nuovo nella risposta.
+
+**Il rinnovo dal lato dell'IdP** resta cio' che era il task `TTR`, ora assorbito: sono i punti `TMT08`,
+`TMT09` e `TMT10`. Chiudere `TMT02` senza quelli toglie la disconnessione a trenta minuti ma lascia
+l'IdP senza rinnovo — il difetto si sposta a otto ore invece di sparire.
+
 ## 4. Da decidere
 
 **Tutte risposte dal developer il 2026-08-28.** Restano scritte perche' la domanda spiega la risposta —

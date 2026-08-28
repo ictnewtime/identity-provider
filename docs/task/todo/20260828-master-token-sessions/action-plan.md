@@ -46,18 +46,8 @@ toccarla: l'exchange restituirebbe per ore un app token scaduto (§ 6, implicazi
 | TMT21 | da approvare — **implicazione 8** | **I test unitari, che oggi non esistono per niente di tutto questo.** Coprono: che l'exchange rigeneri sempre (`TMT01`), che la riga duri otto ore e porti il master token in `refresh_token` (`TMT02`), che il login dell'IdP li salvi entrambi (`TMT03`), che un utente senza ruoli riceva 403 (`TMT15`), e che la v2 accetti il token nei due header (`TMT04`). Sono i cinque comportamenti che, se si rompono, si rompono in silenzio | `tests/Feature/` | basso | auto | i cinque test esistono e passano; e con il codice vecchio rimesso a mano, **falliscono** — che è ciò che li rende utili |
 | TMT22 | da approvare — **il vincolo del disegno v2** | **`provider_id` deve diventare nullable.** La riga della v2 è «senza provider», ma oggi la colonna è `unsignedInteger` **non nullable** con chiave esterna (`2026_03_02_142301_alter_table_session.php:20-21`): quella riga **non si può scrivere**. Serve una migrazione. Il guadagno secondario è che `provider_id IS NULL` diventa **il marcatore** che distingue una riga v2 da una v1, senza aggiungere colonne | nuova migrazione | medio — tocca una colonna con chiave esterna | auto | `migrate` e `migrate:rollback` su MariaDB; una riga con `provider_id` nullo si scrive e la chiave esterna regge ancora per le altre |
 | TMT23 | da approvare — **dipende da `TMT22`** | **La `v2` scrive una riga sola per utente**: senza provider, senza app token, col solo master token in `refresh_token` e `expires_at` a otto ore. È la strada (b), e vale **solo** su questa rotta: la v1 continua a scrivere le sue righe per provider. Un utente può avere entrambe durante la transizione, ed è previsto — il logout le cancella comunque tutte (`performLogout()` cancella per utente, non per provider) | `app/Services/SessionService.php`, `app/Http/Controllers/Manage/SessionController.php` | **alto — è il modello nuovo** | man | un exchange v2 lascia **una** riga con `provider_id` nullo; un exchange v1 per due provider diversi ne lascia due, con i loro provider |
-## Cosa questo piano non copre
-
-- **Il rinnovo dal lato dell'IdP**: è il task [token-refresh](../../done/20260813-token-refresh/action-plan.md)
-  (`TTR`). Là si guarda perché l'IdP non usa l'exchange che ha; qui perché la riga di sessione muore col
-  token. Chiudere `TMT02` senza `TTR` toglie la disconnessione a trenta minuti ma lascia l'IdP senza
-  rinnovo: il difetto si sposta a otto ore invece di sparire.
-- **Una sessione per dispositivo**: oggi la chiave è utente+provider, quindi due dispositivi si
-  sovrascrivono (§ 6, implicazione 5). Allungare la durata lo rende più visibile ma non lo causa. È una
-  decisione di prodotto, e va presa sapendo che è **una migrazione**.
-- **L'estensione**: `tmp/idp-extension/` è una copia di lavoro di un altro repository. Questo piano
-  descrive cosa il server offre, non cosa il client ne fa.
-
+| TMT24 | da approvare | **L'estensione PHP** (`tmp/idp-extension`) passa alla `v2`: chiama `api/v2/token/exchange`, manda il master token in `x-master-token` e legge dalla risposta **tutti e due** i token — oggi legge `json("token")` (`IdpAuthMiddleware.php:204`) e non saprebbe cosa fare di un master token nuovo. `IDP_URL_TOKEN_EXCHANGE` nel `readme` e negli esempi passa a `api/v2/…` | `tmp/idp-extension/` | medio — è il client di tutte le applicazioni PHP | man | l'estensione ottiene un app token dalla v2 e, quando la risposta porta `master_token`, aggiorna il cookie |
+| TMT25 | da approvare | **L'estensione Node** (`tmp/idp-extension-node`), la stessa cosa: `IdpService.js:7` costruisce l'URL dell'exchange dalla variabile e vale `api/v1/…` per difetto, quindi il cambio è simmetrico a `TMT24` — header `x-master-token`, lettura dei due token, e il difetto della variabile aggiornato | `tmp/idp-extension-node/` | medio | man | come sopra, dal lato Node |
 ## Perf/leak — la dichiarazione della policy per `TMT01`…`TMT04`
 
 Policy dell'organizzazione, voce per voce. I quattro punti toccano **un service** (`SessionService`), un
