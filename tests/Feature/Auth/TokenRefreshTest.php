@@ -61,6 +61,19 @@ class TokenRefreshTest extends TestCase
         ]);
     }
 
+    /** Una NAVIGAZIONE: niente `Accept: application/json`, quindi il rinnovo si tenta (TMT10). */
+    private function browseWith(string $appToken, ?string $masterToken = null)
+    {
+        $richiesta = $this->withUnencryptedCookie("idp_token_" . config("idp.provider_id"), $appToken);
+
+        if ($masterToken !== null) {
+            $richiesta = $richiesta->withUnencryptedCookie(config("idp.jwt.master_token_name"), $masterToken);
+        }
+
+        return $richiesta->get(self::PROBE_URI);
+    }
+
+    /** Una chiamata API: chiede JSON e non e' Inertia. */
     private function callWith(string $appToken, ?string $masterToken = null)
     {
         $richiesta = $this->withHeaders(["Accept" => "application/json"]);
@@ -75,12 +88,15 @@ class TokenRefreshTest extends TestCase
     }
 
     /**
-     * IL DIFETTO, fotografato: app token scaduto, master token valido per altre ore, sessione viva.
-     * L'IdP **disconnette** invece di rinnovare.
+     * **Riscritto il 2026-08-28**: questo test fotografava il difetto — «l'IdP disconnette invece di
+     * rinnovare» — e con `TMT08` avrebbe dovuto diventare rosso. **Non e' successo, e il motivo conta**:
+     * `callWith()` manda `Accept: application/json`, quindi per `TMT10` e' una chiamata API, e li' il
+     * rinnovo non si tenta apposta. Passava ancora, ma per un'altra ragione.
      *
-     * Con TMT08 questa asserzione diventera' 200, e questo test si riscrive.
+     * Quindi ora dice quello che davvero verifica: **su una chiamata API si disconnette e basta**.
+     * Il caso della navigazione — dove il rinnovo si fa — e' il test qui sotto.
      */
-    public function test_today_the_idp_logs_out_even_with_a_valid_master_token(): void
+    public function test_an_api_call_with_an_expired_token_is_not_renewed(): void
     {
         $provider = $this->idpProvider();
         $user = User::factory()->create(["enabled" => 1]);
@@ -202,5 +218,54 @@ class TokenRefreshTest extends TestCase
         ]);
 
         return $user;
+    }
+
+    // --- TMT08, TMT09, TMT10: il rinnovo dentro l'IdP -----------------------------------------
+
+    /** `TMT08`: navigando, con l'app token scaduto e il master valido, l'IdP **rinnova**. */
+    public function test_browsing_with_an_expired_app_token_renews_it(): void
+    {
+        $provider = $this->idpProvider();
+        $user = $this->userWithAccess($provider);
+
+        $scaduto = $this->appToken($provider, $user, time() - 60);
+        $this->sessionFor($user, $provider, $scaduto, 28800);
+
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        $this->browseWith($scaduto, $master)->assertStatus(200);
+
+        $riga = Session::where("user_id", $user->id)->first();
+        $this->assertNotSame($scaduto, $riga->token, "la sessione porta ancora il token scaduto: non ha rinnovato");
+    }
+
+    /** `TMT09`, primo esito: senza master token la sessione e' finita davvero. */
+    public function test_browsing_without_a_master_token_ends_the_session(): void
+    {
+        $provider = $this->idpProvider();
+        $user = $this->userWithAccess($provider);
+
+        $scaduto = $this->appToken($provider, $user, time() - 60);
+        $this->sessionFor($user, $provider, $scaduto, 28800);
+
+        $this->browseWith($scaduto)->assertRedirect();
+    }
+
+    /**
+     * `TMT08`, la parte che protegge `VDF14`: **il rinnovo non ricrea una sessione revocata.**
+     * L'amministratore cancella la riga, e la richiesta successiva non deve rimetterla.
+     */
+    public function test_a_revoked_session_is_not_recreated_by_the_renewal(): void
+    {
+        $provider = $this->idpProvider();
+        $user = $this->userWithAccess($provider);
+
+        $scaduto = $this->appToken($provider, $user, time() - 60);
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        // Nessuna riga: e' il caso della sessione revocata dall'amministratore.
+        $this->browseWith($scaduto, $master)->assertRedirect();
+
+        $this->assertSame(0, Session::where("user_id", $user->id)->count(), "il rinnovo ha ricreato la sessione revocata");
     }
 }

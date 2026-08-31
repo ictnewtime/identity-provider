@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Auth\Idp\IdpProviderResolver;
 use App\Auth\Idp\IdpSessionValidator;
+use App\Auth\Idp\IdpTokenRenewer;
 use App\Auth\Idp\IdpTokenExtractor;
 use App\Models\Provider;
 use App\Models\User;
@@ -12,6 +13,7 @@ use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
+use App\Services\TokenProviderService;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
 
 class Authenticated
@@ -20,6 +22,7 @@ class Authenticated
         private readonly IdpTokenExtractor $tokenExtractor,
         private readonly IdpProviderResolver $providerResolver,
         private readonly IdpSessionValidator $sessionValidator,
+        private readonly IdpTokenRenewer $renewer,
     ) {}
 
     public function handle($request, Closure $next)
@@ -46,9 +49,28 @@ class Authenticated
         try {
             $payload = $this->decode($provider->secret_key, $tokenString);
         } catch (TokenExpiredException $e) {
-            Log::warning("Eccezione catturata: TokenExpiredException.");
+            Log::warning("App token scaduto: provo il rinnovo col master token.");
 
-            return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));
+            if ($this->isApiCall($request)) {
+                Log::info("[RINNOVO] non tentato: e' una chiamata API, non una navigazione.");
+                return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));
+            }
+
+            $renewal = $this->renewer->renew($request, $provider);
+
+            if ($renewal["outcome"] === IdpTokenRenewer::OUTCOME_MASTER_MISSING) {
+                return $this->forceLogoutAndRedirect($request, __("auth.renew-failed"));
+            }
+
+            if ($renewal["outcome"] === IdpTokenRenewer::OUTCOME_REFUSED) {
+                return $this->forceLogoutAndRedirect($request, __("auth.renew-refused"));
+            }
+
+            // Rinnovato: si prosegue con il token nuovo, e il cookie lo porta al browser.
+            $tokenString = $renewal["token"];
+            $payload = $this->decode($provider->secret_key, $tokenString);
+
+            Cookie::queue((new TokenProviderService())->cookieCretion($tokenString, (string) $provider->id));
         } catch (\Exception $e) {
             Log::error("Errore decodifica JWT: " . $e->getMessage());
 
@@ -120,6 +142,17 @@ class Authenticated
         }
 
         return $user;
+    }
+
+    /**
+     * Una chiamata API, e non una navigazione: chiede JSON e non e' Inertia.
+     *
+     * E' lo stesso criterio che `forceLogoutAndRedirect()` usa piu' sotto per decidere se rispondere
+     * in JSON invece di reindirizzare — scritto qui una volta perche' ora serve a due decisioni.
+     */
+    private function isApiCall($request): bool
+    {
+        return $request->expectsJson() && !$request->header("X-Inertia");
     }
 
     protected function forceLogoutAndRedirect($request, $message)

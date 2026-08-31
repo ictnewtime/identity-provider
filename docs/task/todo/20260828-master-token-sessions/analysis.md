@@ -177,6 +177,36 @@ vecchio — che resta valido fino alle otto ore — e la rotazione non fa niente
 vecchio **non vale piu'**, chi non ha ricevuto il nuovo viene disconnesso. Le due cose vanno decise
 insieme, e stanno nel § 4.
 
+### `TMT` e gli altri due task: cosa ha assorbito e cosa **no**
+
+Domanda del developer il 2026-08-28: «`TMT` e' la nuova versione di `session-bootstrap` e di
+`token-refresh`, corretto?». **Per `TTR` si', per `TSB` no**, e la differenza si conta.
+
+`TTR` (token-refresh) e' stato **assorbito per intero** e chiuso: tutti e undici i suoi punti hanno una
+destinazione, sette sono diventati `TMT08`…`TMT14`.
+
+`TSB` (session-bootstrap) **no**: ha dodici punti e `TMT` ne tocca **uno**.
+
+| Punto di `TSB` | Di cosa parla | In `TMT`? |
+|---|---|---|
+| `TSB03` | il login apre la sessione del provider di destinazione | **si'**, e' quello che serve a `TMT27` |
+| `TSB05` | la «lapide»: distinguere revocata da mai esistita | in parte — e' l'altra strada per `TMT27` |
+| `TSB01` `TSB02` | i due test che riproducono il ciclo di login e il vicolo cieco | no |
+| `TSB04` `TSB12` | l'IP che l'IdP vede non e' quello del client (`VDF18`), e `rebindDevice` | no |
+| `TSB06` | `validateSession()` cancella la sessione quando cambia lo user agent | no |
+| `TSB07` `TSB09` `TSB10` `TSB11` | il cookie del master token: quando si accoda, il dominio, i **minuti** | no |
+| `TSB08` | spuntare `VDF16` e `VDF17` nel registro | no |
+
+Quindi **dire che `TMT` sostituisce `TSB` perderebbe undici punti**, fra cui le correzioni di `VDF16`,
+`VDF17` e `VDF18`. `TSB` resta dov'e' e non si tocca (richiesta del developer).
+
+**Cio' che `TMT` prende da `TSB` e' una cosa sola**, e la riscrive con parole sue perche' `TSB03` e'
+scritto dentro un ragionamento che qui non c'e': **il login deve aprire la sessione**, e da due punti —
+il login esplicito con `provider_id` e il SSO trasparente di chi e' gia' dentro e apre una seconda
+applicazione. Senza **tutti e due**, chi apre un'altra applicazione ore dopo non avrebbe una riga e
+resterebbe fuori. E' il punto `TMT28`, e **sovrappone `TSB03`**: si fa **una volta**, di qua o di la', e
+l'altro si scarta.
+
 ### Cosa resta fuori, e perche' — con le risposte del developer
 
 Spostato qui dal piano il 2026-08-28, su richiesta del developer: sono decisioni di **perimetro**, e il
@@ -260,6 +290,12 @@ e perche' due di esse hanno un prezzo che il § 6 misura.
   `tmp/idp-extension-node`. Questo sblocca la rotazione: c'e' un capo che riceve il token nuovo.
 
 ### Aperte da questa risposta
+
+- **`D8` — `TMT27` si sblocca facendo creare la sessione al login (`TMT28`), o con la «lapide»?** La
+  prima e' la strada di `TSB03`: il login crea, l'exchange rinnova. La seconda e' `TSB05`: la revoca
+  lascia una traccia — `revoked_at` o un soft delete — e allora l'exchange puo' creare quando **non**
+  c'e' traccia e rifiutare quando c'e'. La lapide e' piu' robusta perche' non dipende dal fatto che
+  ogni ingresso passi dal login, ma e' una **migrazione** e un concetto in piu'.
 
 - **`D6` — «se c'e' il master token deve tornare 200 e un token nuovo, sempre»: fino a dove?** Oggi
   `getValidProviderToken()` restituisce `null` per **due** ragioni diverse, e il chiamante le confonde in

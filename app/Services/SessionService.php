@@ -86,6 +86,16 @@ class SessionService
      *
      * @param string|null $masterToken il master token che ha autorizzato la richiesta: finisce in
      *                                 `refresh_token` (punto TMT02), ed e' cio' che la riga rappresenta.
+     * @param bool $canCreate se **creare** una sessione che non c'e' (punto TMT11, difetto VDF14).
+     *
+     * PERCHE' `canCreate` ESISTE: dopo che un amministratore ha revocato una sessione, «la riga non
+     * c'e'» e «la riga non c'e' ancora» sono indistinguibili — e la seconda deve poter creare, la
+     * prima no. Chi **rinnova** passa `false`: se la riga e' sparita, la revoca deve valere.
+     *
+     * ATTENZIONE, e' la trappola scritta in `VDF14`: passare `false` **anche dall'exchange** chiude
+     * l'unica porta da cui una sessione nasce oggi, e riapre `VDF16` — il primo accesso a
+     * un'applicazione diventa impossibile. L'exchange potra' passare `false` solo quando sara' il
+     * **login** a creare la sessione del provider di destinazione (punto `TMT28`).
      */
     public function getValidProviderToken(
         $user,
@@ -94,13 +104,29 @@ class SessionService
         $user_agent,
         TokenProviderService $tokenService,
         ?string $masterToken = null,
+        bool $canCreate = true,
     ) {
         Log::debug("[SESSION] getValidProviderToken", [
             "user_id" => $user->id ?? null,
             "provider_id" => $provider_id,
             "ip_address" => $ip_address,
             "master_token" => self::tokenFingerprint($masterToken),
+            "can_create" => $canCreate,
         ]);
+
+        if (!$canCreate) {
+            $existing = Session::where("user_id", $user->id)->where("provider_id", $provider_id)->first();
+
+            if (!$existing) {
+                Log::warning(
+                    __("session.error.renew_refused.no_session", [
+                        "userId" => $user->id,
+                        "providerId" => $provider_id,
+                    ]),
+                );
+                return null;
+            }
+        }
 
         // Controllo centralizzato: Abilitazione + Ruoli per il provider specifico
         if (!$user->hasAccessToProvider($provider_id)) {
@@ -121,10 +147,10 @@ class SessionService
             return null;
         }
 
-        // La riga rappresenta il MASTER token, non l'app token (TMT02): dura quanto lui.
+        // La riga rappresenta il MASTER token, non l'app token: dura quanto lui.
         $expiresAt = now()->addSeconds($tokenService->getMasterTokenExpiredAt());
 
-        $sessione = $this->upsertSession(
+        $session = $this->upsertSession(
             $user->id,
             $provider_id,
             $ip_address,
@@ -140,7 +166,7 @@ class SessionService
             "app_token" => self::tokenFingerprint($token),
             "master_token" => self::tokenFingerprint($masterToken),
             "expires_at" => $expiresAt->toDateTimeString(),
-            "session_id" => $sessione->id ?? null,
+            "session_id" => $session->id ?? null,
         ]);
 
         return $token;
