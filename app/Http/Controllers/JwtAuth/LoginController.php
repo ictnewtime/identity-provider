@@ -152,6 +152,17 @@ class LoginController extends Controller
         }
 
         if ($provider_id) {
+            // La sessione del provider di destinazione la apre il LOGIN (punto TMT28), non piu'
+            // l'exchange: cosi' l'exchange puo' rifiutare di creare, e una revoca vale (VDF14).
+            // Se fallisce non si blocca il redirect: l'utente entra e il motivo sta nel log.
+            (new SessionService())->openProviderSession(
+                $user,
+                $provider_id,
+                $request->ip(),
+                $request->userAgent(),
+                $masterToken,
+            );
+
             // devo semplicemente ottenere l' url e redirigere l' user
             return Inertia::location($redirectUrl);
         }

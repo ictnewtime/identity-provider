@@ -198,6 +198,10 @@ class TokenRefreshTest extends TestCase
         $user = $this->userWithAccess($provider);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
+        // Da TMT27 l'exchange **rinnova e non crea**: la sessione la apre il login (TMT28). Senza
+        // questa riga la risposta sarebbe 403, ed e' il comportamento voluto — la revoca deve valere.
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+
         $corpo = ["provider_id" => (string) $provider->id];
 
         $this->postJson("/api/v2/token/exchange", $corpo, ["Authorization" => "Bearer {$master}"])->assertStatus(200);

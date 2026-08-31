@@ -397,6 +397,7 @@
     "session.error.expired": "Sessione scaduta.",
     "session.error.jwt_claims_missing": "Claim del token mancanti: la richiesta non dice per quale utente e provider.",
     "session.error.master_token_claims_missing": "Claim del master token mancanti: non e' possibile stabilire l'utente.",
+    "session.error.provider_not_found": "Il provider :providerId non esiste: controlla l'identificativo che il client invia.",
     "session.error.renew_refused.no_session": "Rinnovo rifiutato: nessuna sessione per l'Utente :userId sul Provider :providerId. Se e' stata revocata, il rinnovo non deve ricrearla.",
     "session.error.renew_refused.other_device": "Rinnovo rifiutato: IP o user agent diversi da quelli della sessione (Utente :userId).",
     "session.success.all_destroyed": "Tutte le sessioni dell'utente sono state eliminate.",

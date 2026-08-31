@@ -397,6 +397,7 @@
     "session.error.expired": "Session expired.",
     "session.error.jwt_claims_missing": "Token claims missing: the request does not say which user and provider it is for.",
     "session.error.master_token_claims_missing": "Master token claims missing: the user cannot be established.",
+    "session.error.provider_not_found": "Provider :providerId does not exist: check the identifier the client sends.",
     "session.error.renew_refused.no_session": "Renewal refused: no session for User :userId on Provider :providerId. If it was revoked, the renewal must not recreate it.",
     "session.error.renew_refused.other_device": "Renewal refused: IP or user agent differ from the session's (User :userId).",
     "session.success.all_destroyed": "All the sessions of the user have been deleted.",

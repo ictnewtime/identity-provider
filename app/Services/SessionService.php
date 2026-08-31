@@ -173,6 +173,53 @@ class SessionService
     }
 
     /**
+     * Apre la sessione del provider di destinazione al login.
+     *
+     * DUE PUNTI D'INGRESSO, e servono tutti e due: il login esplicito con `provider_id`, e il SSO
+     * trasparente di chi e' gia' dentro e apre una seconda applicazione ore dopo. Con uno solo, il
+     * secondo caso resterebbe senza riga.
+     *
+     * NON BLOCCA IL REDIRECT: se la creazione fallisce, l'utente arriva all'applicazione come prima e
+     * il motivo sta nel log. Un login che si ferma perche' non ha potuto scrivere una riga sarebbe un
+     * danno piu' grande del difetto che questa riga chiude.
+     */
+    public function openProviderSession(
+        $user,
+        $providerId,
+        $ipAddress,
+        $userAgent,
+        ?string $masterToken = null,
+    ): ?string {
+        try {
+            $token = $this->getValidProviderToken(
+                $user,
+                $providerId,
+                $ipAddress,
+                $userAgent,
+                new TokenProviderService(),
+                $masterToken,
+            );
+
+            if (!$token) {
+                Log::warning("[LOGIN] sessione non aperta: l'utente non ha accesso al provider.", [
+                    "user_id" => $user->id ?? null,
+                    "provider_id" => $providerId,
+                ]);
+            }
+
+            return $token;
+        } catch (\Throwable $e) {
+            // Il redirect non si blocca: l'utente entra, e qui resta scritto perche' la riga manca.
+            Log::error("[LOGIN] apertura della sessione fallita: " . $e->getMessage(), [
+                "user_id" => $user->id ?? null,
+                "provider_id" => $providerId,
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
      * L'impronta di un token per i log: le ultime otto lettere e la lunghezza.
      *
      * I log di questa applicazione **escono dalla macchina** — `LOG_SERVICE_URL` in `.env` li manda a un

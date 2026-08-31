@@ -190,7 +190,7 @@ destinazione, sette sono diventati `TMT08`…`TMT14`.
 | Punto di `TSB` | Di cosa parla | In `TMT`? |
 |---|---|---|
 | `TSB03` | il login apre la sessione del provider di destinazione | **si'**, e' quello che serve a `TMT27` |
-| `TSB05` | la «lapide»: distinguere revocata da mai esistita | in parte — e' l'altra strada per `TMT27` |
+| `TSB05` | tenere traccia delle sessioni **revocate**, per distinguerle da quelle mai esistite | in parte — era l'altra strada per `TMT27`, scartata in `D8` |
 | `TSB01` `TSB02` | i due test che riproducono il ciclo di login e il vicolo cieco | no |
 | `TSB04` `TSB12` | l'IP che l'IdP vede non e' quello del client (`VDF18`), e `rebindDevice` | no |
 | `TSB06` | `validateSession()` cancella la sessione quando cambia lo user agent | no |
@@ -291,11 +291,13 @@ e perche' due di esse hanno un prezzo che il § 6 misura.
 
 ### Aperte da questa risposta
 
-- **`D8` — `TMT27` si sblocca facendo creare la sessione al login (`TMT28`), o con la «lapide»?** La
-  prima e' la strada di `TSB03`: il login crea, l'exchange rinnova. La seconda e' `TSB05`: la revoca
-  lascia una traccia — `revoked_at` o un soft delete — e allora l'exchange puo' creare quando **non**
-  c'e' traccia e rifiutare quando c'e'. La lapide e' piu' robusta perche' non dipende dal fatto che
-  ogni ingresso passi dal login, ma e' una **migrazione** e un concetto in piu'.
+- ~~**`D8`**~~ — **si sblocca facendo creare la sessione al login** (`TMT28`), risposta del developer il
+  2026-08-28. L'alternativa era **tenere traccia delle revoche**: invece di cancellare la riga, marcarla
+  — per esempio con una colonna `revoked_at` — cosi' che l'exchange possa distinguere «questa sessione
+  e' stata revocata» da «questa sessione non c'e' mai stata» e creare solo nel secondo caso. E' piu'
+  robusta, perche' non dipende dal fatto che ogni ingresso passi dal login, ma costa una **migrazione**
+  e un concetto in piu' nel modello. **Scartata per ora**, e resta scritta qui: se un domani si scoprira'
+  un ingresso che non passa dal login, e' la strada da riprendere.
 
 - **`D6` — «se c'e' il master token deve tornare 200 e un token nuovo, sempre»: fino a dove?** Oggi
   `getValidProviderToken()` restituisce `null` per **due** ragioni diverse, e il chiamante le confonde in

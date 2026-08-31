@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Manage;
 
+use App\Models\Provider;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Services\SessionService;
@@ -148,6 +150,14 @@ class SessionController extends Controller
             return $this->notFound("user.error.not_found");
         }
 
+        // Un provider che non esiste e' un identificativo sbagliato
+        // nella richiesta — 404 — mentre 403 vuol dire «esiste, e tu non puoi».
+        if (!Provider::find($providerId)) {
+            Log::warning("[EXCHANGE] provider inesistente", ["provider_id" => $providerId, "user_id" => $userId]);
+
+            return $this->notFound("session.error.provider_not_found");
+        }
+
         $tokenService = new TokenProviderService();
         $sessionService = $this->sessionService ?? new SessionService();
 
@@ -169,6 +179,7 @@ class SessionController extends Controller
             $validated["user_agent"] ?? $request->userAgent(),
             $tokenService,
             $masterToken,
+            false,
         );
 
         if (!$appToken) {
@@ -180,6 +191,20 @@ class SessionController extends Controller
                 ],
                 403,
             );
+        }
+
+        if ($this->isV2($request)) {
+            // sulla v2 la traccia di quali applicazioni sono state aperte non sta in una riga
+            // per provider — sta qui.
+            $this->auditAppToken($request, $userId, $providerId, $appToken);
+
+            // la v2 risponde con TUTTI E DUE i token, ma solo in header (x-master-token, x-app-token).
+            return response()
+                ->json([], 200)
+                ->withHeaders([
+                    "x-master-token" => $masterToken,
+                    "x-app-token" => $appToken,
+                ]);
         }
 
         return response()->json(
@@ -219,6 +244,48 @@ class SessionController extends Controller
     /**
      * Chiamata API CRUD dal Pannello Admin IdP.
      */
+    /** La richiesta arriva dalla rotta `v2`? Le due rotte puntano allo stesso metodo (TMT05). */
+    private function isV2(Request $request): bool
+    {
+        return $request->is("api/v2/*");
+    }
+
+    /**
+     * Una riga di `audits` per l'app token appena staccato (punto TMT18).
+     *
+     * `AppToken` non e' un modello e non lo diventa: qui `auditable_id` e' una **stringa**
+     * (`create_audits_table.php:25`), quindi un'entita' senza tabella ci sta. Serve a rispondere alla
+     * domanda «a quali applicazioni e' entrato questo utente, e quando», che sulla v2 la tabella delle
+     * sessioni non sapra' piu' dire.
+     */
+    private function auditAppToken(Request $request, $userId, $providerId, string $appToken): void
+    {
+        try {
+            DB::table("audits")->insert([
+                "user_type" => User::class,
+                "user_id" => $userId,
+                "event" => "created",
+                "auditable_type" => "AppToken",
+                "auditable_id" => (string) $providerId,
+                "old_values" => json_encode([]),
+                "new_values" => json_encode([
+                    "provider_id" => (string) $providerId,
+                    "token" => $appToken,
+                    "created_at" => now()->toDateTimeString(),
+                ]),
+                "url" => $request->fullUrl(),
+                "ip_address" => $request->ip(),
+                "user_agent" => $request->userAgent(),
+                "tags" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // L'audit non deve mai impedire l'accesso: si perde la riga, non la sessione.
+            Log::error("[EXCHANGE] audit dell'app token non scritto: " . $e->getMessage());
+        }
+    }
+
     public function delete(string $id)
     {
         $sessionById = Session::findOrFail($id);

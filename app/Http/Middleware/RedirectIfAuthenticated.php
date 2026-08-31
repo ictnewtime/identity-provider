@@ -82,6 +82,17 @@ class RedirectIfAuthenticated
         $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
 
+        // Anche qui la sessione la apre l'ingresso, non l'exchange: questo e' il caso
+        // di chi e' gia' dentro e apre una seconda applicazione ore dopo, che il login esplicito non
+        // vede. Senza, quel caso resterebbe senza riga e l'exchange lo lascerebbe fuori.
+        (new SessionService())->openProviderSession(
+            $user,
+            $providerId,
+            $request->ip(),
+            $request->userAgent(),
+            $masterToken,
+        );
+
         Log::info("Controlli SSO superati per utente {$user->username}. Redirect finale.", [
             "redirect_away_url" => $ssoData["redirectUrl"],
             "is_cross_domain" => !$ssoData["isSameDomainZone"],
