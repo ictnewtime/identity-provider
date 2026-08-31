@@ -179,6 +179,13 @@ class SessionController extends Controller
         // primo rilascio. La v1 non ruota: la sua riga scade alle otto ore e viene cancellata.
         $masterToken = $this->rotateMasterTokenIfNeeded($request, $user, $masterToken, $tokenService);
 
+        // Da qui le due rotte si separano davvero, e non solo nella forma della risposta: la v2 ha un
+        // modello suo — una riga sola per utente, senza provider (punto TMT23) — mentre la v1 tiene le
+        // sue righe per provider e non si tocca.
+        if ($this->isV2($request)) {
+            return $this->exchangeV2($request, $user, $providerId, $masterToken, $tokenService, $sessionService);
+        }
+
         $appToken = $sessionService->getValidProviderToken(
             $user,
             $providerId,
@@ -198,20 +205,6 @@ class SessionController extends Controller
                 ],
                 403,
             );
-        }
-
-        if ($this->isV2($request)) {
-            // sulla v2 la traccia di quali applicazioni sono state aperte non sta in una riga
-            // per provider — sta qui.
-            $this->auditAppToken($request, $userId, $providerId, $appToken);
-
-            // la v2 risponde con TUTTI E DUE i token, ma solo in header (x-master-token, x-app-token).
-            return response()
-                ->json([], 200)
-                ->withHeaders([
-                    "x-master-token" => $masterToken,
-                    "x-app-token" => $appToken,
-                ]);
         }
 
         return response()->json(
@@ -302,6 +295,73 @@ class SessionController extends Controller
         ]);
 
         return $newMasterToekn;
+    }
+
+    /**
+     * L'exchange della `v2`: una riga sola per utente, e nessuna riga per provider (punto TMT23).
+     *
+     * COSA CAMBIA RISPETTO ALLA v1, ed e' il modello e non la forma: la v1 tiene una riga per ogni
+     * coppia utente+provider, perche' `validateSession()` la cerca cosi' e i client di oggi ci
+     * contano. La v2 non ne ha bisogno: le basta sapere che l'utente **e' entrato**, e quella riga e'
+     * una sola. A quali applicazioni sia entrato lo raccontano gli `audits`.
+     *
+     * LA RIGA DEVE ESISTERE: la scrive il login (`openProviderSession()`). Se non c'e', l'utente e'
+     * stato revocato — e la revoca deve valere, come per la v1 con `canCreate: false`.
+     */
+    private function exchangeV2(
+        Request $request,
+        User $user,
+        $providerId,
+        ?string $masterToken,
+        TokenProviderService $tokenService,
+        SessionService $sessionService,
+    ): JsonResponse {
+        $ipAddress = $request->input("ip_address") ?? $request->ip();
+        $userAgent = $request->input("user_agent") ?? $request->userAgent();
+
+        if (!$sessionService->masterSessionFor($user->id)) {
+            Log::warning("[EXCHANGE v2] nessuna riga del master token: sessione revocata o mai aperta.", [
+                "user_id" => $user->id,
+            ]);
+
+            return response()->json(
+                ["message" => __("session.error.access_denied.user_disabled_or_missing_roles", ["providerId" => $providerId])],
+                403,
+            );
+        }
+
+        if (!$user->hasAccessToProvider($providerId)) {
+            Log::warning("[EXCHANGE v2] accesso negato al provider", [
+                "user_id" => $user->id,
+                "provider_id" => $providerId,
+            ]);
+
+            return response()->json(
+                ["message" => __("session.error.access_denied.user_disabled_or_missing_roles", ["providerId" => $providerId])],
+                403,
+            );
+        }
+
+        $appToken = $tokenService->generateAppToken($user, $providerId);
+
+        if (!$appToken) {
+            Log::error("[EXCHANGE v2] app token non generato", ["provider_id" => $providerId]);
+
+            return response()->json(["message" => __("session.error.provider_not_found", ["providerId" => $providerId])], 500);
+        }
+
+        // La riga porta il master token **di adesso**: se la rotazione l'ha cambiato, qui si allinea.
+        // Senza questo, dopo una rotazione la riga terrebbe quello vecchio.
+        $sessionService->upsertMasterSession($user->id, $ipAddress, $userAgent, $masterToken);
+
+        $this->auditAppToken($request, $user->id, $providerId, $appToken);
+
+        return response()
+            ->json([], 200)
+            ->withHeaders([
+                "x-master-token" => $masterToken,
+                "x-app-token" => $appToken,
+            ]);
     }
 
     /** La richiesta arriva dalla rotta `v2`? Le due rotte puntano allo stesso metodo (TMT05). */

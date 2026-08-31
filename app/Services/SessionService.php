@@ -173,6 +173,71 @@ class SessionService
     }
 
     /**
+     * La riga «del master token»: quella **senza provider** (punto TMT23).
+     *
+     * E' il modello della rotta `v2`: una riga per utente, che rappresenta l'essere entrati — non
+     * l'essere entrati in una certa applicazione. Il marcatore e' `provider_id IS NULL`, e serve un
+     * `whereNull`: `where("provider_id", null)` in SQL **non trova mai niente**, perche' `= NULL` non
+     * e' vero nemmeno per un valore nullo.
+     */
+    public function masterSessionFor($userId): ?Session
+    {
+        return Session::where("user_id", $userId)->whereNull("provider_id")->first();
+    }
+
+    /**
+     * Scrive o aggiorna la riga del master token (punto TMT23).
+     *
+     * Non passa da `upsertSession()` per la ragione appena detta: quella cerca con `where`, e con un
+     * provider nullo creerebbe una riga nuova a ogni chiamata.
+     */
+    public function upsertMasterSession($userId, $ipAddress, $userAgent, string $masterToken, ?Carbon $expiresAt = null): Session
+    {
+        $session = $this->masterSessionFor($userId);
+        $expiresAt = $expiresAt ?? now()->addSeconds((new TokenProviderService())->getMasterTokenExpiredAt());
+
+        if ($session) {
+            $session->update([
+                "ip_address" => $ipAddress,
+                "user_agent" => $userAgent,
+                "refresh_token" => $masterToken,
+                "expires_at" => $expiresAt,
+                "last_activity" => now(),
+            ]);
+
+            Log::debug("[SESSION] riga del master token aggiornata", [
+                "session_id" => $session->id,
+                "user_id" => $userId,
+                "master_token" => self::tokenFingerprint($masterToken),
+            ]);
+
+            return $session;
+        }
+
+        $session = Session::create([
+            "id" => (string) Str::uuid(),
+            "user_id" => $userId,
+            "provider_id" => null,
+            "ip_address" => $ipAddress,
+            "user_agent" => $userAgent,
+            // `token` non e' nullable e questa riga non ha un app token: la v2 non ne tiene traccia
+            // qui, la tiene negli `audits` (punto TMT18).
+            "token" => "",
+            "refresh_token" => $masterToken,
+            "expires_at" => $expiresAt,
+            "last_activity" => now(),
+        ]);
+
+        Log::info("[SESSION] riga del master token creata", [
+            "session_id" => $session->id,
+            "user_id" => $userId,
+            "expires_at" => $expiresAt->toDateTimeString(),
+        ]);
+
+        return $session;
+    }
+
+    /**
      * Apre la sessione del provider di destinazione al login.
      *
      * DUE PUNTI D'INGRESSO, e servono tutti e due: il login esplicito con `provider_id`, e il SSO
@@ -191,6 +256,13 @@ class SessionService
         ?string $masterToken = null,
     ): ?string {
         try {
+            // La riga «del master token», che e' quella che usa la v2 (punto TMT23). Si scrive qui e
+            // non all'exchange per la stessa ragione della riga per provider: se la creasse
+            // l'exchange, l'exchange non potrebbe far valere una revoca.
+            if ($masterToken) {
+                $this->upsertMasterSession($user->id, $ipAddress, $userAgent, $masterToken);
+            }
+
             $token = $this->getValidProviderToken(
                 $user,
                 $providerId,

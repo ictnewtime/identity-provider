@@ -341,10 +341,13 @@ class SessionRevocationTest extends TestCase
         $nuovo = $risposta->headers->get("x-master-token");
 
         $this->assertNotSame($vecchio, $nuovo, "il master token vecchio non e' stato ruotato");
+
+        // La riga da guardare e' quella **del master token** — senza provider — e va nominata: con un
+        // `first()` si prenderebbe la prima riga qualunque, e il test passerebbe o no secondo l'ordine.
         $this->assertSame(
             $nuovo,
-            Session::where("user_id", $user->id)->first()->refresh_token,
-            "la riga non porta il master token nuovo",
+            (new SessionService())->masterSessionFor($user->id)->refresh_token,
+            "la riga del master token non porta quello nuovo",
         );
     }
 
@@ -517,5 +520,72 @@ class SessionRevocationTest extends TestCase
         $this->parameter("master-token-rotate-after-seconds", "120");
 
         $this->assertSame(120, (new TokenProviderService())->getMasterTokenRotateAfter(), "il parametro non viene letto");
+    }
+
+    // --- TMT22 e TMT23: il modello della v2 ----------------------------------------------------
+
+    /** `TMT23`: il login scrive **anche** la riga del master token, che e' quella senza provider. */
+    public function test_the_login_writes_the_master_session_row(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+
+        $riga = (new SessionService())->masterSessionFor($user->id);
+
+        $this->assertNotNull($riga, "manca la riga del master token: la v2 non avrebbe niente da guardare");
+        $this->assertNull($riga->provider_id, "la riga del master token non deve avere un provider (TMT22)");
+        $this->assertSame($master, $riga->refresh_token);
+    }
+
+    /**
+     * `TMT23`: un exchange sulla `v2` **non crea righe per provider**.
+     *
+     * E' la differenza fra i due modelli, e si vede contando: dopo il login c'e' la riga del provider
+     * (la scrive il login, per la v1) e quella del master token. Un exchange v2 su un **secondo**
+     * provider non ne aggiunge una terza.
+     */
+    public function test_a_v2_exchange_does_not_create_a_provider_row(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $primo = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $secondo = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $primo->id);
+
+        (new SessionService())->openProviderSession($user, $primo->id, "1.2.3.4", "phpunit", $master);
+
+        $prima = Session::where("user_id", $user->id)->count();
+
+        $this->postJson(
+            "/api/v2/token/exchange",
+            ["provider_id" => (string) $secondo->id],
+            ["x-master-token" => $master],
+        )->assertStatus(200);
+
+        $this->assertSame($prima, Session::where("user_id", $user->id)->count(), "la v2 ha creato una riga per provider");
+        $this->assertSame(
+            0,
+            Session::where("user_id", $user->id)->where("provider_id", $secondo->id)->count(),
+            "la v2 non deve avere una riga per il provider chiesto",
+        );
+    }
+
+    /** `TMT23`: se la riga del master token non c'e', la `v2` rifiuta — e' una revoca. */
+    public function test_the_v2_refuses_when_the_master_session_is_gone(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        SessionService::destroyAllUserSessions($user->id);
+
+        $this->postJson(
+            "/api/v2/token/exchange",
+            ["provider_id" => (string) $provider->id],
+            ["x-master-token" => $master],
+        )->assertStatus(403);
     }
 }
