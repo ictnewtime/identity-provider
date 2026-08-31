@@ -172,6 +172,13 @@ class SessionController extends Controller
             "ip_address" => $validated["ip_address"] ?? $request->ip(),
         ]);
 
+        // la rotazione, e **solo sulla v2**. Se il master token presentato ha piu' di un'ora se
+        // ne genera uno nuovo, e da qui in poi e' quello che vale: lo salva la riga e lo riceve il
+        // chiamante. Il vecchio **non viene invalidato** — chi non sa leggere l'header nuovo continua
+        // a funzionare fino alla sua scadenza, che e' l'unico modo di non disconnettere in massa al
+        // primo rilascio. La v1 non ruota: la sua riga scade alle otto ore e viene cancellata.
+        $masterToken = $this->rotateMasterTokenIfNeeded($request, $user, $masterToken, $tokenService);
+
         $appToken = $sessionService->getValidProviderToken(
             $user,
             $providerId,
@@ -244,6 +251,59 @@ class SessionController extends Controller
     /**
      * Chiamata API CRUD dal Pannello Admin IdP.
      */
+    /**
+     * Il master token da usare da qui in avanti: quello presentato, oppure uno nuovo se e' vecchio.
+     *
+     * Ruota **solo sulla v2**: la v1 ha client che non sanno leggere un token nuovo e continuerebbero
+     * a mandare il vecchio senza accorgersi di niente. L'eta' si legge dal claim `iat`, che
+     * `VerifyMasterToken` ha gia' verificato e messo fra gli attributi della richiesta.
+     */
+    private function rotateMasterTokenIfNeeded(
+        Request $request,
+        User $user,
+        ?string $masterToken,
+        TokenProviderService $tokenService,
+    ): ?string {
+        if (!$this->isV2($request) || empty($masterToken)) {
+            return $masterToken;
+        }
+
+        $iat = $request->attributes->get("jwt_master_iat");
+
+        if (!$iat) {
+            Log::warning("[EXCHANGE] master token senza `iat`: non si puo' sapere se ruotarlo.");
+            return $masterToken;
+        }
+
+        $eta = time() - (int) $iat;
+
+        // La soglia sta nei parametri, con ripiego a un'ora: e' un numero che si vorra' cambiare
+        // senza un rilascio, come le due durate dei token.
+        $tokenTheshold = $tokenService->getMasterTokenRotateAfter();
+
+        if ($eta < $tokenTheshold) {
+            return $masterToken;
+        }
+
+        $newMasterToekn = $tokenService->generateMasterToken($user, (string) config("idp.provider_id"));
+
+        if (!$newMasterToekn) {
+            // Meglio continuare col vecchio, che e' ancora valido, che rifiutare l'accesso.
+            Log::error("[EXCHANGE] rotazione fallita: si prosegue col master token presentato.");
+            return $masterToken;
+        }
+
+        Log::info("[EXCHANGE] master token ruotato", [
+            "user_id" => $user->id,
+            "eta_secondi" => $eta,
+            "soglia_secondi" => $tokenTheshold,
+            "vecchio" => SessionService::tokenFingerprint($masterToken),
+            "newMasterToekn" => SessionService::tokenFingerprint($newMasterToekn),
+        ]);
+
+        return $newMasterToekn;
+    }
+
     /** La richiesta arriva dalla rotta `v2`? Le due rotte puntano allo stesso metodo (TMT05). */
     private function isV2(Request $request): bool
     {

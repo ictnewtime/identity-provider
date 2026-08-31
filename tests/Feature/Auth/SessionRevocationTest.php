@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Parameter;
 use App\Models\Provider;
 use App\Models\Role;
 use App\Models\Session;
@@ -9,7 +10,9 @@ use App\Models\User;
 use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Firebase\JWT\JWT;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -146,7 +149,12 @@ class SessionRevocationTest extends TestCase
         )->assertStatus(404);
     }
 
-    /** `TMT16` e `TMT18`: la v2 risponde con i due token e lascia una riga di audit. */
+    /**
+     * `TMT16` e `TMT18`: la v2 restituisce i due token **negli header** e lascia una riga di audit.
+     *
+     * Forma decisa dal developer il 2026-08-28: `x-master-token` e `x-app-token` negli header, corpo
+     * vuoto. E' simmetrica alla richiesta, che i token li manda negli header a sua volta.
+     */
     public function test_the_v2_returns_both_tokens_and_writes_an_audit_row(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -161,7 +169,11 @@ class SessionRevocationTest extends TestCase
             ["x-master-token" => $master],
         );
 
-        $risposta->assertStatus(200)->assertJsonStructure(["master_token", "app_token"]);
+        $risposta->assertStatus(200);
+        $this->assertNotEmpty($risposta->headers->get("x-master-token"), "manca l'header x-master-token");
+        $this->assertNotEmpty($risposta->headers->get("x-app-token"), "manca l'header x-app-token");
+        $this->assertSame($master, $risposta->headers->get("x-master-token"), "il master token dell'header non e' quello presentato");
+        $this->assertSame([], $risposta->json(), "il corpo della v2 deve essere vuoto: i token stanno negli header");
 
         $riga = DB::table("audits")->where("auditable_type", "AppToken")->latest("id")->first();
 
@@ -187,7 +199,8 @@ class SessionRevocationTest extends TestCase
         )
             ->assertStatus(200)
             ->assertJsonStructure(["token"])
-            ->assertJsonMissing(["app_token"]);
+            ->assertHeaderMissing("x-app-token")
+            ->assertHeaderMissing("x-master-token");
 
         $this->assertSame(0, DB::table("audits")->where("auditable_type", "AppToken")->count());
     }
@@ -280,5 +293,229 @@ class SessionRevocationTest extends TestCase
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         )->assertStatus(403);
+    }
+
+    // --- TMT17: la rotazione del master token, solo sulla v2 -----------------------------------
+
+    /**
+     * Un master token **emesso `$oreFa` ore fa**, firmato a mano con la stessa chiave del servizio.
+     *
+     * PERCHE' NON SI USA `travelTo()`: `generateMasterToken()` scrive `iat` con `time()` di PHP, che
+     * il viaggio nel tempo di Laravel **non falsifica** — quello sposta solo Carbon. Un token generato
+     * "nel passato" avrebbe comunque `iat` di adesso, e la rotazione non scatterebbe: il test
+     * passerebbe senza provare niente.
+     */
+    private function masterTokenIssuedHoursAgo(User $user, Provider $provider, int $oreFa): string
+    {
+        $emesso = time() - $oreFa * 3600;
+
+        return JWT::encode(
+            [
+                "iss" => $provider->url,
+                "iat" => $emesso,
+                "exp" => $emesso + 28800,
+                "sub" => (string) $user->id,
+                "payload" => ["user" => ["id" => $user->id, "username" => $user->username]],
+            ],
+            File::get(storage_path("app/keys/private.key")),
+            "RS256",
+            config("idp.jwt.master_key_id"),
+        );
+    }
+
+    /** `TMT17`: sulla v2, un master token di piu' di un'ora viene **rigenerato**. */
+    public function test_the_v2_rotates_a_master_token_older_than_an_hour(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $vecchio = $this->masterTokenIssuedHoursAgo($user, $provider, 2);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $vecchio);
+
+        $risposta = $this->postJson(
+            "/api/v2/token/exchange",
+            ["provider_id" => (string) $provider->id],
+            ["x-master-token" => $vecchio],
+        )->assertStatus(200);
+
+        $nuovo = $risposta->headers->get("x-master-token");
+
+        $this->assertNotSame($vecchio, $nuovo, "il master token vecchio non e' stato ruotato");
+        $this->assertSame(
+            $nuovo,
+            Session::where("user_id", $user->id)->first()->refresh_token,
+            "la riga non porta il master token nuovo",
+        );
+    }
+
+    /** `TMT17`: un master token fresco **non** si tocca. */
+    public function test_a_fresh_master_token_is_not_rotated(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $fresco = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $fresco);
+
+        $risposta = $this->postJson(
+            "/api/v2/token/exchange",
+            ["provider_id" => (string) $provider->id],
+            ["x-master-token" => $fresco],
+        )->assertStatus(200);
+
+        $this->assertSame($fresco, $risposta->headers->get("x-master-token"), "un token fresco non va ruotato");
+    }
+
+    /**
+     * `TMT17`, la prova che conta: **il master token vecchio continua a funzionare** dopo la rotazione.
+     *
+     * Se non fosse cosi', al primo rilascio ogni client che non sa leggere l'header nuovo verrebbe
+     * disconnesso — ed e' la ragione per cui la rotazione **non invalida** il precedente.
+     */
+    public function test_the_old_master_token_keeps_working_after_a_rotation(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $vecchio = $this->masterTokenIssuedHoursAgo($user, $provider, 2);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $vecchio);
+
+        $corpo = ["provider_id" => (string) $provider->id];
+        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
+
+        // Seconda chiamata con lo **stesso** token vecchio: deve funzionare ancora.
+        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
+    }
+
+    /** `TMT17`: la `v1` non ruota — la sua riga tiene il master token che le e' stato dato. */
+    public function test_the_v1_does_not_rotate(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $vecchio = $this->masterTokenIssuedHoursAgo($user, $provider, 2);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $vecchio);
+
+        $this->postJson(
+            "/api/v1/token/exchange",
+            ["provider_id" => (string) $provider->id],
+            ["Authorization" => "Bearer {$vecchio}"],
+        )->assertStatus(200);
+
+        $this->assertSame(
+            $vecchio,
+            Session::where("user_id", $user->id)->first()->refresh_token,
+            "la v1 ha ruotato il master token: non deve",
+        );
+    }
+
+    // --- TMT17, la scadenza vera: un master token che dura un secondo -------------------------
+
+    /** Mette un parametro a un valore, come farebbe l'amministratore da `/admin/parameters`. */
+    private function parameter(string $key, string $value): void
+    {
+        Parameter::updateOrCreate(["key" => $key], ["value" => $value, "type" => "int"]);
+    }
+
+    /**
+     * `TMT17` sulla `v1`: **il master token scade e la sessione non si rinnova piu'**.
+     *
+     * Con la durata a un secondo, l'exchange funziona subito e non funziona piu' un istante dopo. La
+     * v1 non ruota, quindi qui non c'e' scampo — ed e' il comportamento voluto: e' la scadenza che fa
+     * il suo lavoro.
+     */
+    public function test_on_v1_an_expired_master_token_cannot_renew_anymore(): void
+    {
+        $this->parameter("master-token-exp-time-seconds", "1");
+
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+
+        $corpo = ["provider_id" => (string) $provider->id];
+        $intestazioni = ["Authorization" => "Bearer {$master}"];
+
+        // Subito: si rinnova.
+        $this->postJson("/api/v1/token/exchange", $corpo, $intestazioni)->assertStatus(200);
+
+        usleep(1_100_000); // 1,1 secondi: oltre la scadenza di un secondo
+
+        // Dopo: il master token e' scaduto, e VerifyMasterToken lo rifiuta.
+        $this->postJson("/api/v1/token/exchange", $corpo, $intestazioni)->assertStatus(401);
+    }
+
+    /**
+     * `TMT17` sulla `v2` con la rotazione **a un'ora**: la scadenza vince lo stesso.
+     *
+     * E' il caso che si potrebbe dare per scontato al contrario: «la v2 ruota, quindi non scade mai».
+     * Non e' cosi' — con la soglia a un'ora e la durata a un secondo, il token muore **prima** che la
+     * rotazione lo consideri vecchio.
+     */
+    public function test_on_v2_the_expiry_wins_when_rotation_is_far_away(): void
+    {
+        $this->parameter("master-token-exp-time-seconds", "1");
+        $this->parameter("master-token-rotate-after-seconds", "3600");
+
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+
+        $corpo = ["provider_id" => (string) $provider->id];
+        $intestazioni = ["x-master-token" => $master];
+
+        $risposta = $this->postJson("/api/v2/token/exchange", $corpo, $intestazioni)->assertStatus(200);
+        $this->assertSame($master, $risposta->headers->get("x-master-token"), "non doveva ruotare: ha meno di un'ora");
+
+        usleep(1_100_000);
+
+        $this->postJson("/api/v2/token/exchange", $corpo, $intestazioni)->assertStatus(401);
+    }
+
+    /**
+     * `TMT17` sulla `v2` con la rotazione **piu' corta della scadenza**: il token si rinnova da se'.
+     *
+     * E' il caso per cui la rotazione esiste. La soglia a un secondo e la durata a dieci: al secondo
+     * exchange il token ha passato la soglia, ne arriva uno nuovo, e **quello nuovo funziona** anche
+     * quando il primo sarebbe morto.
+     */
+    public function test_on_v2_a_short_rotation_keeps_the_session_alive(): void
+    {
+        $this->parameter("master-token-exp-time-seconds", "10");
+        $this->parameter("master-token-rotate-after-seconds", "1");
+
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+
+        $corpo = ["provider_id" => (string) $provider->id];
+
+        usleep(1_100_000); // il token supera la soglia di rotazione, ma non la scadenza
+
+        $risposta = $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])
+            ->assertStatus(200);
+
+        $nuovo = $risposta->headers->get("x-master-token");
+        $this->assertNotSame($master, $nuovo, "la soglia era passata: doveva ruotare");
+
+        // E il token nuovo vale: e' la ragione per cui la rotazione tiene viva la sessione.
+        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $nuovo])->assertStatus(200);
+    }
+
+    /** La soglia e' un **parametro**, e il ripiego e' un'ora: senza riga a database vale 3600. */
+    public function test_the_rotation_threshold_is_a_parameter_with_an_hour_fallback(): void
+    {
+        $service = new TokenProviderService();
+
+        $this->assertSame(3600, $service->getMasterTokenRotateAfter(), "senza parametro il ripiego non e' un'ora");
+
+        $this->parameter("master-token-rotate-after-seconds", "120");
+
+        $this->assertSame(120, (new TokenProviderService())->getMasterTokenRotateAfter(), "il parametro non viene letto");
     }
 }

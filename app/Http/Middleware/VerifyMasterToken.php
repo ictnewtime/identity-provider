@@ -50,7 +50,13 @@ class VerifyMasterToken
 
             $request->attributes->set("jwt_user_id", $userId);
 
-            Log::debug("[MASTER TOKEN] valido", ["user_id" => $userId]);
+            // Quando e' stato emesso: serve alla rotazione della v2, che rigenera il
+            // master token se ha piu' di un'ora. Si mette qui perche' il token e' **gia' decodificato
+            // e verificato**: farlo di nuovo nel controller significherebbe leggerlo senza verificarlo,
+            // o verificarlo due volte.
+            $request->attributes->set("jwt_master_iat", $decodedPayload->iat ?? null);
+
+            Log::debug("[MASTER TOKEN] valido", ["user_id" => $userId, "iat" => $decodedPayload->iat ?? null]);
 
             if ($request->has("provider_id")) {
                 $request->attributes->set("jwt_provider_id", $request->input("provider_id"));

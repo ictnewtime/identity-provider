@@ -163,10 +163,12 @@ quindi la v2 non lo accetta e non lo documenta — un header accettato e ignorat
 qualcuno un giorno credera' vero.
 
 **Cosa risponde la v2**: tutti e due i token, perche' la rotazione ha senso solo se il chiamante riceve
-anche quello nuovo. La forma consigliata e' `{"master_token": …, "app_token": …}` e **non**
-`{"x-master-token": …}`: `x-` e' una convenzione degli **header**, e usarla come nome di campo in un
-corpo JSON confonde i due piani. La v1 continua a rispondere `{"token": …}` e non si tocca — e' il
-motivo per cui esiste una v2.
+anche quello nuovo. **Negli header** — `x-master-token` e `x-app-token`, corpo vuoto — deciso dal
+developer il 2026-08-28. Avevo consigliato di metterli nel corpo (`{"master_token": …}`) con
+l'argomento che `x-` e' una convenzione degli **header** e come nome di campo JSON confonde i due
+piani; la scelta degli header ha pero' una simmetria che il corpo non ha — **la richiesta i token li
+manda negli header**, e la risposta li restituisce dove sono arrivati. La v1 continua a rispondere
+`{"token": …}` nel corpo e non si tocca: e' il motivo per cui esiste una v2.
 
 ### La rotazione del master token dopo un'ora
 
