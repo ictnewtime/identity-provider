@@ -215,6 +215,7 @@
     "admin.sessions.table.ip": "IP",
     "admin.sessions.table.last_modified": "Last Modified",
     "admin.sessions.table.no_provider": "No Provider",
+    "admin.sessions.table.all_providers": "Valid for every application",
     "admin.sessions.table.provider": "Provider",
     "admin.sessions.table.search_placeholder": "Search session...",
     "admin.sessions.table.terminate": "Terminate Session",

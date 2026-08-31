@@ -51,19 +51,14 @@ class Authenticated
         } catch (TokenExpiredException $e) {
             Log::warning("App token scaduto: provo il rinnovo col master token.");
 
-            if ($this->isApiCall($request)) {
-                Log::info("[RINNOVO] non tentato: e' una chiamata API, non una navigazione.");
-                return $this->forceLogoutAndRedirect($request, __("auth.token-expired"));
-            }
-
             $renewal = $this->renewer->renew($request, $provider);
 
             if ($renewal["outcome"] === IdpTokenRenewer::OUTCOME_MASTER_MISSING) {
-                return $this->forceLogoutAndRedirect($request, __("auth.renew-failed"));
+                return $this->refuse($request, __("auth.renew-failed"));
             }
 
             if ($renewal["outcome"] === IdpTokenRenewer::OUTCOME_REFUSED) {
-                return $this->forceLogoutAndRedirect($request, __("auth.renew-refused"));
+                return $this->refuse($request, __("auth.renew-refused"));
             }
 
             // Rinnovato: si prosegue con il token nuovo, e il cookie lo porta al browser.
@@ -149,7 +144,27 @@ class Authenticated
      *
      * E' lo stesso criterio che `forceLogoutAndRedirect()` usa piu' sotto per decidere se rispondere
      * in JSON invece di reindirizzare — scritto qui una volta perche' ora serve a due decisioni.
+     *
+     * Rifiuta senza toccare i cookie, se e' una chiamata API.
+     * A una navigazione si risponde come sempre — logout e ritorno al login — perche' li' il browser
+     * deve ripartire da capo. A una chiamata API si risponde **401 e basta**: quella richiesta
+     * fallisce, e la sessione del browser resta quella che era.
+     *
+     * PERCHE' CONTA: `forceLogoutAndRedirect()` accoda `Cookie::forget`, quindi una XHR rifiutata
+     * portava via il cookie del **browser** — e la navigazione successiva non aveva piu' niente in
+     * mano. Era quello il meccanismo dello sloggamento, non il 401.
      */
+    private function refuse($request, string $message)
+    {
+        if ($this->isApiCall($request)) {
+            Log::info("[RINNOVO] rifiutato a una chiamata API: 401, e i cookie non si toccano.");
+
+            return response()->json(["message" => $message], 401);
+        }
+
+        return $this->forceLogoutAndRedirect($request, $message);
+    }
+
     private function isApiCall($request): bool
     {
         return $request->expectsJson() && !$request->header("X-Inertia");

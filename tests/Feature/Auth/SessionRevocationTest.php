@@ -323,6 +323,32 @@ class SessionRevocationTest extends TestCase
         );
     }
 
+    /**
+     * Un master token con **emissione e scadenza scelte**, firmato a mano con la stessa chiave.
+     *
+     * PERCHE' A MANO E NON CON UNA DURATA DI UN SECONDO: un token che vive un secondo obbliga la
+     * prima chiamata ad arrivare entro quel secondo, e su una macchina carica non ci arriva — il
+     * test falliva a intermittenza (osservato il 2026-08-31). Scegliendo `exp` non c'e' nessuna
+     * corsa: il token e' scaduto o non lo e', sempre, e non serve nessuna attesa.
+     */
+    private function masterTokenLasting(User $user, Provider $provider, int $emessoSecondiFa, int $scadeFraSecondi): string
+    {
+        $emesso = time() - $emessoSecondiFa;
+
+        return JWT::encode(
+            [
+                "iss" => $provider->url,
+                "iat" => $emesso,
+                "exp" => time() + $scadeFraSecondi,
+                "sub" => (string) $user->id,
+                "payload" => ["user" => ["id" => $user->id, "username" => $user->username]],
+            ],
+            File::get(storage_path("app/keys/private.key")),
+            "RS256",
+            config("idp.jwt.master_key_id"),
+        );
+    }
+
     /** `TMT17`: sulla v2, un master token di piu' di un'ora viene **rigenerato**. */
     public function test_the_v2_rotates_a_master_token_older_than_an_hour(): void
     {
@@ -429,24 +455,35 @@ class SessionRevocationTest extends TestCase
      */
     public function test_on_v1_an_expired_master_token_cannot_renew_anymore(): void
     {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+
+        $vivo = $this->masterTokenLasting($user, $provider, 0, 3600);
+        $scaduto = $this->masterTokenLasting($user, $provider, 10, -1);
+
+        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $vivo);
+
+        $corpo = ["provider_id" => (string) $provider->id];
+
+        // Finche' e' vivo: si rinnova.
+        $this->postJson("/api/v1/token/exchange", $corpo, ["Authorization" => "Bearer {$vivo}"])->assertStatus(200);
+
+        // Scaduto: `VerifyMasterToken` lo rifiuta, e la v1 non ruota, quindi non c'e' scampo.
+        $this->postJson("/api/v1/token/exchange", $corpo, ["Authorization" => "Bearer {$scaduto}"])->assertStatus(401);
+    }
+
+    /** La durata del master token e' un **parametro**: qui si legge nel token che ne esce. */
+    public function test_the_master_token_duration_comes_from_the_parameter(): void
+    {
         $this->parameter("master-token-exp-time-seconds", "1");
 
         $user = User::factory()->create(["enabled" => 1]);
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        $payload = json_decode(base64_decode(strtr(explode(".", $master)[1], "-_", "+/")), true);
 
-        $corpo = ["provider_id" => (string) $provider->id];
-        $intestazioni = ["Authorization" => "Bearer {$master}"];
-
-        // Subito: si rinnova.
-        $this->postJson("/api/v1/token/exchange", $corpo, $intestazioni)->assertStatus(200);
-
-        usleep(1_100_000); // 1,1 secondi: oltre la scadenza di un secondo
-
-        // Dopo: il master token e' scaduto, e VerifyMasterToken lo rifiuta.
-        $this->postJson("/api/v1/token/exchange", $corpo, $intestazioni)->assertStatus(401);
+        $this->assertSame(1, $payload["exp"] - $payload["iat"], "la durata non viene dal parametro");
     }
 
     /**
@@ -458,7 +495,6 @@ class SessionRevocationTest extends TestCase
      */
     public function test_on_v2_the_expiry_wins_when_rotation_is_far_away(): void
     {
-        $this->parameter("master-token-exp-time-seconds", "1");
         $this->parameter("master-token-rotate-after-seconds", "3600");
 
         $user = User::factory()->create(["enabled" => 1]);
@@ -468,14 +504,13 @@ class SessionRevocationTest extends TestCase
         (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
 
         $corpo = ["provider_id" => (string) $provider->id];
-        $intestazioni = ["x-master-token" => $master];
 
-        $risposta = $this->postJson("/api/v2/token/exchange", $corpo, $intestazioni)->assertStatus(200);
+        $risposta = $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])->assertStatus(200);
         $this->assertSame($master, $risposta->headers->get("x-master-token"), "non doveva ruotare: ha meno di un'ora");
 
-        usleep(1_100_000);
-
-        $this->postJson("/api/v2/token/exchange", $corpo, $intestazioni)->assertStatus(401);
+        // Lo stesso utente, con un master token scaduto: la rotazione lontana non lo salva.
+        $scaduto = $this->masterTokenLasting($user, $provider, 10, -1);
+        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $scaduto])->assertStatus(401);
     }
 
     /**
@@ -487,18 +522,19 @@ class SessionRevocationTest extends TestCase
      */
     public function test_on_v2_a_short_rotation_keeps_the_session_alive(): void
     {
-        $this->parameter("master-token-exp-time-seconds", "10");
+        $this->parameter("master-token-exp-time-seconds", "600");
         $this->parameter("master-token-rotate-after-seconds", "1");
 
         $user = User::factory()->create(["enabled" => 1]);
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
-        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        // Emesso cinque secondi fa e vivo per altri dieci minuti: ha gia' passato la soglia di
+        // rotazione senza essere vicino alla scadenza. Firmato a mano, cosi' non serve aspettare.
+        $master = $this->masterTokenLasting($user, $provider, 5, 600);
 
         (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
 
         $corpo = ["provider_id" => (string) $provider->id];
-
-        usleep(1_100_000); // il token supera la soglia di rotazione, ma non la scadenza
 
         $risposta = $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])
             ->assertStatus(200);
@@ -587,5 +623,78 @@ class SessionRevocationTest extends TestCase
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         )->assertStatus(403);
+    }
+
+    // --- TMT32: la riga senza provider e' la prova, le altre nascono su richiesta --------------
+
+    /**
+     * `TMT32`: il login verso un'applicazione **esterna** scrive **una sola** riga, quella senza
+     * provider. La riga del provider nasce quando una chiamata `v1` la chiede.
+     */
+    public function test_the_login_towards_an_external_app_writes_only_the_master_row(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $esterna = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $esterna->id);
+
+        (new SessionService())->openProviderSession($user, $esterna->id, "1.2.3.4", "phpunit", $master);
+
+        $this->assertSame(1, Session::where("user_id", $user->id)->count(), "il login ha scritto piu' di una riga");
+        $this->assertNotNull(
+            (new SessionService())->masterSessionFor($user->id),
+            "la riga scritta non e' quella senza provider",
+        );
+
+        // Ora arriva una chiamata v1: la riga per provider nasce qui.
+        $this->postJson(
+            "/api/v1/token/exchange",
+            ["provider_id" => (string) $esterna->id],
+            ["Authorization" => "Bearer {$master}"],
+        )->assertStatus(200);
+
+        $this->assertSame(2, Session::where("user_id", $user->id)->count(), "la v1 non ha creato la sua riga");
+        $this->assertSame(
+            1,
+            Session::where("user_id", $user->id)->where("provider_id", $esterna->id)->count(),
+            "manca la riga del provider chiesto",
+        );
+    }
+
+    /** `TMT32`: una `v2` non fa nascere nessuna riga per provider, nemmeno chiamandola due volte. */
+    public function test_a_v2_app_never_gets_a_provider_row(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $esterna = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $esterna->id);
+
+        (new SessionService())->openProviderSession($user, $esterna->id, "1.2.3.4", "phpunit", $master);
+
+        $corpo = ["provider_id" => (string) $esterna->id];
+        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])->assertStatus(200);
+
+        $this->assertSame(1, Session::where("user_id", $user->id)->count(), "la v2 ha creato righe che non le servono");
+    }
+
+    /**
+     * `TMT32`, la prova che il modello non riapre `VDF14`: dopo una revoca **anche la `v1`** rifiuta,
+     * perche' la riga senza provider — la prova che l'utente e' entrato — e' sparita con le altre.
+     */
+    public function test_after_a_revocation_even_the_v1_refuses(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $esterna = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $esterna->id);
+
+        (new SessionService())->openProviderSession($user, $esterna->id, "1.2.3.4", "phpunit", $master);
+        SessionService::destroyAllUserSessions($user->id);
+
+        $this->postJson(
+            "/api/v1/token/exchange",
+            ["provider_id" => (string) $esterna->id],
+            ["Authorization" => "Bearer {$master}"],
+        )->assertStatus(403);
+
+        $this->assertSame(0, Session::where("user_id", $user->id)->count(), "la v1 ha ricreato una sessione revocata");
     }
 }

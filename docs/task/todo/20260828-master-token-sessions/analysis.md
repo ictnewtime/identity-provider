@@ -253,6 +253,57 @@ cosa fare di un master token nuovo nella risposta.
 `TMT09` e `TMT10`. Chiudere `TMT02` senza quelli toglie la disconnessione a trenta minuti ma lascia
 l'IdP senza rinnovo — il difetto si sposta a otto ore invece di sparire.
 
+### Cosa dicono le prove del 2026-08-31, fatte dal developer sull'ambiente vero
+
+Con `app-token-exp-time-seconds` a **10 secondi** e un'applicazione che usa ancora l'estensione
+**non aggiornata** — quindi la rotta `v1` — il developer ha osservato quattro comportamenti. Due sono
+giusti, due no, e il log li spiega tutti e quattro.
+
+| Osservato | Giusto? | Perche' |
+|---|---|---|
+| login all'IdP → riga `IDP` | si' | la scrive `openProviderSession()` dal ramo senza `provider_id` |
+| login all'app «device» → righe **`device` e `null`** | **no** | `openProviderSession()` scrive **sempre** tutte e due: quella per provider (v1) e quella del master token (v2). Il login pero' **non sa** quale rotta usera' l'applicazione |
+| dopo 10 s sull'app: non slogga, rinnova | si' | l'estensione chiama l'exchange col master token |
+| dopo 10 s **sull'IdP: slogga** | **no** | vedi sotto: e' `TMT10`, e il modo in cui rifiuta |
+
+**Perche' l'IdP slogga, e non e' «il rinnovo non funziona»**: nel log il rinnovo **riesce sei volte** e
+**non viene tentato tre volte**. Le tre volte sono richieste che `isApiCall()` classifica come API —
+`expectsJson()` senza `X-Inertia` — e sono le **chiamate XHR della sua stessa interfaccia**, quelle che
+le tabelle fanno con `window.axios` verso `admin/v1/…`.
+
+E il colpo non e' il 401: e' quello che succede subito dopo. La sequenza nel log:
+
+```
+09:37:26  App token scaduto → RINNOVO non tentato (chiamata API)
+09:37:29  Nessun token trovato nel cookie [idp_token_1]     ← il cookie non c'e' piu'
+09:37:31  Nessun token trovato nel cookie [idp_token_1]
+09:37:38  [LOGIN] Master token generato                     ← ha rifatto il login
+```
+
+`forceLogoutAndRedirect()` non risponde soltanto 401: **accoda `Cookie::forget`** sul token
+dell'applicazione. Quindi una XHR dell'interfaccia, rifiutata perche' «e' una chiamata API», **cancella
+il cookie del browser** — e la navigazione successiva non ha piu' niente in mano. Il criterio di
+`TMT10` e' giusto nell'intenzione (a una chiamata macchina-a-macchina non si da' un token nuovo di
+nascosto) ma **troppo grosso**: mette nello stesso mucchio l'integrazione esterna e l'XHR della propria
+interfaccia.
+
+**La versione la deduce l'IdP, non la dichiara l'app** (decisione del developer, 2026-08-31): `api/v1/…`
+→ v1, `api/v2/…` → v2, e l'IdP la scrive sul provider. Il pregio e' che le estensioni gia' installate
+non devono fare **niente** oltre a cio' che e' gia' stato cambiato, e da li' in poi e' l'IdP a sapere
+come comportarsi — alla creazione della sessione, al rinnovo, alla revoca.
+
+**Il disegno regge, e sposta il problema di un passo**: la versione si conosce **dopo** la prima
+chiamata, mentre la riga la scrive il **login**, che viene prima. Per un provider mai visto l'IdP non
+sa ancora quale riga serve — e se sbaglia per difetto scrivendo solo quella della v1, un'applicazione
+**v2** al suo primo exchange trova la riga del master token mancante e **viene rifiutata**, perche' per
+`TMT23` una riga mancante e' una revoca.
+
+La via d'uscita che avevo proposto — «finche' la versione e' ignota, il primo exchange puo' creare» — e'
+stata **superata**: il § 7 mostra che il problema non esiste se la riga senza provider diventa la prova
+che l'utente e' entrato. Restava una toppa a una domanda mal posta.
+
+**Questa parte e' stata rettificata**: `TMT29` e `TMT31` sono stati scartati il 2026-08-31, perche' chiedevano al login un'informazione che al login non esiste. Il modello giusto e' nel **§ 7**, ed e' il punto `TMT32`. Resta valido tutto quello che sta qui sopra sullo sloggamento dell'IdP: e' `TMT30`.
+
 ## 4. Da decidere
 
 **Tutte risposte dal developer il 2026-08-28.** Restano scritte perche' la domanda spiega la risposta —
@@ -411,3 +462,73 @@ Il developer ha deciso di scriverlo lo stesso, e si fa. Questa nota **non blocca
 perche' il giorno che qualcuno chiedera' «perche' c'e' un token dentro gli audit?» la risposta non sia
 «non ci avevamo pensato». Se un domani si volesse togliere, l'impronta — ultime otto lettere o uno
 `sha256` troncato — fa lo stesso lavoro di riconoscimento senza la chiave.
+
+## 7. Il modello delle righe, rifatto da capo il 2026-08-31
+
+Questa sezione **rettifica** l'analisi che sta piu' sopra (`TMT29`, `TMT31`): quella cercava di far
+sapere al login una cosa che al login **non si puo' sapere** — quale rotta usera' l'applicazione — e
+per averla proponeva una colonna sulla tabella dei provider. La strada giusta e' un'altra, ed e' del
+developer: **non serve saperlo in anticipo**.
+
+### Il caso che rende tutto chiaro: tre applicazioni, versioni miste
+
+Un utente entra in tre applicazioni. Una ha l'estensione vecchia (`v1`), una la nuova (`v2`), della
+terza non si sa. Quante righe servono in `sessions`?
+
+- **una sola** per l'utente, quella **senza provider**, che dice «questa persona e' entrata» — e vale
+  per tutte e tre, perche' il master token e' uno;
+- **una per ogni applicazione che usa la `v1`**, perche' la v1 e' fatta cosi': la sua sessione e'
+  per coppia utente+provider, e `validateSession()` la cerca cosi'.
+
+Quindi il numero di righe non si decide al login: **si scopre strada facendo**, ed e' giusto che sia
+cosi'.
+
+### Le tre regole, e perche' tengono
+
+1. **Al login** si scrive la riga **senza provider**. Si puo' sempre, perche' non dipende da quale
+   applicazione l'utente aprira': dipende solo dal fatto che sia entrato.
+2. **Se arriva una chiamata `v1`**: si guarda che ci sia la riga senza provider — e' la prova che
+   l'utente e' entrato davvero — e **si crea** la riga per quel provider, come la v1 vuole.
+3. **Se arriva una chiamata `v2`**: si guarda la stessa riga senza provider e **non si crea** niente
+   altro, come la v2 vuole.
+
+**Perche' non riapre `VDF14`**, che e' la domanda che conta: la revoca cancella **tutte** le righe
+dell'utente (`destroyAllUserSessions()` filtra per `user_id` e basta, verificato), quindi porta via
+anche quella senza provider. Dopo una revoca la regola 2 non trova la prova e **rifiuta**. La sessione
+non si ricrea da sola, che era il difetto.
+
+**E rende inutile la colonna della versione**: la rotta chiamata basta a se' stessa nel momento in cui
+viene chiamata. Non c'e' niente da dedurre in anticipo, niente da salvare, e nessun primo accesso che
+fallisce.
+
+### Cosa cambia rispetto a com'e' scritto oggi il codice
+
+Oggi la `v1` chiede la **riga per provider** (`canCreate: false` la pretende gia' esistente) e conta
+sul fatto che l'abbia creata il login. Con la regola 2 chiede la **riga senza provider** e la riga per
+provider se la crea. Da qui due conseguenze buone:
+
+- il login **smette di scrivere la riga per provider** delle applicazioni esterne: quella nasce solo se
+  e quando una `v1` la chiede — ed e' la riga «di troppo» che il developer ha visto in tabella;
+- un'applicazione `v2` non ha piu' alcuna riga per provider, che e' quello che il suo modello dice.
+
+### La riga dedicata dell'IdP: si', e non e' una scelta
+
+Verificato: `Authenticated` valida ogni pagina con `IdpSessionValidator::isAlive($token)`, che fa
+`Session::where("token", $token)->exists()` — cerca **l'app token**. Senza una riga sua, ogni
+navigazione nell'IdP fallirebbe. Quindi la riga dell'IdP **serve**, e l'IdP e' un'applicazione come le
+altre anche in questo: si autentica in modo diverso, ma la sua sessione si scrive e si legge come
+quella di chiunque.
+
+### Una precisazione su `RedirectIfAuthenticated`
+
+Il developer scrive: «quando l'user naviga nell'app IDP viene eseguito `RedirectIfAuthenticated`».
+**Non e' cosi'**, ed e' meglio saperlo perche' cambia dove guardare: quel middleware e' l'alias `guest`
+(`bootstrap/app.php:49`) e sta **solo** sul gruppo delle rotte per chi non e' autenticato — `/`,
+`/forgot-password`, `/reset-password` (`routes/web.php:30-37`). Navigando in `/admin/...` gira
+`Authenticated`, non lui.
+
+`RedirectIfAuthenticated` interviene quando un utente **gia' autenticato** apre la pagina di login: e'
+li' che decide se mandarlo alla sua applicazione (SSO trasparente) o all'amministrazione. Ed e' per
+questo che `TMT28` ha messo l'apertura della sessione anche li': e' l'unico ingresso di chi apre una
+seconda applicazione senza rifare il login.
+

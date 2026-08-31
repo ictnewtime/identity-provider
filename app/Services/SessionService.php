@@ -173,7 +173,7 @@ class SessionService
     }
 
     /**
-     * La riga «del master token»: quella **senza provider** (punto TMT23).
+     * La riga «del master token»: quella senza provider.
      *
      * E' il modello della rotta `v2`: una riga per utente, che rappresenta l'essere entrati — non
      * l'essere entrati in una certa applicazione. Il marcatore e' `provider_id IS NULL`, e serve un
@@ -191,8 +191,13 @@ class SessionService
      * Non passa da `upsertSession()` per la ragione appena detta: quella cerca con `where`, e con un
      * provider nullo creerebbe una riga nuova a ogni chiamata.
      */
-    public function upsertMasterSession($userId, $ipAddress, $userAgent, string $masterToken, ?Carbon $expiresAt = null): Session
-    {
+    public function upsertMasterSession(
+        $userId,
+        $ipAddress,
+        $userAgent,
+        string $masterToken,
+        ?Carbon $expiresAt = null,
+    ): Session {
         $session = $this->masterSessionFor($userId);
         $expiresAt = $expiresAt ?? now()->addSeconds((new TokenProviderService())->getMasterTokenExpiredAt());
 
@@ -261,6 +266,22 @@ class SessionService
             // l'exchange, l'exchange non potrebbe far valere una revoca.
             if ($masterToken) {
                 $this->upsertMasterSession($user->id, $ipAddress, $userAgent, $masterToken);
+            }
+
+            // La riga PER PROVIDER la scrive il login solo per l'IdP, che ne ha bisogno per se':
+            // `IdpSessionValidator::isAlive()` cerca la sessione **per app token**, quindi senza quella
+            // riga ogni navigazione nell'IdP fallirebbe.
+            //
+            // Per le applicazioni esterne no: al login non si sa se useranno la `v1` o la
+            // `v2`, e scriverle tutte e due significa lasciarne una che nessuno guarda. La riga per
+            // provider nasce quando una chiamata `v1` la chiede — e la `v2` non la chiede mai.
+            if ((string) $providerId !== (string) config("idp.provider_id")) {
+                Log::debug("[LOGIN] provider esterno: la riga per provider nascera' alla prima chiamata v1.", [
+                    "user_id" => $user->id ?? null,
+                    "provider_id" => $providerId,
+                ]);
+
+                return null;
             }
 
             $token = $this->getValidProviderToken(

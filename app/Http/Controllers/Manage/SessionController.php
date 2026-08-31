@@ -27,15 +27,29 @@ class SessionController extends Controller
 
     public function all(Request $request)
     {
-        $query = Session::select(
-            "id",
-            "user_id",
-            "provider_id",
-            "ip_address",
-            "user_agent",
-            "created_at",
-            "updated_at",
-        )->with(["user:id,username", "provider:id,domain,name"]);
+        $columns = [
+            "sessions.id",
+            "sessions.user_id",
+            "sessions.provider_id",
+            "sessions.ip_address",
+            "sessions.user_agent",
+            "sessions.created_at",
+            "sessions.updated_at",
+        ];
+
+        $query = Session::query()
+            ->leftJoin("providers", "sessions.provider_id", "=", "providers.id")
+            ->select(array_merge($columns, [DB::raw("COALESCE(providers.name, '*') AS provider_label")]))
+            ->with(["user:id,username", "provider:id,domain,name"]);
+
+        $query->where(function ($outer) {
+            $outer->whereNull("sessions.provider_id")->orWhereNotExists(function ($sub) {
+                $sub->select(DB::raw(1))
+                    ->from("sessions as s2")
+                    ->whereColumn("s2.user_id", "sessions.user_id")
+                    ->whereNull("s2.provider_id");
+            });
+        });
 
         if ($request->filled("q")) {
             $searchTerm = "%" . $request->q . "%";
@@ -56,17 +70,14 @@ class SessionController extends Controller
 
             if (in_array($field, $allowedSorts)) {
                 if (str_starts_with($field, "provider.")) {
-                    $sortColumn = str_replace("provider.", "providers.", $field);
-                    $query
-                        ->join("providers", "sessions.provider_id", "=", "providers.id")
-                        ->select("sessions.*")
-                        ->orderBy($sortColumn, $direction);
+                    // Si ordina sull'etichetta, non sul nome: cosi' la riga comune si colloca dove
+                    // cade `*` nell'ordine alfabetico invece di finire in fondo come valore vuoto.
+                    $query->orderBy(DB::raw("COALESCE(providers.name, '*')"), $direction);
                 } elseif (str_starts_with($field, "user.")) {
                     $sortColumn = str_replace("user.", "users.", $field);
-                    $query
-                        ->join("users", "sessions.user_id", "=", "users.id")
-                        ->select("sessions.*")
-                        ->orderBy($sortColumn, $direction);
+                    // Left join anche qui: `user_id` e' una colonna che ammette il vuoto, e una join
+                    // interna nasconderebbe quelle righe esattamente come faceva con i provider.
+                    $query->leftJoin("users", "sessions.user_id", "=", "users.id")->orderBy($sortColumn, $direction);
                 } else {
                     $query->orderBy("sessions." . $field, $direction);
                 }
@@ -75,7 +86,9 @@ class SessionController extends Controller
             $query->orderBy("updated_at", "desc");
         }
 
-        $perPage = $request->input("per_page", 25);
+        // La pagina si limita: `per_page` arriva dal chiamante, e senza un tetto un `per_page=100000`
+        // tirerebbe in memoria l'intera tabella delle sessioni.
+        $perPage = min(max((int) $request->input("per_page", 25), 1), 100);
         return $query->paginate($perPage);
     }
 
@@ -180,10 +193,26 @@ class SessionController extends Controller
         $masterToken = $this->rotateMasterTokenIfNeeded($request, $user, $masterToken, $tokenService);
 
         // Da qui le due rotte si separano davvero, e non solo nella forma della risposta: la v2 ha un
-        // modello suo — una riga sola per utente, senza provider (punto TMT23) — mentre la v1 tiene le
+        // modello suo — una riga sola per utente, senza provider — mentre la v1 tiene le
         // sue righe per provider e non si tocca.
         if ($this->isV2($request)) {
             return $this->exchangeV2($request, $user, $providerId, $masterToken, $tokenService, $sessionService);
+        }
+
+        if (!$sessionService->masterSessionFor($userId)) {
+            Log::warning("[EXCHANGE v1] nessuna riga del master token: sessione revocata o mai aperta.", [
+                "user_id" => $userId,
+                "provider_id" => $providerId,
+            ]);
+
+            return response()->json(
+                [
+                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
+                        "providerId" => $providerId,
+                    ]),
+                ],
+                403,
+            );
         }
 
         $appToken = $sessionService->getValidProviderToken(
@@ -193,7 +222,7 @@ class SessionController extends Controller
             $validated["user_agent"] ?? $request->userAgent(),
             $tokenService,
             $masterToken,
-            false,
+            true,
         );
 
         if (!$appToken) {
@@ -325,7 +354,11 @@ class SessionController extends Controller
             ]);
 
             return response()->json(
-                ["message" => __("session.error.access_denied.user_disabled_or_missing_roles", ["providerId" => $providerId])],
+                [
+                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
+                        "providerId" => $providerId,
+                    ]),
+                ],
                 403,
             );
         }
@@ -337,7 +370,11 @@ class SessionController extends Controller
             ]);
 
             return response()->json(
-                ["message" => __("session.error.access_denied.user_disabled_or_missing_roles", ["providerId" => $providerId])],
+                [
+                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
+                        "providerId" => $providerId,
+                    ]),
+                ],
                 403,
             );
         }
@@ -347,7 +384,10 @@ class SessionController extends Controller
         if (!$appToken) {
             Log::error("[EXCHANGE v2] app token non generato", ["provider_id" => $providerId]);
 
-            return response()->json(["message" => __("session.error.provider_not_found", ["providerId" => $providerId])], 500);
+            return response()->json(
+                ["message" => __("session.error.provider_not_found", ["providerId" => $providerId])],
+                500,
+            );
         }
 
         // La riga porta il master token **di adesso**: se la rotazione l'ha cambiato, qui si allinea.
@@ -371,7 +411,7 @@ class SessionController extends Controller
     }
 
     /**
-     * Una riga di `audits` per l'app token appena staccato (punto TMT18).
+     * Una riga di `audits` per l'app token appena staccato.
      *
      * `AppToken` non e' un modello e non lo diventa: qui `auditable_id` e' una **stringa**
      * (`create_audits_table.php:25`), quindi un'entita' senza tabella ci sta. Serve a rispondere alla

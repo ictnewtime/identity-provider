@@ -51,6 +51,12 @@ class RedirectIfAuthenticated
         if (!$hasRequestMasterToken && !$hasQueuedMasterToken) {
             Log::warning(
                 "Master Token assente (né in request né in coda) per l'utente loggato ({$user->username}). Effettuare Logout.",
+                [
+                    "cookie_in_request" => array_keys($request->cookies->all()),
+                    "cookie_in_coda" => array_map(fn($cookie) => $cookie->getName(), Cookie::getQueuedCookies()),
+                    "url" => $request->fullUrl(),
+                    "referer" => $request->headers->get("referer"),
+                ],
             );
             return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.missing_master_token"));
         }

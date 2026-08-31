@@ -88,25 +88,47 @@ class TokenRefreshTest extends TestCase
     }
 
     /**
-     * **Riscritto il 2026-08-28**: questo test fotografava il difetto — «l'IdP disconnette invece di
-     * rinnovare» — e con `TMT08` avrebbe dovuto diventare rosso. **Non e' successo, e il motivo conta**:
-     * `callWith()` manda `Accept: application/json`, quindi per `TMT10` e' una chiamata API, e li' il
-     * rinnovo non si tenta apposta. Passava ancora, ma per un'altra ragione.
+     * **Riscritto il 2026-08-31 con `TMT30`**, ed e' la terza volta: prima fotografava «l'IdP non
+     * rinnova», poi «una chiamata API non si rinnova», e nessuna delle due era piu' vera.
      *
-     * Quindi ora dice quello che davvero verifica: **su una chiamata API si disconnette e basta**.
-     * Il caso della navigazione — dove il rinnovo si fa — e' il test qui sotto.
+     * Ora dice quello che vale oggi: **a decidere e' la sessione, non il tipo di richiesta**. Con la
+     * riga viva e l'utente autorizzato, anche una chiamata API viene rinnovata — perche' le XHR
+     * dell'interfaccia amministrativa sono chiamate API a tutti gli effetti, e sloggarle significava
+     * sloggare chi stava guardando la pagina.
      */
-    public function test_an_api_call_with_an_expired_token_is_not_renewed(): void
+    public function test_an_api_call_is_renewed_when_the_session_is_alive(): void
     {
         $provider = $this->idpProvider();
-        $user = User::factory()->create(["enabled" => 1]);
+        $user = $this->userWithAccess($provider);
 
         $scaduto = $this->appToken($provider, $user, time() - 60);
         $this->sessionFor($user, $provider, $scaduto, 28800);
 
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        $this->callWith($scaduto, $master)->assertStatus(401);
+        $this->callWith($scaduto, $master)->assertStatus(200);
+    }
+
+    /**
+     * `TMT30`, l'altra meta': una chiamata API che **non** si puo' rinnovare riceve 401 **e i cookie
+     * restano dov'erano**.
+     *
+     * E' il difetto che il developer ha visto il 2026-08-31: `forceLogoutAndRedirect()` accoda
+     * `Cookie::forget`, quindi una XHR rifiutata portava via il cookie del browser e la navigazione
+     * successiva ripartiva dal login.
+     */
+    public function test_a_refused_api_call_does_not_clear_the_cookies(): void
+    {
+        $provider = $this->idpProvider();
+        $user = $this->userWithAccess($provider);
+
+        $scaduto = $this->appToken($provider, $user, time() - 60);
+        // Nessuna riga di sessione: il rinnovo non si puo' fare.
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+
+        $risposta = $this->callWith($scaduto, $master)->assertStatus(401);
+
+        $risposta->assertCookieMissing("idp_token_" . config("idp.provider_id"));
     }
 
     /** Il master token c'e' e non serve a niente: senza di lui il risultato e' identico. */
