@@ -5,10 +5,6 @@ supervisord.pid
 /vendor/
 /tmp/
 /docs/
-/cypress/
-cypress.config.js
-cypress.env.example.json
-cypress.env.json
 /.github/
 /ansible/
 /.vscode/
