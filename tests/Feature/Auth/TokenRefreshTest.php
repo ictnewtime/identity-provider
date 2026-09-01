@@ -21,6 +21,12 @@ class TokenRefreshTest extends TestCase
 
     private const PROBE_URI = "/__probe/refresh";
 
+    /** La rotta dello scambio: qui si prova solo la `v2`. */
+    private const EXCHANGE_V2 = "/api/v2/token/exchange";
+
+    /** L'indirizzo di chi apre la sessione, non locale apposta (vedi SessionRevocationTest). */
+    private const CLIENT_IP = "1.2.3.4";
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -173,9 +179,9 @@ class TokenRefreshTest extends TestCase
         $tokenService = new TokenProviderService();
         $sessionService = new SessionService();
 
-        $primo = $sessionService->getValidProviderToken($user, $provider->id, "1.2.3.4", "phpunit", $tokenService);
+        $primo = $sessionService->getValidProviderToken($user, $provider->id, self::CLIENT_IP, "phpunit", $tokenService);
         sleep(1); // il JWT porta `iat`: due firme nello stesso secondo sarebbero identiche
-        $secondo = $sessionService->getValidProviderToken($user, $provider->id, "1.2.3.4", "phpunit", $tokenService);
+        $secondo = $sessionService->getValidProviderToken($user, $provider->id, self::CLIENT_IP, "phpunit", $tokenService);
 
         $this->assertNotSame($primo, $secondo, "l'exchange ha riusato il token salvato: TMT01 e' tornato indietro");
     }
@@ -190,7 +196,7 @@ class TokenRefreshTest extends TestCase
         (new SessionService())->getValidProviderToken(
             $user,
             $provider->id,
-            "1.2.3.4",
+            self::CLIENT_IP,
             "phpunit",
             new TokenProviderService(),
             $master,
@@ -210,7 +216,7 @@ class TokenRefreshTest extends TestCase
     /** `TMT05`: la rotta v2 esiste, e la protegge lo stesso middleware della v1. */
     public function test_the_v2_exchange_route_exists_and_is_protected(): void
     {
-        $this->postJson("/api/v2/token/exchange", ["provider_id" => "1"])->assertStatus(401);
+        $this->postJson(self::EXCHANGE_V2, ["provider_id" => "1"])->assertStatus(401);
     }
 
     /** `TMT04`: il master token si accetta in tutte e tre le forme, e senza header no. */
@@ -222,13 +228,13 @@ class TokenRefreshTest extends TestCase
 
         // Da TMT27 l'exchange **rinnova e non crea**: la sessione la apre il login (TMT28). Senza
         // questa riga la risposta sarebbe 403, ed e' il comportamento voluto — la revoca deve valere.
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
         $corpo = ["provider_id" => (string) $provider->id];
 
-        $this->postJson("/api/v2/token/exchange", $corpo, ["Authorization" => "Bearer {$master}"])->assertStatus(200);
-        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])->assertStatus(200);
-        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => "Bearer {$master}"])->assertStatus(200);
+        $this->postJson(self::EXCHANGE_V2, $corpo, ["Authorization" => "Bearer {$master}"])->assertStatus(200);
+        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => "Bearer {$master}"])->assertStatus(200);
     }
 
     /** Un utente con accesso al provider: senza ruolo, `getValidProviderToken()` rifiuta ed e' giusto. */

@@ -1,0 +1,23 @@
+# Letterali ripetuti nei test del master token — piano d'azione
+
+L'analisi sta in [analysis.md](analysis.md) e questo piano non la ripete. **`D1` e `D2` sono state
+sciolte il 2026-09-01** — costante privata col valore `1.2.3.4` invariato, una per file, niente file
+condiviso — quindi `TDL01`, `TDL02` e `TDL03` hanno la loro forma e aspettano solo l'approvazione.
+**`TDL04` aspetta invece `D3`**, ed è l'unico.
+
+| ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
+|---|---|---|---|---|---|---|
+| TDL01 | **fatto** (2026-09-01) | **Le due rotte di scambio diventano due costanti in `SessionRevocationTest`.** `EXCHANGE_V1` e `EXCHANGE_V2`, private, coi loro percorsi — 6 e 16 occorrenze. Due costanti e non una con la versione interpolata: la differenza fra le due versioni e' cio' che meta' di quei test esiste per provare, e nasconderla dentro una stringa costruita renderebbe illeggibile a colpo d'occhio quale versione sta provando un test. | `tests/Feature/Auth/SessionRevocationTest.php` | basso — solo codice di test | auto | `grep -c '"/api/v[12]/token/exchange"'` sul file da **0**; suite verde con `./scripts/run-test-backend.sh`. **Applicato**: `EXCHANGE_V1` e `EXCHANGE_V2` in cima alla classe. Le 6 e 16 occorrenze sono ora `self::EXCHANGE_V1` e `self::EXCHANGE_V2`. |
+| TDL02 | **fatto** (2026-09-01) | **Lo stesso in `TokenRefreshTest`**, dove la sola `v2` compare 4 volte. Il file ha gia' l'abitudine: `private const PROBE_URI` alla riga 22. | `tests/Feature/Auth/TokenRefreshTest.php` | basso | auto | `grep -c` sul file da **0**; suite verde. **Applicato**: `EXCHANGE_V2` accanto a `PROBE_URI`, che era gia' li'. |
+| TDL03 | **fatto** (2026-09-01) | **`"1.2.3.4"` diventa una costante nei due file** — 19 occorrenze in uno, 4 nell'altro. **Il valore non cambia** (vedi `D1` e il consiglio): `1.2.3.4` e' stato scelto perche' non e' un indirizzo locale, e nei test finisce nella riga di sessione, dove distinguerlo da `127.0.0.1` aiuta a leggere cosa e' successo. **`D1` ha deciso cosi'** il 2026-09-01: nessun dato di prova cambia, e nessun test va riletto. | `tests/Feature/Auth/SessionRevocationTest.php`, `tests/Feature/Auth/TokenRefreshTest.php` | basso — dopo la decisione su `D1` il valore resta quello di adesso | auto | `grep -c '"1\.2\.3\.4"'` sui due file da **0**; suite verde. **Applicato**: `CLIENT_IP` nei due file, valore `1.2.3.4` **invariato** come deciso in `D1`. Nessuna asserzione e' stata riletta perche' nessun dato e' cambiato. |
+| TDL04 | **scartato** (2026-09-01) | **`"phpunit"` come user agent, insieme agli altri** (`D3`). Non e' fra i cinque rilievi di SonarQube, ma sta nella **stessa chiamata** di `"1.2.3.4"` in quasi tutte le occorrenze: lasciarlo indietro vuol dire riaprire gli stessi due file al prossimo giro dell'analisi statica. Si fa **solo se `D3` dice di si'**; altrimenti si scarta, e non tocca gli altri punti. | `tests/Feature/Auth/SessionRevocationTest.php`, `tests/Feature/Auth/TokenRefreshTest.php` | basso | auto | `grep -c '"phpunit"'` sui due file da **0**; suite verde. **Scartato per `D3`**: `"phpunit"` non e' conteggiato da SonarQube fra i rilievi che bloccano il controllo di qualita', quindi non c'e' motivo di toccarlo adesso. Resta scritto: se un giorno comparisse, il lavoro e' gia' descritto qui. |
+| TDL05 | **fatto** (2026-09-01) | **Il conto finale, contro il rilievo che l'ha aperto.** I cinque rilievi di SonarQube dicono 19, 4, 16, 4, 6: si ricontano dopo il lavoro e devono essere tutti a zero. E' l'unico punto che verifica il **motivo** del task invece del singolo file, e serve perche' un letterale sfuggito in un file non lo vede nessuno finche' non torna l'analisi. | — | basso | auto | I tre `grep -rc` dell'analisi non stampano piu' nessuna riga; suite verde e conteggio dei test invariato. **Ricontato**: dei cinque numeri di partenza (19, 4, 16, 4, 6) resta **una sola** occorrenza per letterale in ogni file, cioe' la dichiarazione della costante — sotto la soglia della regola, che scatta da tre in su. In cambio ci sono **49** usi tramite `self::`. Suite **135 passed (293 assertions)**, identica a prima: nessun test cambia comportamento. |
+
+## Cosa questo piano non copre
+
+- **Gli altri letterali ripetuti del repository.** SonarQube ne ha segnalati cinque, tutti in questi
+  due file: non si va a cercare altrove finche' l'analisi non lo chiede.
+- **La scelta fra costante e variabile d'ambiente per il resto della suite.** Qui si allineano due
+  file; che i sette file che usano `env("TEST_IP_ADDRESS")` e i due che useranno una costante
+  convivano e' una incoerenza vera, ma e' materia da decidere una volta sola per tutta la suite, non
+  di sfuggita in un task da cinque rilievi.

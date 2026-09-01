@@ -27,6 +27,18 @@ class SessionRevocationTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Le due rotte dello scambio, tenute distinte apposta: meta' di questi test esiste per provare
+     * che la `v1` e la `v2` si comportano in modo diverso, e una costante sola con la versione
+     * infilata dentro nasconderebbe proprio quella differenza.
+     */
+    private const EXCHANGE_V1 = "/api/v1/token/exchange";
+    private const EXCHANGE_V2 = "/api/v2/token/exchange";
+
+    /** L'indirizzo di chi apre la sessione. Non e' locale apposta: nella riga di sessione si
+     *  distingue a colpo d'occhio da un `127.0.0.1` messo li' da qualcos'altro. */
+    private const CLIENT_IP = "1.2.3.4";
+
     private function providerWithAccess(int $id, User $user): Provider
     {
         $provider = Provider::forceCreate([
@@ -58,7 +70,7 @@ class SessionRevocationTest extends TestCase
         $token = (new SessionService())->getValidProviderToken(
             $user,
             $provider->id,
-            "1.2.3.4",
+            self::CLIENT_IP,
             "phpunit",
             new TokenProviderService(),
         );
@@ -76,7 +88,7 @@ class SessionRevocationTest extends TestCase
         $token = (new SessionService())->getValidProviderToken(
             $user,
             $provider->id,
-            "1.2.3.4",
+            self::CLIENT_IP,
             "phpunit",
             new TokenProviderService(),
             "un.master.token",
@@ -98,7 +110,7 @@ class SessionRevocationTest extends TestCase
         $tokenService = new TokenProviderService();
 
         foreach ([$primo, $secondo] as $provider) {
-            $service->getValidProviderToken($user, $provider->id, "1.2.3.4", "phpunit", $tokenService);
+            $service->getValidProviderToken($user, $provider->id, self::CLIENT_IP, "phpunit", $tokenService);
         }
 
         $this->assertSame(2, Session::where("user_id", $user->id)->count(), "servono due sessioni per provarlo");
@@ -122,11 +134,11 @@ class SessionRevocationTest extends TestCase
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
         // Il login apre la sessione (TMT28), poi l'amministratore la revoca.
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
         SessionService::destroyAllUserSessions($user->id);
 
         $risposta = $this->postJson(
-            "/api/v2/token/exchange",
+            self::EXCHANGE_V2,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         );
@@ -143,7 +155,7 @@ class SessionRevocationTest extends TestCase
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
         $this->postJson(
-            "/api/v2/token/exchange",
+            self::EXCHANGE_V2,
             ["provider_id" => "9999"],
             ["x-master-token" => $master],
         )->assertStatus(404);
@@ -161,10 +173,10 @@ class SessionRevocationTest extends TestCase
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
         $risposta = $this->postJson(
-            "/api/v2/token/exchange",
+            self::EXCHANGE_V2,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         );
@@ -190,10 +202,10 @@ class SessionRevocationTest extends TestCase
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
         $this->postJson(
-            "/api/v1/token/exchange",
+            self::EXCHANGE_V1,
             ["provider_id" => (string) $provider->id],
             ["Authorization" => "Bearer {$master}"],
         )
@@ -289,7 +301,7 @@ class SessionRevocationTest extends TestCase
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
         $this->postJson(
-            "/api/v2/token/exchange",
+            self::EXCHANGE_V2,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         )->assertStatus(403);
@@ -356,10 +368,10 @@ class SessionRevocationTest extends TestCase
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $vecchio = $this->masterTokenIssuedHoursAgo($user, $provider, 2);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $vecchio);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $vecchio);
 
         $risposta = $this->postJson(
-            "/api/v2/token/exchange",
+            self::EXCHANGE_V2,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $vecchio],
         )->assertStatus(200);
@@ -384,10 +396,10 @@ class SessionRevocationTest extends TestCase
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $fresco = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $fresco);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $fresco);
 
         $risposta = $this->postJson(
-            "/api/v2/token/exchange",
+            self::EXCHANGE_V2,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $fresco],
         )->assertStatus(200);
@@ -407,13 +419,13 @@ class SessionRevocationTest extends TestCase
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $vecchio = $this->masterTokenIssuedHoursAgo($user, $provider, 2);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $vecchio);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $vecchio);
 
         $corpo = ["provider_id" => (string) $provider->id];
-        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
+        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
 
         // Seconda chiamata con lo **stesso** token vecchio: deve funzionare ancora.
-        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
+        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
     }
 
     /** `TMT17`: la `v1` non ruota — la sua riga tiene il master token che le e' stato dato. */
@@ -423,10 +435,10 @@ class SessionRevocationTest extends TestCase
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $vecchio = $this->masterTokenIssuedHoursAgo($user, $provider, 2);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $vecchio);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $vecchio);
 
         $this->postJson(
-            "/api/v1/token/exchange",
+            self::EXCHANGE_V1,
             ["provider_id" => (string) $provider->id],
             ["Authorization" => "Bearer {$vecchio}"],
         )->assertStatus(200);
@@ -461,15 +473,15 @@ class SessionRevocationTest extends TestCase
         $vivo = $this->masterTokenLasting($user, $provider, 0, 3600);
         $scaduto = $this->masterTokenLasting($user, $provider, 10, -1);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $vivo);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $vivo);
 
         $corpo = ["provider_id" => (string) $provider->id];
 
         // Finche' e' vivo: si rinnova.
-        $this->postJson("/api/v1/token/exchange", $corpo, ["Authorization" => "Bearer {$vivo}"])->assertStatus(200);
+        $this->postJson(self::EXCHANGE_V1, $corpo, ["Authorization" => "Bearer {$vivo}"])->assertStatus(200);
 
         // Scaduto: `VerifyMasterToken` lo rifiuta, e la v1 non ruota, quindi non c'e' scampo.
-        $this->postJson("/api/v1/token/exchange", $corpo, ["Authorization" => "Bearer {$scaduto}"])->assertStatus(401);
+        $this->postJson(self::EXCHANGE_V1, $corpo, ["Authorization" => "Bearer {$scaduto}"])->assertStatus(401);
     }
 
     /** La durata del master token e' un **parametro**: qui si legge nel token che ne esce. */
@@ -501,16 +513,16 @@ class SessionRevocationTest extends TestCase
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
         $corpo = ["provider_id" => (string) $provider->id];
 
-        $risposta = $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $risposta = $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])->assertStatus(200);
         $this->assertSame($master, $risposta->headers->get("x-master-token"), "non doveva ruotare: ha meno di un'ora");
 
         // Lo stesso utente, con un master token scaduto: la rotazione lontana non lo salva.
         $scaduto = $this->masterTokenLasting($user, $provider, 10, -1);
-        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $scaduto])->assertStatus(401);
+        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $scaduto])->assertStatus(401);
     }
 
     /**
@@ -532,18 +544,18 @@ class SessionRevocationTest extends TestCase
         // rotazione senza essere vicino alla scadenza. Firmato a mano, cosi' non serve aspettare.
         $master = $this->masterTokenLasting($user, $provider, 5, 600);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
         $corpo = ["provider_id" => (string) $provider->id];
 
-        $risposta = $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])
+        $risposta = $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])
             ->assertStatus(200);
 
         $nuovo = $risposta->headers->get("x-master-token");
         $this->assertNotSame($master, $nuovo, "la soglia era passata: doveva ruotare");
 
         // E il token nuovo vale: e' la ragione per cui la rotazione tiene viva la sessione.
-        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $nuovo])->assertStatus(200);
+        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $nuovo])->assertStatus(200);
     }
 
     /** La soglia e' un **parametro**, e il ripiego e' un'ora: senza riga a database vale 3600. */
@@ -567,7 +579,7 @@ class SessionRevocationTest extends TestCase
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
         $riga = (new SessionService())->masterSessionFor($user->id);
 
@@ -590,12 +602,12 @@ class SessionRevocationTest extends TestCase
         $secondo = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $primo->id);
 
-        (new SessionService())->openProviderSession($user, $primo->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $primo->id, self::CLIENT_IP, "phpunit", $master);
 
         $prima = Session::where("user_id", $user->id)->count();
 
         $this->postJson(
-            "/api/v2/token/exchange",
+            self::EXCHANGE_V2,
             ["provider_id" => (string) $secondo->id],
             ["x-master-token" => $master],
         )->assertStatus(200);
@@ -615,11 +627,11 @@ class SessionRevocationTest extends TestCase
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        (new SessionService())->openProviderSession($user, $provider->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
         SessionService::destroyAllUserSessions($user->id);
 
         $this->postJson(
-            "/api/v2/token/exchange",
+            self::EXCHANGE_V2,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         )->assertStatus(403);
@@ -637,7 +649,7 @@ class SessionRevocationTest extends TestCase
         $esterna = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $esterna->id);
 
-        (new SessionService())->openProviderSession($user, $esterna->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $esterna->id, self::CLIENT_IP, "phpunit", $master);
 
         $this->assertSame(1, Session::where("user_id", $user->id)->count(), "il login ha scritto piu' di una riga");
         $this->assertNotNull(
@@ -647,7 +659,7 @@ class SessionRevocationTest extends TestCase
 
         // Ora arriva una chiamata v1: la riga per provider nasce qui.
         $this->postJson(
-            "/api/v1/token/exchange",
+            self::EXCHANGE_V1,
             ["provider_id" => (string) $esterna->id],
             ["Authorization" => "Bearer {$master}"],
         )->assertStatus(200);
@@ -667,11 +679,11 @@ class SessionRevocationTest extends TestCase
         $esterna = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $esterna->id);
 
-        (new SessionService())->openProviderSession($user, $esterna->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $esterna->id, self::CLIENT_IP, "phpunit", $master);
 
         $corpo = ["provider_id" => (string) $esterna->id];
-        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])->assertStatus(200);
-        $this->postJson("/api/v2/token/exchange", $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])->assertStatus(200);
 
         $this->assertSame(1, Session::where("user_id", $user->id)->count(), "la v2 ha creato righe che non le servono");
     }
@@ -686,11 +698,11 @@ class SessionRevocationTest extends TestCase
         $esterna = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $esterna->id);
 
-        (new SessionService())->openProviderSession($user, $esterna->id, "1.2.3.4", "phpunit", $master);
+        (new SessionService())->openProviderSession($user, $esterna->id, self::CLIENT_IP, "phpunit", $master);
         SessionService::destroyAllUserSessions($user->id);
 
         $this->postJson(
-            "/api/v1/token/exchange",
+            self::EXCHANGE_V1,
             ["provider_id" => (string) $esterna->id],
             ["Authorization" => "Bearer {$master}"],
         )->assertStatus(403);
