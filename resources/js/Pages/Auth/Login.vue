@@ -78,7 +78,7 @@ const googleAuthUrl = computed(() => {
                 <div class="flex flex-col gap-1">
                     <FloatLabel variant="on">
                         <InputText
-                            inputId="username"
+                            id="username"
                             name="username"
                             v-model="form.username"
                             type="text"

@@ -35,7 +35,7 @@ di chi ha fatto cosa, e un'azione tradotta male non si vede da nessuna parte.
 - **L'indice mancante su `sessions`** (`F5`, `D4`): questo piano **misura** che quella query gira a ogni
   scrittura di ogni modello auditato, e la misura sta nella voce `VDF15`. **`D4`: non è prioritario** —
   è efficienza, e si valuta dopo i rilievi di SonarQube. Correggerla è `TTR10`, in
-  [token-refresh](../../todo/20260813-token-refresh/action-plan.md).
+  [token-refresh](../20260813-token-refresh/action-plan.md).
 - **`D5`, rimasta senza risposta**: che **nessuna operazione da `artisan` produca audit** — un seeder,
   un comando di manutenzione, una modifica da `tinker` — è ora dimostrato da un test (`TAC01`) e scritto
   in un commento del codice, ma **non** in `project-analysis.md`, che è la pagina dove si guarda. Portata

@@ -1,0 +1,20 @@
+# Piano — il master token rubato, e come accorgersene
+
+Sigla `TRR`. L'analisi e' in [analysis.md](./analysis.md) e questo piano **la cita, non la ripete**: le
+quattro strade, il conflitto con i dispositivi multipli e le cinque implicazioni negative stanno la'.
+
+**Questo task viene dopo `TMT`**, e non per ordine di importanza: `TRR01` confronta il master token
+presentato con quello **salvato nella riga**, e quella colonna la riempie `TMT02`. Prima di `TMT02` era
+vuota per tutti.
+
+**Nessun punto e' approvabile prima di `D1`**, che decide cosa succede quando il riuso viene rilevato —
+rifiutare, o abbattere la sessione. Cambia il codice e cambia chi si arrabbia.
+
+| ID | Stato | Punto | File toccati | Rischio | V | Come si verifica |
+|---|---|---|---|---|---|---|
+| TRR01 | da approvare | **Il confronto che oggi non esiste**: allo scambio, il master token presentato si confronta con `refresh_token` della riga. Se coincide si prosegue; se **non** coincide ed è comunque valido per firma, è un token già sostituito. Solo il confronto e il **log**: nessuna conseguenza ancora, così si può misurare quanto capita **prima** di decidere cosa farne | `app/Http/Controllers/Manage/SessionController.php` o `app/Services/SessionService.php` | basso — non cambia il comportamento, osserva | auto | un test: token uguale a quello salvato → nessun rilievo; token valido per firma ma diverso da quello salvato → il rilievo compare nel log |
+| TRR02 | da approvare — **dipende da `D3`** | **La finestra di tolleranza**, senza la quale `TRR03` fa falsi positivi al primo retry: il token appena sostituito resta accettabile per pochi secondi. Il numero non si sceglie a caso — deve essere **più lungo** del timeout dei client, che oggi vale `IDP_REQUEST_TIMEOUT_SEC` 5 (estensione PHP) e 4 (Node): una finestra più corta del timeout garantisce che un retry legittimo sembri un furto | `app/Services/SessionService.php`, la riga di `sessions` | basso | auto | due scambi ravvicinati con lo stesso token vecchio: il secondo, dentro la finestra, **non** è un rilievo; fuori dalla finestra, lo è |
+| TRR03 | da approvare — **`D1`** | **La conseguenza del rilevamento.** Consigliata la **(b)**: si rifiuta lo scambio e basta. La **(a)** — abbattere tutta la sessione dell'utente — è la difesa vera e va fatta **quando un secondo dispositivo non somiglia più a un furto**, cioè quando esiste una riga per dispositivo: oggi non esiste, ed è fuori dal perimetro di `TMT` | `app/Http/Controllers/Manage/SessionController.php` | **medio-alto — può disconnettere utenti legittimi** | man | con la (b): il token sostituito riceve 401 e il legittimo continua a lavorare. Con la (a), se sarà scelta: la sessione sparisce per **tutti** i dispositivi di quell'utente |
+| TRR04 | da approvare — **`D4`** | **L'allarme va dove qualcuno lo legge**: una riga in `audits` — evento `token_reuse_detected`, entità `MasterToken`, con IP, utente e l'istante. È la tabella che l'amministratore già apre quando indaga, e ha già IP e utente. I log no: escono dalla macchina e nessuno li rilegge | `app/Services/SessionService.php` | basso | auto | dopo un riuso simulato, `audits` ha la riga con l'utente e l'IP giusti |
+| TRR05 | da approvare | **I test**, che qui contano più del solito perché il comportamento è raro per definizione: token coincidente → passa; token sostituito fuori finestra → rilevato; token sostituito dentro finestra → tollerato; token con firma non valida → 401 come oggi, senza passare dal rilevamento | `tests/Feature/` | basso | auto | i quattro test esistono e passano; rimettendo il codice vecchio, il secondo fallisce |
+| TRR06 | da approvare | **La misura prima della decisione**: dopo `TRR01`, si lascia correre qualche giorno e si conta **quante volte** un token sostituito viene ripresentato. Se capita spesso senza furti, la (a) di `D1` è impraticabile e il numero lo dimostra invece di indovinarlo | nessuno (osservazione) | basso | man | il conto dei rilievi in un periodo dichiarato, e da quali IP |

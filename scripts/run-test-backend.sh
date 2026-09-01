@@ -54,9 +54,16 @@ echo "==> $*"
 # `EACCES` (difetto BDB32). Non e' una questione di sicurezza dell'immagine: e' l'albero dell'host.
 # `HOME`: l'uid dell'host dentro il container non ha una casa, e composer scrive nella sua. `/tmp`
 # non e' nell'albero montato, quindi non lascia niente in giro.
+#
+# `APP_ROUTES_CACHE`: **la cache delle rotte va deviata come quella della configurazione**, e per lo
+# stesso motivo. Misurato il 2026-08-28: `bootstrap/cache/routes-v7.php` era del **31 luglio**, e la
+# suite lo caricava — quindi i test sulle rotte provavano le rotte di allora, non quelle del codice.
+# Una rotta aggiunta oggi non esisteva per i test, e nessuno lo vedeva: e' lo stesso difetto della
+# config cache (VDF11), nell'altra cache.
 exec docker run --rm \
     --user "$(id -u):$(id -g)" \
     -e HOME=/tmp \
+    -e APP_ROUTES_CACHE=/tmp/routes-test.php \
     -v "$RADICE":/var/www \
     "${ENV_ARGS[@]}" \
     "$IMMAGINE" "$@"
