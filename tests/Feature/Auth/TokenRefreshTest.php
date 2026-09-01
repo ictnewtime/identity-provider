@@ -24,8 +24,12 @@ class TokenRefreshTest extends TestCase
     /** La rotta dello scambio: qui si prova solo la `v2`. */
     private const EXCHANGE_V2 = "/api/v2/token/exchange";
 
-    /** L'indirizzo di chi apre la sessione, non locale apposta (vedi SessionRevocationTest). */
-    private const CLIENT_IP = "1.2.3.4";
+    /**
+     * L'indirizzo di chi apre la sessione, non locale apposta (vedi `SessionRevocationTest`, dove
+     * c'e' anche il perche' della rete `203.0.113.0/24`: e' quella riservata alla documentazione
+     * dalla RFC 5737, e non appartiene a nessuno).
+     */
+    private const CLIENT_IP = "203.0.113.4";
 
     protected function setUp(): void
     {
