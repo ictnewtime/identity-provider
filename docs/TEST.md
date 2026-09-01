@@ -25,11 +25,25 @@ test passando gli argomenti che riceve. Alla prima esecuzione **genera** il valo
 il modello dichiara vuote — oggi una, `SEED_ADMIN_PASSWORD` — e lo scrive in `.env.test.backend`, che
 git ignora. Dalla seconda in poi lo riusa: due esecuzioni di fila lavorano sullo stesso ambiente.
 
+**Se hai cambiato una rotta, svuota la cache delle rotte prima di provarla.** Laravel, se trova
+`bootstrap/cache/routes-v7.php`, legge quello e **ignora i file** in `routes/`: una rotta aggiunta oggi
+risponde 404 finche' la cache non si rigenera. Dal container:
+
+```sh
+docker exec idp_app_2 php artisan route:clear
+```
+
+Serve `docker exec` perche' quel file appartiene a `www-data`. La stessa trappola vale per la
+configurazione (difetto `VDF11`), ed e' il motivo per cui i test deviano **tutte e due** le cache fuori
+dall'albero — vedi la riga qui sotto.
+
 **Il container gira come te, e non scrive nell'albero.** `--user "$(id -u):$(id -g)"`: i file che
 nascono dentro il container appartengono a chi ha lanciato lo script, non a root — fino al 2026-08-20 ogni
 esecuzione ne lasciava indietro, e uno di quelli bloccava `npm run build`. E ciò che la suite scriverebbe
 è deviato **fuori** dall'albero: i log su `stderr`, la cache dei risultati in `/tmp` (`phpunit.xml`),
-la config cache in `/tmp/config-test.php`. Verificato: dopo un'esecuzione, `find . -newer` non trova
+la config cache in `/tmp/config-test.php` e — dal 2026-08-28 — anche **la cache delle rotte**: senza
+quella deviazione la suite provava le rotte del giorno in cui qualcuno aveva lanciato `route:cache`,
+e una rotta aggiunta dopo non esisteva per i test. Verificato: dopo un'esecuzione, `find . -newer` non trova
 alcun file nuovo. Non è pulizia formale — `storage/logs/laravel.log` è di **www-data**, perché lo scrive
 il container dell'applicazione, e un terzo utente che ci scrive dentro non esiste.
 

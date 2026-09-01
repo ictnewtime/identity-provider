@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Manage;
 
+use App\Models\Provider;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Services\SessionService;
@@ -25,15 +27,29 @@ class SessionController extends Controller
 
     public function all(Request $request)
     {
-        $query = Session::select(
-            "id",
-            "user_id",
-            "provider_id",
-            "ip_address",
-            "user_agent",
-            "created_at",
-            "updated_at",
-        )->with(["user:id,username", "provider:id,domain,name"]);
+        $columns = [
+            "sessions.id",
+            "sessions.user_id",
+            "sessions.provider_id",
+            "sessions.ip_address",
+            "sessions.user_agent",
+            "sessions.created_at",
+            "sessions.updated_at",
+        ];
+
+        $query = Session::query()
+            ->leftJoin("providers", "sessions.provider_id", "=", "providers.id")
+            ->select(array_merge($columns, [DB::raw("COALESCE(providers.name, '*') AS provider_label")]))
+            ->with(["user:id,username", "provider:id,domain,name"]);
+
+        $query->where(function ($outer) {
+            $outer->whereNull("sessions.provider_id")->orWhereNotExists(function ($sub) {
+                $sub->select(DB::raw(1))
+                    ->from("sessions as s2")
+                    ->whereColumn("s2.user_id", "sessions.user_id")
+                    ->whereNull("s2.provider_id");
+            });
+        });
 
         if ($request->filled("q")) {
             $searchTerm = "%" . $request->q . "%";
@@ -54,17 +70,14 @@ class SessionController extends Controller
 
             if (in_array($field, $allowedSorts)) {
                 if (str_starts_with($field, "provider.")) {
-                    $sortColumn = str_replace("provider.", "providers.", $field);
-                    $query
-                        ->join("providers", "sessions.provider_id", "=", "providers.id")
-                        ->select("sessions.*")
-                        ->orderBy($sortColumn, $direction);
+                    // Si ordina sull'etichetta, non sul nome: cosi' la riga comune si colloca dove
+                    // cade `*` nell'ordine alfabetico invece di finire in fondo come valore vuoto.
+                    $query->orderBy(DB::raw("COALESCE(providers.name, '*')"), $direction);
                 } elseif (str_starts_with($field, "user.")) {
                     $sortColumn = str_replace("user.", "users.", $field);
-                    $query
-                        ->join("users", "sessions.user_id", "=", "users.id")
-                        ->select("sessions.*")
-                        ->orderBy($sortColumn, $direction);
+                    // Left join anche qui: `user_id` e' una colonna che ammette il vuoto, e una join
+                    // interna nasconderebbe quelle righe esattamente come faceva con i provider.
+                    $query->leftJoin("users", "sessions.user_id", "=", "users.id")->orderBy($sortColumn, $direction);
                 } else {
                     $query->orderBy("sessions." . $field, $direction);
                 }
@@ -73,7 +86,9 @@ class SessionController extends Controller
             $query->orderBy("updated_at", "desc");
         }
 
-        $perPage = $request->input("per_page", 25);
+        // La pagina si limita: `per_page` arriva dal chiamante, e senza un tetto un `per_page=100000`
+        // tirerebbe in memoria l'intera tabella delle sessioni.
+        $perPage = min(max((int) $request->input("per_page", 25), 1), 100);
         return $query->paginate($perPage);
     }
 
@@ -148,8 +163,57 @@ class SessionController extends Controller
             return $this->notFound("user.error.not_found");
         }
 
+        // Un provider che non esiste e' un identificativo sbagliato
+        // nella richiesta — 404 — mentre 403 vuol dire «esiste, e tu non puoi».
+        if (!Provider::find($providerId)) {
+            Log::warning("[EXCHANGE] provider inesistente", ["provider_id" => $providerId, "user_id" => $userId]);
+
+            return $this->notFound("session.error.provider_not_found");
+        }
+
         $tokenService = new TokenProviderService();
         $sessionService = $this->sessionService ?? new SessionService();
+
+        // Il master token che ha autorizzato questa richiesta finisce nella riga (TMT02): e' cio' che
+        // la riga rappresenta, ed e' quello che permettera' il rinnovo.
+        $masterToken = $request->bearerToken() ?: $request->header("x-master-token");
+
+        Log::debug("[EXCHANGE] richiesta", [
+            "user_id" => $userId,
+            "provider_id" => $providerId,
+            "master_token" => SessionService::tokenFingerprint($masterToken),
+            "ip_address" => $validated["ip_address"] ?? $request->ip(),
+        ]);
+
+        // la rotazione, e **solo sulla v2**. Se il master token presentato ha piu' di un'ora se
+        // ne genera uno nuovo, e da qui in poi e' quello che vale: lo salva la riga e lo riceve il
+        // chiamante. Il vecchio **non viene invalidato** — chi non sa leggere l'header nuovo continua
+        // a funzionare fino alla sua scadenza, che e' l'unico modo di non disconnettere in massa al
+        // primo rilascio. La v1 non ruota: la sua riga scade alle otto ore e viene cancellata.
+        $masterToken = $this->rotateMasterTokenIfNeeded($request, $user, $masterToken, $tokenService);
+
+        // Da qui le due rotte si separano davvero, e non solo nella forma della risposta: la v2 ha un
+        // modello suo — una riga sola per utente, senza provider — mentre la v1 tiene le
+        // sue righe per provider e non si tocca.
+        if ($this->isV2($request)) {
+            return $this->exchangeV2($request, $user, $providerId, $masterToken, $tokenService, $sessionService);
+        }
+
+        if (!$sessionService->masterSessionFor($userId)) {
+            Log::warning("[EXCHANGE v1] nessuna riga del master token: sessione revocata o mai aperta.", [
+                "user_id" => $userId,
+                "provider_id" => $providerId,
+            ]);
+
+            return response()->json(
+                [
+                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
+                        "providerId" => $providerId,
+                    ]),
+                ],
+                403,
+            );
+        }
 
         $appToken = $sessionService->getValidProviderToken(
             $user,
@@ -157,6 +221,8 @@ class SessionController extends Controller
             $validated["ip_address"] ?? $request->ip(),
             $validated["user_agent"] ?? $request->userAgent(),
             $tokenService,
+            $masterToken,
+            true,
         );
 
         if (!$appToken) {
@@ -207,6 +273,179 @@ class SessionController extends Controller
     /**
      * Chiamata API CRUD dal Pannello Admin IdP.
      */
+    /**
+     * Il master token da usare da qui in avanti: quello presentato, oppure uno nuovo se e' vecchio.
+     *
+     * Ruota **solo sulla v2**: la v1 ha client che non sanno leggere un token nuovo e continuerebbero
+     * a mandare il vecchio senza accorgersi di niente. L'eta' si legge dal claim `iat`, che
+     * `VerifyMasterToken` ha gia' verificato e messo fra gli attributi della richiesta.
+     */
+    private function rotateMasterTokenIfNeeded(
+        Request $request,
+        User $user,
+        ?string $masterToken,
+        TokenProviderService $tokenService,
+    ): ?string {
+        if (!$this->isV2($request) || empty($masterToken)) {
+            return $masterToken;
+        }
+
+        $iat = $request->attributes->get("jwt_master_iat");
+
+        if (!$iat) {
+            Log::warning("[EXCHANGE] master token senza `iat`: non si puo' sapere se ruotarlo.");
+            return $masterToken;
+        }
+
+        $eta = time() - (int) $iat;
+
+        // La soglia sta nei parametri, con ripiego a un'ora: e' un numero che si vorra' cambiare
+        // senza un rilascio, come le due durate dei token.
+        $tokenTheshold = $tokenService->getMasterTokenRotateAfter();
+
+        if ($eta < $tokenTheshold) {
+            return $masterToken;
+        }
+
+        $newMasterToekn = $tokenService->generateMasterToken($user, (string) config("idp.provider_id"));
+
+        if (!$newMasterToekn) {
+            // Meglio continuare col vecchio, che e' ancora valido, che rifiutare l'accesso.
+            Log::error("[EXCHANGE] rotazione fallita: si prosegue col master token presentato.");
+            return $masterToken;
+        }
+
+        Log::info("[EXCHANGE] master token ruotato", [
+            "user_id" => $user->id,
+            "eta_secondi" => $eta,
+            "soglia_secondi" => $tokenTheshold,
+            "vecchio" => SessionService::tokenFingerprint($masterToken),
+            "newMasterToekn" => SessionService::tokenFingerprint($newMasterToekn),
+        ]);
+
+        return $newMasterToekn;
+    }
+
+    /**
+     * L'exchange della `v2`: una riga sola per utente, e nessuna riga per provider (punto TMT23).
+     *
+     * COSA CAMBIA RISPETTO ALLA v1, ed e' il modello e non la forma: la v1 tiene una riga per ogni
+     * coppia utente+provider, perche' `validateSession()` la cerca cosi' e i client di oggi ci
+     * contano. La v2 non ne ha bisogno: le basta sapere che l'utente **e' entrato**, e quella riga e'
+     * una sola. A quali applicazioni sia entrato lo raccontano gli `audits`.
+     *
+     * LA RIGA DEVE ESISTERE: la scrive il login (`openProviderSession()`). Se non c'e', l'utente e'
+     * stato revocato — e la revoca deve valere, come per la v1 con `canCreate: false`.
+     */
+    private function exchangeV2(
+        Request $request,
+        User $user,
+        $providerId,
+        ?string $masterToken,
+        TokenProviderService $tokenService,
+        SessionService $sessionService,
+    ): JsonResponse {
+        $ipAddress = $request->input("ip_address") ?? $request->ip();
+        $userAgent = $request->input("user_agent") ?? $request->userAgent();
+
+        if (!$sessionService->masterSessionFor($user->id)) {
+            Log::warning("[EXCHANGE v2] nessuna riga del master token: sessione revocata o mai aperta.", [
+                "user_id" => $user->id,
+            ]);
+
+            return response()->json(
+                [
+                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
+                        "providerId" => $providerId,
+                    ]),
+                ],
+                403,
+            );
+        }
+
+        if (!$user->hasAccessToProvider($providerId)) {
+            Log::warning("[EXCHANGE v2] accesso negato al provider", [
+                "user_id" => $user->id,
+                "provider_id" => $providerId,
+            ]);
+
+            return response()->json(
+                [
+                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
+                        "providerId" => $providerId,
+                    ]),
+                ],
+                403,
+            );
+        }
+
+        $appToken = $tokenService->generateAppToken($user, $providerId);
+
+        if (!$appToken) {
+            Log::error("[EXCHANGE v2] app token non generato", ["provider_id" => $providerId]);
+
+            return response()->json(
+                ["message" => __("session.error.provider_not_found", ["providerId" => $providerId])],
+                500,
+            );
+        }
+
+        // La riga porta il master token **di adesso**: se la rotazione l'ha cambiato, qui si allinea.
+        // Senza questo, dopo una rotazione la riga terrebbe quello vecchio.
+        $sessionService->upsertMasterSession($user->id, $ipAddress, $userAgent, $masterToken);
+
+        $this->auditAppToken($request, $user->id, $providerId, $appToken);
+
+        return response()
+            ->json([], 200)
+            ->withHeaders([
+                "x-master-token" => $masterToken,
+                "x-app-token" => $appToken,
+            ]);
+    }
+
+    /** La richiesta arriva dalla rotta `v2`? Le due rotte puntano allo stesso metodo (TMT05). */
+    private function isV2(Request $request): bool
+    {
+        return $request->is("api/v2/*");
+    }
+
+    /**
+     * Una riga di `audits` per l'app token appena staccato.
+     *
+     * `AppToken` non e' un modello e non lo diventa: qui `auditable_id` e' una **stringa**
+     * (`create_audits_table.php:25`), quindi un'entita' senza tabella ci sta. Serve a rispondere alla
+     * domanda «a quali applicazioni e' entrato questo utente, e quando», che sulla v2 la tabella delle
+     * sessioni non sapra' piu' dire.
+     */
+    private function auditAppToken(Request $request, $userId, $providerId, string $appToken): void
+    {
+        try {
+            DB::table("audits")->insert([
+                "user_type" => User::class,
+                "user_id" => $userId,
+                "event" => "created",
+                "auditable_type" => "AppToken",
+                "auditable_id" => (string) $providerId,
+                "old_values" => json_encode([]),
+                "new_values" => json_encode([
+                    "provider_id" => (string) $providerId,
+                    "token" => $appToken,
+                    "created_at" => now()->toDateTimeString(),
+                ]),
+                "url" => $request->fullUrl(),
+                "ip_address" => $request->ip(),
+                "user_agent" => $request->userAgent(),
+                "tags" => null,
+                "created_at" => now(),
+                "updated_at" => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // L'audit non deve mai impedire l'accesso: si perde la riga, non la sessione.
+            Log::error("[EXCHANGE] audit dell'app token non scritto: " . $e->getMessage());
+        }
+    }
+
     public function delete(string $id)
     {
         $sessionById = Session::findOrFail($id);

@@ -18,6 +18,7 @@ class TokenProviderService
     protected $expirationTimeInSeconds;
     protected $appTokenFallbackSeconds;
     protected $masterTokenFallbackSeconds;
+    protected $masterTokenRotateAfterFallbackSeconds;
 
     public function __construct()
     {
@@ -27,12 +28,30 @@ class TokenProviderService
         // durare piu' dell'app token, altrimenti il refresh silenzioso e' impossibile.
         $this->appTokenFallbackSeconds = (int) env("JWT_APP_TTL", 1800); // 30 min
         $this->masterTokenFallbackSeconds = (int) env("JWT_MASTER_TTL", 28800); // 8 ore
+        // Dopo quanto il master token si rigenera sulla v2. Piu' corto della sua
+        // durata, sennò non ruoterebbe mai: un'ora contro otto.
+        $this->masterTokenRotateAfterFallbackSeconds = (int) env("JWT_MASTER_ROTATE_AFTER", 3600); // 1 ora
     }
 
     public function getAppTokenExpiredAt(): int
     {
         $parameter = Parameter::where("key", "app-token-exp-time-seconds")->first();
         $seconds = $parameter ? $parameter->value : $this->appTokenFallbackSeconds;
+        return (int) $seconds;
+    }
+
+    /**
+     * Dopo quanti secondi il master token si rigenera, sulla rotta `v2`.
+     *
+     * Sta nei parametri come le due durate, e per la stessa ragione: e' un numero che si vorra'
+     * cambiare senza un rilascio. Il ripiego e' **un'ora** — piu' corto delle otto ore del token,
+     * sennò non ruoterebbe mai.
+     */
+    public function getMasterTokenRotateAfter(): int
+    {
+        $parameter = Parameter::where("key", "master-token-rotate-after-seconds")->first();
+        $seconds = $parameter ? $parameter->value : $this->masterTokenRotateAfterFallbackSeconds;
+
         return (int) $seconds;
     }
 

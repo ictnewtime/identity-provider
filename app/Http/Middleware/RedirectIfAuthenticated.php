@@ -51,6 +51,12 @@ class RedirectIfAuthenticated
         if (!$hasRequestMasterToken && !$hasQueuedMasterToken) {
             Log::warning(
                 "Master Token assente (né in request né in coda) per l'utente loggato ({$user->username}). Effettuare Logout.",
+                [
+                    "cookie_in_request" => array_keys($request->cookies->all()),
+                    "cookie_in_coda" => array_map(fn($cookie) => $cookie->getName(), Cookie::getQueuedCookies()),
+                    "url" => $request->fullUrl(),
+                    "referer" => $request->headers->get("referer"),
+                ],
             );
             return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.missing_master_token"));
         }
@@ -81,6 +87,17 @@ class RedirectIfAuthenticated
 
         $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
+
+        // Anche qui la sessione la apre l'ingresso, non l'exchange: questo e' il caso
+        // di chi e' gia' dentro e apre una seconda applicazione ore dopo, che il login esplicito non
+        // vede. Senza, quel caso resterebbe senza riga e l'exchange lo lascerebbe fuori.
+        (new SessionService())->openProviderSession(
+            $user,
+            $providerId,
+            $request->ip(),
+            $request->userAgent(),
+            $masterToken,
+        );
 
         Log::info("Controlli SSO superati per utente {$user->username}. Redirect finale.", [
             "redirect_away_url" => $ssoData["redirectUrl"],

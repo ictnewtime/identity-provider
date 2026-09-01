@@ -1,3 +1,8 @@
+> **RETTIFICATA DA `TMT` IL 2026-08-28.** Le domande di questa analisi hanno una risposta in
+> [master-token-sessions](../../todo/20260828-master-token-sessions/analysis.md), che le riprende con
+> misure nuove. **Questo documento non e' superato**: e' il ragionamento che ha portato la', e i suoi
+> § 2 e § 3 restano la descrizione piu' dettagliata del flusso dei due token.
+
 # Analisi — l'app token scade e nessuno lo rinnova
 
 **Identificatori**: `TTR` = task token-refresh

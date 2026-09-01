@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use App\Services\SessionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
@@ -15,12 +16,21 @@ class VerifyMasterToken
 {
     public function handle(Request $request, Closure $next)
     {
-        $tokenString = $request->bearerToken();
+        $tokenString = self::masterTokenFrom($request);
 
         if (empty($tokenString)) {
-            Log::error("Master Token mancante nell'header di autorizzazione.");
+            Log::error("Master Token mancante: ne' in Authorization ne' in x-master-token.", [
+                "url" => $request->fullUrl(),
+                "ip" => $request->ip(),
+            ]);
             return response()->json(["message" => __("auth.token_missing")], 401);
         }
+
+        Log::debug("[MASTER TOKEN] ricevuto", [
+            "da" => $request->bearerToken() ? "Authorization" : "x-master-token",
+            "token" => SessionService::tokenFingerprint($tokenString),
+            "url" => $request->fullUrl(),
+        ]);
 
         try {
             $publicKeyPath = storage_path("app/keys/public.key");
@@ -40,6 +50,14 @@ class VerifyMasterToken
 
             $request->attributes->set("jwt_user_id", $userId);
 
+            // Quando e' stato emesso: serve alla rotazione della v2, che rigenera il
+            // master token se ha piu' di un'ora. Si mette qui perche' il token e' **gia' decodificato
+            // e verificato**: farlo di nuovo nel controller significherebbe leggerlo senza verificarlo,
+            // o verificarlo due volte.
+            $request->attributes->set("jwt_master_iat", $decodedPayload->iat ?? null);
+
+            Log::debug("[MASTER TOKEN] valido", ["user_id" => $userId, "iat" => $decodedPayload->iat ?? null]);
+
             if ($request->has("provider_id")) {
                 $request->attributes->set("jwt_provider_id", $request->input("provider_id"));
             }
@@ -52,5 +70,35 @@ class VerifyMasterToken
         }
 
         return $next($request);
+    }
+
+    /**
+     * Il master token, da `Authorization: Bearer` **o** da `x-master-token` (punto TMT04).
+     *
+     * Perche' due posti: `Authorization` e' spesso gia' occupato da chi chiama — un'applicazione che
+     * autentica se stessa verso il proprio backend e vuole passare **anche** il master token dell'IdP —
+     * e senza un header suo dovrebbe inventarsi qualcosa. `x-master-token` si accetta con o senza
+     * `Bearer ` davanti, perche' chi lo scrive a mano lo mette meta' delle volte.
+     */
+    public static function masterTokenFrom(Request $request): ?string
+    {
+        $bearer = $request->bearerToken();
+
+        if (!empty($bearer)) {
+            return $bearer;
+        }
+
+        $header = trim((string) $request->header("x-master-token"));
+
+        if ($header === "") {
+            return null;
+        }
+
+        // `Bearer xxx` oppure `xxx`: si toglie il prefisso se c'e', senza distinguere maiuscole.
+        if (stripos($header, "bearer ") === 0) {
+            $header = trim(substr($header, 7));
+        }
+
+        return $header !== "" ? $header : null;
     }
 }

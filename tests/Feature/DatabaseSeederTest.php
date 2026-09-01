@@ -114,6 +114,10 @@ class DatabaseSeederTest extends TestCase
             "password-force-reset-day" => ["value" => "90", "type" => "policy"],
             "master-token-exp-time-seconds" => ["value" => "28800", "type" => "token"],
             "app-token-exp-time-seconds" => ["value" => "1800", "type" => "token"],
+            // Aggiunto il 2026-08-31 col punto TMT17: dopo quanto la v2 rigenera il master token.
+            // Il valore e' lo stesso del ripiego nel codice (un'ora), e devono restare uguali: se
+            // divergono, un ambiente senza questa riga si comporta diversamente da uno con la riga.
+            "master-token-rotate-after-seconds" => ["value" => "3600", "type" => "token"],
         ];
 
         foreach ($attesi as $key => $atteso) {
