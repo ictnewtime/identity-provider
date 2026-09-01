@@ -35,9 +35,17 @@ class SessionRevocationTest extends TestCase
     private const EXCHANGE_V1 = "/api/v1/token/exchange";
     private const EXCHANGE_V2 = "/api/v2/token/exchange";
 
-    /** L'indirizzo di chi apre la sessione. Non e' locale apposta: nella riga di sessione si
-     *  distingue a colpo d'occhio da un `127.0.0.1` messo li' da qualcos'altro. */
-    private const CLIENT_IP = "1.2.3.4";
+    /**
+     * L'indirizzo di chi apre la sessione. Non e' locale apposta: nella riga di sessione si
+     * distingue a colpo d'occhio da un `127.0.0.1` messo li' da qualcos'altro.
+     *
+     * PERCHE' PROPRIO QUESTO: `203.0.113.0/24` e' la rete **riservata alla documentazione** dalla
+     * RFC 5737 — esiste per essere scritta negli esempi e non appartiene a nessuno. Prima qui c'era
+     * un indirizzo pubblico **vero e instradabile**, di qualcun altro: l'analisi statica lo
+     * segnalava («Make sure using this hardcoded IP address is safe here») e aveva ragione, perche'
+     * un indirizzo altrui scritto in un test un giorno finisce in una chiamata vera.
+     */
+    private const CLIENT_IP = "203.0.113.4";
 
     private function providerWithAccess(int $id, User $user): Provider
     {
