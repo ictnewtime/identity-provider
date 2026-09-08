@@ -7,7 +7,7 @@ use App\Exceptions\DestructiveDatabaseException;
 use Tests\TestCase;
 
 /**
- * La guardia contro le operazioni distruttive sul database sbagliato (punto TVF05).
+ * La guardia contro le operazioni distruttive sul database sbagliato.
  *
  * Sta in `Unit` e non in `Feature` perche' non tocca il database: legge la configurazione
  * risolta e decide. E' esattamente il tipo di logica che la regola del progetto tiene qui.

@@ -7,9 +7,9 @@ use OwenIt\Auditing\Models\Audit;
 use Tests\TestCase;
 
 /**
- * L'ordinamento, provato da solo (punto TCC06).
+ * L'ordinamento, provato da solo.
  *
- * Qui vive la correzione del difetto VDF02, e questi test la fissano nell'SQL invece che nei dati:
+ * Qui vive la correzione del difetto, e questi test la fissano nell'SQL invece che nei dati:
  * un test sui dati direbbe «le righe ci sono», questi dicono **perche'** ci sono.
  */
 class AuditSortOrderTest extends TestCase
@@ -17,7 +17,7 @@ class AuditSortOrderTest extends TestCase
     /**
      * L'SQL **senza le virgolette dell'identificatore**: sqlite scrive `"created_at"`, MySQL
      * `` `created_at` ``. Asserire sulla forma di un motore fa fallire i test sull'altro — ed e'
-     * successo: questi test passavano su sqlite e fallivano su MariaDB (punto TCC06).
+     * successo: questi test passavano su sqlite e fallivano su MariaDB.
      */
     private function sql(?string $campo, ?string $direzione = null): string
     {
@@ -58,7 +58,7 @@ class AuditSortOrderTest extends TestCase
     {
         $sql = $this->sql("user.username", "asc");
 
-        // Le due meta' della correzione di VDF02, e servono INSIEME:
+        // Le due meta' della correzione, e servono INSIEME:
         //  - `left join`, perche' `audits.user_id` e' nullable e una join interna farebbe sparire
         //    dalla lista gli audit di sistema;
         //  - la condizione su `user_type`, perche' la relazione e' polimorfa e unire sul solo

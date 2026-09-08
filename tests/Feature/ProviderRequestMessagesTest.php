@@ -6,7 +6,7 @@ use App\Http\Requests\ProviderRequest;
 use Tests\TestCase;
 
 /**
- * I messaggi di validazione dei provider arrivano davvero all'utente (punto TSH08, difetto VDF21).
+ * I messaggi di validazione dei provider arrivano davvero all'utente.
  *
  * Il difetto che questo test tiene fermo non era un testo sbagliato: era una **mappa** sbagliata.
  * `messages()` vuole chiavi `campo.regola`; la versione precedente ci metteva chiavi di **traduzione**,

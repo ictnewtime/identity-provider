@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Il rinnovo dell'app token dell'IdP a partire dal master token (punto TMT08, difetto VDF13).
+ * Il rinnovo dell'app token dell'IdP a partire dal master token.
  *
  * IL DIFETTO CHE CHIUDE: l'app token vale trenta minuti, il master token otto ore, e l'IdP —
  * che il master token ce l'ha nel proprio cookie — era **l'unico** a non usarlo per rinnovare.
@@ -22,9 +22,9 @@ use Illuminate\Support\Facades\Log;
  *
  * QUEL CHE NON FA, ED E' LA PARTE DELICATA: **non ricrea una sessione che non c'e'**. Se
  * l'amministratore ha revocato la sessione, il rinnovo deve rifiutare — sennò la sessione si
- * ricrea da sola alla richiesta successiva e la revoca non revoca niente (difetto `VDF14`). Il
+ * ricrea da sola alla richiesta successiva e la revoca non revoca niente. Il
  * controllo e' qui e non in `getValidProviderToken()`, che ha altri chiamanti: renderlo generale
- * e' il punto `TMT11`.
+ * e' un lavoro a se'.
  */
 class IdpTokenRenewer
 {
@@ -60,9 +60,9 @@ class IdpTokenRenewer
         }
 
         // `canCreate: false` — il rinnovo rinnova, non crea: se l'amministratore ha revocato la
-        // sessione, la revoca deve valere (VDF14). La guardia sta nel service (punto TMT11) e **non
+        // sessione, la revoca deve valere. La guardia sta nel service e **non
         // anche qui**: due difese che coprono lo stesso caso non sono piu' sicure, sono una difesa e
-        // una bugia sul fatto di averla provata — lo dice la voce `VDF14`, dove era gia' successo.
+        // una bugia sul fatto di averla provata — ed e' gia' successo, con la revoca che non revocava.
         $tokenService = new TokenProviderService();
         $newToken = (new SessionService())->getValidProviderToken(
             $user,

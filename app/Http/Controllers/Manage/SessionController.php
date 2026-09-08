@@ -174,7 +174,7 @@ class SessionController extends Controller
         $tokenService = new TokenProviderService();
         $sessionService = $this->sessionService ?? new SessionService();
 
-        // Il master token che ha autorizzato questa richiesta finisce nella riga (TMT02): e' cio' che
+        // Il master token che ha autorizzato questa richiesta finisce nella riga: e' cio' che
         // la riga rappresenta, ed e' quello che permettera' il rinnovo.
         $masterToken = $request->bearerToken() ?: $request->header("x-master-token");
 
@@ -327,7 +327,7 @@ class SessionController extends Controller
     }
 
     /**
-     * L'exchange della `v2`: una riga sola per utente, e nessuna riga per provider (punto TMT23).
+     * L'exchange della `v2`: una riga sola per utente, e nessuna riga per provider.
      *
      * COSA CAMBIA RISPETTO ALLA v1, ed e' il modello e non la forma: la v1 tiene una riga per ogni
      * coppia utente+provider, perche' `validateSession()` la cerca cosi' e i client di oggi ci
@@ -404,7 +404,7 @@ class SessionController extends Controller
             ]);
     }
 
-    /** La richiesta arriva dalla rotta `v2`? Le due rotte puntano allo stesso metodo (TMT05). */
+    /** La richiesta arriva dalla rotta `v2`? Le due rotte puntano allo stesso metodo. */
     private function isV2(Request $request): bool
     {
         return $request->is("api/v2/*");

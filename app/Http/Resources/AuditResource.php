@@ -7,7 +7,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Laravel\Passport\Client as PassportClient;
 
 /**
- * La forma della risposta della lista audit (punto TCC11).
+ * La forma della risposta della lista audit.
  *
  * Prima di questa classe il controller restituiva il modello `Audit` intero con dentro il
  * modello `user` intero: ogni colonna non nascosta usciva, e ogni colonna aggiunta domani

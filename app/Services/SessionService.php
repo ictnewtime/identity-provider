@@ -76,26 +76,26 @@ class SessionService
      * Recupera o rigenera il token al login.
      */
     /**
-     * L'app token per un utente su un provider, staccandone **sempre uno nuovo** (punto TMT01).
+     * L'app token per un utente su un provider, staccandone **sempre uno nuovo**.
      *
      * PERCHE' SEMPRE NUOVO: fino al 2026-08-28 questa funzione restituiva il token **salvato** se la
      * riga non era scaduta, e funzionava per un motivo fragile — riga e token scadevano insieme, quindi
-     * «riga viva» implicava «token valido». Con TMT02 la riga dura quanto il **master** token (otto ore)
+     * «riga viva» implicava «token valido». Da allora la riga dura quanto il **master** token (otto ore)
      * e l'app token resta a trenta minuti: quell'implicazione non vale piu', e riusare il token salvato
      * significherebbe restituirne uno scaduto per sette ore e mezza. Rigenerare costa una firma.
      *
      * @param string|null $masterToken il master token che ha autorizzato la richiesta: finisce in
-     *                                 `refresh_token` (punto TMT02), ed e' cio' che la riga rappresenta.
-     * @param bool $canCreate se **creare** una sessione che non c'e' (punto TMT11, difetto VDF14).
+     * `refresh_token`, ed e' cio' che la riga rappresenta.
+     * @param bool $canCreate se **creare** una sessione che non c'e'.
      *
      * PERCHE' `canCreate` ESISTE: dopo che un amministratore ha revocato una sessione, «la riga non
      * c'e'» e «la riga non c'e' ancora» sono indistinguibili — e la seconda deve poter creare, la
      * prima no. Chi **rinnova** passa `false`: se la riga e' sparita, la revoca deve valere.
      *
-     * ATTENZIONE, e' la trappola scritta in `VDF14`: passare `false` **anche dall'exchange** chiude
-     * l'unica porta da cui una sessione nasce oggi, e riapre `VDF16` — il primo accesso a
-     * un'applicazione diventa impossibile. L'exchange potra' passare `false` solo quando sara' il
-     * **login** a creare la sessione del provider di destinazione (punto `TMT28`).
+     * ATTENZIONE, e' una trappola gia' scattata: passare `false` **anche dall'exchange** chiude
+     * l'unica porta da cui una sessione nasce oggi, e rende **impossibile il primo accesso** a
+     * un'applicazione. L'exchange potra' passare `false` solo quando sara' il
+     * **login** a creare la sessione del provider di destinazione.
      */
     public function getValidProviderToken(
         $user,
@@ -186,7 +186,7 @@ class SessionService
     }
 
     /**
-     * Scrive o aggiorna la riga del master token (punto TMT23).
+     * Scrive o aggiorna la riga del master token.
      *
      * Non passa da `upsertSession()` per la ragione appena detta: quella cerca con `where`, e con un
      * provider nullo creerebbe una riga nuova a ogni chiamata.
@@ -226,7 +226,7 @@ class SessionService
             "ip_address" => $ipAddress,
             "user_agent" => $userAgent,
             // `token` non e' nullable e questa riga non ha un app token: la v2 non ne tiene traccia
-            // qui, la tiene negli `audits` (punto TMT18).
+            // qui, la tiene negli `audits`.
             "token" => "",
             "refresh_token" => $masterToken,
             "expires_at" => $expiresAt,
@@ -261,7 +261,7 @@ class SessionService
         ?string $masterToken = null,
     ): ?string {
         try {
-            // La riga «del master token», che e' quella che usa la v2 (punto TMT23). Si scrive qui e
+            // La riga «del master token», che e' quella che usa la v2. Si scrive qui e
             // non all'exchange per la stessa ragione della riga per provider: se la creasse
             // l'exchange, l'exchange non potrebbe far valere una revoca.
             if ($masterToken) {

@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * L'elenco delle sessioni visto dall'amministratore (punti TMT37 e TMT38).
+ * L'elenco delle sessioni visto dall'amministratore.
  *
  * Due cose diverse, che qui si tengono separate perche' confonderle e' facile:
  * - il **record** e' la riga nel database;

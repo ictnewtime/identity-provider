@@ -73,7 +73,7 @@ class VerifyMasterToken
     }
 
     /**
-     * Il master token, da `Authorization: Bearer` **o** da `x-master-token` (punto TMT04).
+     * Il master token, da `Authorization: Bearer` **o** da `x-master-token`.
      *
      * Perche' due posti: `Authorization` e' spesso gia' occupato da chi chiama — un'applicazione che
      * autentica se stessa verso il proprio backend e vuole passare **anche** il master token dell'IdP —

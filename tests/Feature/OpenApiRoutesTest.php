@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * Ogni percorso annotato deve corrispondere a una rotta registrata (punto TOA09).
+ * Ogni percorso annotato deve corrispondere a una rotta registrata.
  *
  * IN UNA DIREZIONE SOLA, ed e' cio' che rende il controllo utilizzabile.
  *
