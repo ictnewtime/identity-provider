@@ -16,8 +16,6 @@ use App\Exceptions\SeedingException;
  * Le password NON stanno qui e non hanno un valore di ripiego: le genera
  * scripts/prepare-e2e-credentials.sh a ogni preparazione dell'ambiente, e le passa
  * come variabili. Un segreto che non esiste prima dell'esecuzione non si puo' esporre.
- *
- * Punto TPU/TSA11 di docs/task/done/20260812-static-analysis-findings-v1/.
  */
 class E2EUserSeeder extends Seeder
 {
@@ -61,7 +59,7 @@ class E2EUserSeeder extends Seeder
 
     /**
      * Legge le variabili obbligatorie. Se ne manca una si ferma: inventare una password
-     * qui riporterebbe il difetto che questo seeder esiste per togliere (VDF08).
+     * qui riporterebbe il difetto che questo seeder esiste per togliere.
      */
     private function readRequiredEnv(): array
     {

@@ -14,12 +14,11 @@
 # Uso:   ./scripts/prepare-e2e-credentials.sh
 #        PHP_BIN="docker exec -i idp_app_2 php" ./scripts/prepare-e2e-credentials.sh
 #
-# Punto TSA10 di docs/task/todo/20260812-static-analysis-findings-v1/action-plan.md.
 #
 # COSA NON FA, perche' uno script che non lo dichiara sembra coprire tutto:
 #   - non tocca l'indice git. Sganciare cypress.env.json e' TSA14 e lo esegue il developer (R2);
 #   - non prepara il database: DatabaseSeeder deve essere gia' passato (provider e ruolo admin);
-#   - non porta le credenziali nella pipeline: quello e' BPT03, in docs/task/backlog/.
+#   - non porta le credenziali nella pipeline: quello resta da fare.
 
 set -euo pipefail
 

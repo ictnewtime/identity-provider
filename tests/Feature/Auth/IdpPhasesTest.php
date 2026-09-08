@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * Le due fasi del middleware che toccano il database, provate da sole (punto TCC07).
+ * Le due fasi del middleware che toccano il database, provate da sole.
  *
  * In `Feature` e non in `Unit` per la regola del progetto: leggono dal database. L'estrazione del
  * token, che non lo tocca, sta invece in `tests/Unit/Auth/`.
@@ -44,7 +44,7 @@ class IdpPhasesTest extends TestCase
         $resolver = new IdpProviderResolver();
 
         // E' il caso che il middleware sbagliava: il provider puo' non esserci, e chi chiama
-        // deve deciderlo invece di leggerlo comunque (difetto VDF10).
+        // deve deciderlo invece di leggerlo comunque.
         $this->assertNull($resolver->resolve());
         $this->assertFalse($resolver->isUsable(null));
     }

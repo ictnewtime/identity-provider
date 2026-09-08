@@ -11,7 +11,7 @@ use Tests\TestCase;
 /**
  * Il guardiano della console: `CustomAuditable::logAudit()` esce subito se `runningInConsole()`.
  *
- * PERCHE' STA IN UN FILE SUO (punto `TRC05`): qui serve il guardiano **acceso**, che sotto PHPUnit e'
+ * PERCHE' STA IN UN FILE SUO: qui serve il guardiano **acceso**, che sotto PHPUnit e'
  * il comportamento predefinito. `CustomAuditableTest` fa l'opposto — spegne il guardiano per tutta la
  * classe impostando `APP_RUNNING_IN_CONSOLE` prima che l'applicazione nasca — e le due cose non
  * convivono nello stesso file: la variabile si decide una volta, prima di `setUp()`.
@@ -23,7 +23,7 @@ use Tests\TestCase;
  *
  * Cosa dimostra questo test, ed e' il motivo per cui non si cancella: che il silenzio dell'audit in
  * console e' **voluto e verificato**, non un caso. E' anche la ragione per cui nessun seeder e nessun
- * comando `artisan` lascia traccia negli audit — dubbio `BDB35`, ancora aperto.
+ * comando `artisan` lascia traccia negli audit — dubbio ancora aperto.
  */
 class ConsoleGuardTest extends TestCase
 {

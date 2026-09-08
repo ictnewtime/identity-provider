@@ -17,7 +17,7 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * La revoca di una sessione deve valere (punti TMT11 e TMT12, difetto VDF14).
+ * La revoca di una sessione deve valere.
  *
  * IL DIFETTO CHE QUESTI TEST TENGONO CHIUSO: un amministratore cancella la sessione, e il client —
  * che ha ancora il master token, valido per ore — se la ricrea alla richiesta successiva. Il pulsante
@@ -69,7 +69,7 @@ class SessionRevocationTest extends TestCase
         return $provider;
     }
 
-    /** `TMT11`: senza `canCreate` una sessione assente si crea — è il primo accesso a un'applicazione. */
+    /** Senza `canCreate` una sessione assente si crea — è il primo accesso a un'applicazione. */
     public function test_by_default_a_missing_session_is_created(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -83,11 +83,11 @@ class SessionRevocationTest extends TestCase
             new TokenProviderService(),
         );
 
-        $this->assertNotNull($token, "il primo accesso deve poter creare la sessione: sennò è VDF16");
+        $this->assertNotNull($token, "il primo accesso deve poter creare la sessione, sennò l'applicazione resta fuori");
         $this->assertSame(1, Session::where("user_id", $user->id)->count());
     }
 
-    /** `TMT11`: con `canCreate: false` una sessione assente **non** si crea — è una revoca. */
+    /** Con `canCreate: false` una sessione assente **non** si crea — è una revoca. */
     public function test_with_can_create_false_a_missing_session_is_not_recreated(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -107,7 +107,7 @@ class SessionRevocationTest extends TestCase
         $this->assertSame(0, Session::where("user_id", $user->id)->count());
     }
 
-    /** `TMT12`: la revoca vale su **tutti** i provider, non solo su quello guardato. */
+    /** La revoca vale su **tutti** i provider, non solo su quello guardato. */
     public function test_revoking_one_session_destroys_them_all(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -132,16 +132,16 @@ class SessionRevocationTest extends TestCase
         );
     }
 
-    // --- l'exchange dopo TMT27: rinnova e non crea ---------------------------------------------
+    // --- l'exchange oggi: rinnova e non crea ----------------------------------------------------
 
-    /** `TMT27`: dopo una revoca, l'exchange col master token ancora valido **non** ricrea la riga. */
+    /** Dopo una revoca, l'exchange col master token ancora valido **non** ricrea la riga. */
     public function test_the_exchange_does_not_recreate_a_revoked_session(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        // Il login apre la sessione (TMT28), poi l'amministratore la revoca.
+        // Il login apre la sessione, poi l'amministratore la revoca.
         (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
         SessionService::destroyAllUserSessions($user->id);
 
@@ -155,7 +155,7 @@ class SessionRevocationTest extends TestCase
         $this->assertSame(0, Session::where("user_id", $user->id)->count(), "l'exchange ha ricreato la sessione revocata");
     }
 
-    /** `TMT15`: un `provider_id` che non esiste è **404**, non 403: è un identificativo sbagliato. */
+    /** Un `provider_id` che non esiste è **404**, non 403: è un identificativo sbagliato. */
     public function test_an_unknown_provider_is_not_found_not_forbidden(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -170,7 +170,7 @@ class SessionRevocationTest extends TestCase
     }
 
     /**
-     * `TMT16` e `TMT18`: la v2 restituisce i due token **negli header** e lascia una riga di audit.
+     * La v2 restituisce i due token **negli header** e lascia una riga di audit.
      *
      * Forma decisa dal developer il 2026-08-28: `x-master-token` e `x-app-token` negli header, corpo
      * vuoto. E' simmetrica alla richiesta, che i token li manda negli header a sua volta.
@@ -226,7 +226,7 @@ class SessionRevocationTest extends TestCase
     }
 
     /**
-     * `VDF16`, la prova sul percorso vero: **il login apre la sessione dell'applicazione**.
+     * La prova sul percorso vero: **il login apre la sessione dell'applicazione**.
      *
      * E' il caso da cui nasceva il ciclo di richieste in staging — «Rinnovo rifiutato: nessuna
      * sessione» — e da oggi non deve piu' esserci, perche' la riga la scrive il login e non l'exchange.
@@ -254,13 +254,13 @@ class SessionRevocationTest extends TestCase
         $this->assertNotNull($riga->refresh_token, "la riga non porta il master token");
     }
 
-    // --- TMT21: i due comportamenti che nessun test copriva ancora -----------------------------
+    // --- I due comportamenti che nessun test copriva ancora -----------------------------
 
     /**
-     * `TMT03`: anche il login **all'IdP** salva tutti e due i token.
+     * Anche il login **all'IdP** salva tutti e due i token.
      *
      * Senza, l'IdP sarebbe l'unico posto senza master token nella riga — cioe' l'unico che non puo'
-     * rinnovare, che e' esattamente il difetto da cui e' partito tutto (`VDF13`).
+     * rinnovare, che e' esattamente il difetto da cui e' partito tutto.
      */
     public function test_logging_into_the_idp_saves_both_tokens(): void
     {
@@ -298,7 +298,7 @@ class SessionRevocationTest extends TestCase
         $this->assertNotNull($riga->refresh_token, "manca il master token: l'IdP non potrebbe rinnovare");
     }
 
-    /** `TMT15`: un utente che non ha ruoli su quel provider riceve **403**, non 404 e non un token. */
+    /** Un utente che non ha ruoli su quel provider riceve **403**, non 404 e non un token. */
     public function test_a_user_without_roles_on_the_provider_is_forbidden(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -315,7 +315,7 @@ class SessionRevocationTest extends TestCase
         )->assertStatus(403);
     }
 
-    // --- TMT17: la rotazione del master token, solo sulla v2 -----------------------------------
+    // --- La rotazione del master token, solo sulla v2 -----------------------------------
 
     /**
      * Un master token **emesso `$oreFa` ore fa**, firmato a mano con la stessa chiave del servizio.
@@ -369,7 +369,7 @@ class SessionRevocationTest extends TestCase
         );
     }
 
-    /** `TMT17`: sulla v2, un master token di piu' di un'ora viene **rigenerato**. */
+    /** Sulla v2, un master token di piu' di un'ora viene **rigenerato**. */
     public function test_the_v2_rotates_a_master_token_older_than_an_hour(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -397,7 +397,7 @@ class SessionRevocationTest extends TestCase
         );
     }
 
-    /** `TMT17`: un master token fresco **non** si tocca. */
+    /** Un master token fresco **non** si tocca. */
     public function test_a_fresh_master_token_is_not_rotated(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -416,7 +416,7 @@ class SessionRevocationTest extends TestCase
     }
 
     /**
-     * `TMT17`, la prova che conta: **il master token vecchio continua a funzionare** dopo la rotazione.
+     * La prova che conta: **il master token vecchio continua a funzionare** dopo la rotazione.
      *
      * Se non fosse cosi', al primo rilascio ogni client che non sa leggere l'header nuovo verrebbe
      * disconnesso — ed e' la ragione per cui la rotazione **non invalida** il precedente.
@@ -436,7 +436,7 @@ class SessionRevocationTest extends TestCase
         $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
     }
 
-    /** `TMT17`: la `v1` non ruota — la sua riga tiene il master token che le e' stato dato. */
+    /** La `v1` non ruota — la sua riga tiene il master token che le e' stato dato. */
     public function test_the_v1_does_not_rotate(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -458,7 +458,7 @@ class SessionRevocationTest extends TestCase
         );
     }
 
-    // --- TMT17, la scadenza vera: un master token che dura un secondo -------------------------
+    // --- Un master token che dura un secondo -------------------------
 
     /** Mette un parametro a un valore, come farebbe l'amministratore da `/admin/parameters`. */
     private function parameter(string $key, string $value): void
@@ -467,7 +467,7 @@ class SessionRevocationTest extends TestCase
     }
 
     /**
-     * `TMT17` sulla `v1`: **il master token scade e la sessione non si rinnova piu'**.
+     * Sulla `v1`: **il master token scade e la sessione non si rinnova piu'**.
      *
      * Con la durata a un secondo, l'exchange funziona subito e non funziona piu' un istante dopo. La
      * v1 non ruota, quindi qui non c'e' scampo — ed e' il comportamento voluto: e' la scadenza che fa
@@ -507,7 +507,7 @@ class SessionRevocationTest extends TestCase
     }
 
     /**
-     * `TMT17` sulla `v2` con la rotazione **a un'ora**: la scadenza vince lo stesso.
+     * Sulla `v2` con la rotazione **a un'ora**: la scadenza vince lo stesso.
      *
      * E' il caso che si potrebbe dare per scontato al contrario: «la v2 ruota, quindi non scade mai».
      * Non e' cosi' — con la soglia a un'ora e la durata a un secondo, il token muore **prima** che la
@@ -534,7 +534,7 @@ class SessionRevocationTest extends TestCase
     }
 
     /**
-     * `TMT17` sulla `v2` con la rotazione **piu' corta della scadenza**: il token si rinnova da se'.
+     * Sulla `v2` con la rotazione **piu' corta della scadenza**: il token si rinnova da se'.
      *
      * E' il caso per cui la rotazione esiste. La soglia a un secondo e la durata a dieci: al secondo
      * exchange il token ha passato la soglia, ne arriva uno nuovo, e **quello nuovo funziona** anche
@@ -578,9 +578,9 @@ class SessionRevocationTest extends TestCase
         $this->assertSame(120, (new TokenProviderService())->getMasterTokenRotateAfter(), "il parametro non viene letto");
     }
 
-    // --- TMT22 e TMT23: il modello della v2 ----------------------------------------------------
+    // --- Il modello della v2 ----------------------------------------------------
 
-    /** `TMT23`: il login scrive **anche** la riga del master token, che e' quella senza provider. */
+    /** Il login scrive **anche** la riga del master token, che e' quella senza provider. */
     public function test_the_login_writes_the_master_session_row(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -592,12 +592,12 @@ class SessionRevocationTest extends TestCase
         $riga = (new SessionService())->masterSessionFor($user->id);
 
         $this->assertNotNull($riga, "manca la riga del master token: la v2 non avrebbe niente da guardare");
-        $this->assertNull($riga->provider_id, "la riga del master token non deve avere un provider (TMT22)");
+        $this->assertNull($riga->provider_id, "la riga del master token non deve avere un provider");
         $this->assertSame($master, $riga->refresh_token);
     }
 
     /**
-     * `TMT23`: un exchange sulla `v2` **non crea righe per provider**.
+     * Un exchange sulla `v2` **non crea righe per provider**.
      *
      * E' la differenza fra i due modelli, e si vede contando: dopo il login c'e' la riga del provider
      * (la scrive il login, per la v1) e quella del master token. Un exchange v2 su un **secondo**
@@ -628,7 +628,7 @@ class SessionRevocationTest extends TestCase
         );
     }
 
-    /** `TMT23`: se la riga del master token non c'e', la `v2` rifiuta — e' una revoca. */
+    /** Se la riga del master token non c'e', la `v2` rifiuta — e' una revoca. */
     public function test_the_v2_refuses_when_the_master_session_is_gone(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -645,10 +645,10 @@ class SessionRevocationTest extends TestCase
         )->assertStatus(403);
     }
 
-    // --- TMT32: la riga senza provider e' la prova, le altre nascono su richiesta --------------
+    // --- La riga senza provider e' la prova, le altre nascono su richiesta --------------
 
     /**
-     * `TMT32`: il login verso un'applicazione **esterna** scrive **una sola** riga, quella senza
+     * Il login verso un'applicazione **esterna** scrive **una sola** riga, quella senza
      * provider. La riga del provider nasce quando una chiamata `v1` la chiede.
      */
     public function test_the_login_towards_an_external_app_writes_only_the_master_row(): void
@@ -680,7 +680,7 @@ class SessionRevocationTest extends TestCase
         );
     }
 
-    /** `TMT32`: una `v2` non fa nascere nessuna riga per provider, nemmeno chiamandola due volte. */
+    /** Una `v2` non fa nascere nessuna riga per provider, nemmeno chiamandola due volte. */
     public function test_a_v2_app_never_gets_a_provider_row(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
@@ -697,7 +697,7 @@ class SessionRevocationTest extends TestCase
     }
 
     /**
-     * `TMT32`, la prova che il modello non riapre `VDF14`: dopo una revoca **anche la `v1`** rifiuta,
+     * La prova che il modello non riapre il difetto della revoca: dopo una revoca **anche la `v1`** rifiuta,
      * perche' la riga senza provider — la prova che l'utente e' entrato — e' sparita con le altre.
      */
     public function test_after_a_revocation_even_the_v1_refuses(): void

@@ -14,18 +14,18 @@ use Laravel\Passport\Client;
 use Tests\TestCase;
 
 /**
- * Cosa `CustomAuditable::logAudit()` scrive in `audits` (punto TAC01).
+ * Cosa `CustomAuditable::logAudit()` scrive in `audits`.
  *
  * QUESTO FILE E' UNA RETE, NON UNA SPECIFICA: fotografa il comportamento di **oggi**, perche' il
- * rifacimento di `TAC02` deve poter dimostrare di non averlo cambiato. Se un'asserzione qui sembra
+ * rifacimento deve poter dimostrare di non averlo cambiato. Se un'asserzione qui sembra
  * strana, e' perche' descrive cio' che il codice fa, non cio' che sarebbe bello facesse.
  *
- * PERCHE' NON ESISTEVA (fatto `F10` dell'analisi, misurato): `logAudit()` comincia con
+ * PERCHE' NON ESISTEVA (misurato): `logAudit()` comincia con
  * `if (app()->runningInConsole()) return;`, e sotto PHPUnit quel metodo restituisce **true**. Il trait
  * e' quindi **inerte in tutta la suite**: chi provasse «creo un modello e leggo audits» troverebbe zero
  * righe e concluderebbe che il trait e' rotto. Non lo e': non e' mai stato acceso.
  *
- * COME SI ACCENDE (`F11`, punto `TRC05`): `Application::runningInConsole()` **memorizza** il proprio
+ * COME SI ACCENDE: `Application::runningInConsole()` **memorizza** il proprio
  * esito, quindi va deciso PRIMA che l'applicazione nasca — cioe' prima di `parent::setUp()`. La leva e'
  * la variabile `APP_RUNNING_IN_CONSOLE`, quella che Laravel legge da se': niente riflessione su
  * proprieta' private, e niente da giustificare a uno strumento di analisi.
@@ -172,7 +172,7 @@ class CustomAuditableTest extends TestCase
             "expires_at" => now()->addHour(),
         ]);
 
-        // Le righe che i dati di partenza hanno prodotto. Prima di `TRC05` la leva si accendeva
+        // Le righe che i dati di partenza hanno prodotto. Prima la leva si accendeva
         // **dopo** aver creato provider, utente e sessione, quindi qui bastava `assertSame([])`; ora
         // la leva vale per tutta la classe e anche le creazioni lasciano un audit. Cio' che questo
         // test verifica non e' cambiato: che l'`update` sui campi di servizio non ne aggiunga NESSUNO.
@@ -225,9 +225,9 @@ class CustomAuditableTest extends TestCase
     /**
      * Le chiamate M2M — l'exchange del token — non hanno una sessione di navigazione, quindi `Auth`
      * e' vuoto. L'identita' c'e' comunque: l'ha stabilita il middleware del master token, e la mette
-     * negli attributi della richiesta. Prima di `TAC11` questi audit uscivano **senza attore**.
+     * negli attributi della richiesta. Prima questi audit uscivano **senza attore**.
      *
-     * In inglese perche' e' la convenzione da qui in avanti (`TTC03` convertira' gli altri).
+     * In inglese perche' e' la convenzione da qui in avanti; gli altri verranno convertiti.
      */
     public function test_the_actor_comes_from_the_request_identity_when_there_is_no_session(): void
     {
