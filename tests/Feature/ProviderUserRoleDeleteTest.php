@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * La cancellazione risponde 204 SENZA corpo (punto TPU04, difetto VDF05).
+ * La cancellazione risponde 204 SENZA corpo.
  *
  * 204 significa «nessun contenuto»: un corpo spedito con questo stato viene scartato da molti
  * client, quindi il messaggio che il controller componeva non arrivava a nessuno — e chi leggeva

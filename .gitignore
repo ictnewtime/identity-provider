@@ -30,3 +30,4 @@ Thumbs.db
 supervisord.pid
 cypress.env.json
 /lang/php_*.json
+tests/integration

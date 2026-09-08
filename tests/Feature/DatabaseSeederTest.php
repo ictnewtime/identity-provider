@@ -9,10 +9,10 @@ use App\Exceptions\SeedingException;
 use Tests\TestCase;
 
 /**
- * Il seeder si esegue una volta sola (punto TLE11).
+ * Il seeder si esegue una volta sola.
  *
  * Sta in `Feature` e non in `Unit` perche' tocca il database: la regola del progetto tiene in
- * `Unit` la logica pura, senza filesystem ne' database (docs/ai/abstract/testing.md).
+ * `Unit` la logica pura, senza filesystem ne' database.
  *
  * Le due proprieta' che questi test fissano, e che vanno insieme:
  *   1. la seconda esecuzione fallisce con un errore GESTITO, che dice cosa fare;
@@ -24,7 +24,7 @@ class DatabaseSeederTest extends TestCase
 
     /**
      * Il nome della variabile sta in una costante, e la costante finisce **sia** nella lettura
-     * dell'ambiente **sia** nel messaggio d'errore (punto `TAC10`).
+     * dell'ambiente **sia** nel messaggio d'errore.
      *
      * Non e' pignoleria: scrivendo il nome due volte, il giorno che cambia si aggiorna la lettura e
      * si dimentica il messaggio — e chi legge l'errore va a cercare una variabile che non esiste piu'.
@@ -38,7 +38,7 @@ class DatabaseSeederTest extends TestCase
 
     /**
      * La password dell'amministratore di prova **non sta nel sorgente**: arriva dall'ambiente
-     * (punto `TAC05`). Nel modello `.env.test.backend.example` la variabile e' dichiarata senza
+     *. Nel modello `.env.test.backend.example` la variabile e' dichiarata senza
      * valore, e lo script di preparazione la genera e la passa al container.
      *
      * Ricordata in una proprieta' statica perche' `test_senza_la_password_…` la cancella di
@@ -114,6 +114,10 @@ class DatabaseSeederTest extends TestCase
             "password-force-reset-day" => ["value" => "90", "type" => "policy"],
             "master-token-exp-time-seconds" => ["value" => "28800", "type" => "token"],
             "app-token-exp-time-seconds" => ["value" => "1800", "type" => "token"],
+            // Aggiunto il 2026-08-31: dopo quanto la v2 rigenera il master token.
+            // Il valore e' lo stesso del ripiego nel codice (un'ora), e devono restare uguali: se
+            // divergono, un ambiente senza questa riga si comporta diversamente da uno con la riga.
+            "master-token-rotate-after-seconds" => ["value" => "3600", "type" => "token"],
         ];
 
         foreach ($attesi as $key => $atteso) {
@@ -158,7 +162,7 @@ class DatabaseSeederTest extends TestCase
      * legge. Questo test lo tiene attaccato alla realta' in due modi — nomina la **stessa** variabile
      * che il codice legge (e' la stessa costante), e lo script che indica **esiste sul disco**.
      *
-     * In inglese perche' e' la convenzione da qui in avanti (`TTC03` convertira' gli altri).
+     * In inglese perche' e' la convenzione da qui in avanti; gli altri verranno convertiti.
      */
     public function test_the_missing_password_message_names_the_variable_and_an_existing_script(): void
     {

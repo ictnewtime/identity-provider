@@ -12,7 +12,7 @@ use Tests\TestCase;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
 
 /**
- * Il meccanismo INTERO, non i pezzi (punto TCC10).
+ * Il meccanismo INTERO, non i pezzi.
  *
  * Perche' non basta un test per classe: ogni fase, provata da sola, puo' essere corretta mentre
  * il passaggio fra due di esse e' rotto. Questi test attraversano piu' fasi in un colpo solo e

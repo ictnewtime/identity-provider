@@ -7,7 +7,7 @@ use OwenIt\Auditing\Models\Audit;
 use Tests\TestCase;
 
 /**
- * Il filtro di ricerca, provato da solo (punto TCC06).
+ * Il filtro di ricerca, provato da solo.
  *
  * Unit e non Feature: **non tocca il database**. Si costruisce la query e si guarda l'SQL che
  * produce, senza eseguirla — che e' anche l'unico modo di distinguere «cerca su quattro campi» da

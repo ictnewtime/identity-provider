@@ -24,7 +24,7 @@ use Tests\TestCase;
  *
  * COSA NON COPRE, e va saputo: le chiavi **letterali** dei sorgenti PHP. `__($variabile)` non e'
  * verificabile da fuori, e il frontend — 329 chiavi fra `trans()` e `$t()` — ha il suo difetto aperto
- * (`VDF23`).
+ *.
  */
 class TranslationKeysTest extends TestCase
 {
@@ -125,7 +125,7 @@ class TranslationKeysTest extends TestCase
     }
 
     /**
-     * Il frontend ha **cinque volte** le chiavi del PHP, ed e' dove `VDF23` si nascondeva: due
+     * Il frontend ha **cinque volte** le chiavi del PHP, ed e' dove il difetto si nascondeva: due
      * dialoghi mostravano all'utente la chiave invece del testo, e nessuno lo vedeva perche' il
      * controllo guardava l'altra meta'.
      *
@@ -145,7 +145,7 @@ class TranslationKeysTest extends TestCase
     }
 
     /**
-     * La regola generale dietro `VDF24`: **nessun valore di traduzione puo' essere falso**.
+     * La regola generale: **nessun valore di traduzione puo' essere falso**.
      *
      * `Translator::get()` restituisce `$line ?: $key`, e in PHP `"0"` e `""` sono falsi — quindi una
      * traduzione che vale zero o vuota si comporta **esattamente** come una che manca, e i due test di

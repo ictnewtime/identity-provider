@@ -50,8 +50,12 @@ Route::prefix("v1")->group(function () {
         Route::get("provider-user-roles", [ProviderUserRoleController::class, "all"]);
         Route::post("provider-user-roles", [ProviderUserRoleController::class, "create"]);
         Route::get(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "find"])->whereNumber("id");
-        Route::put(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "update"])->whereNumber("id");
-        Route::delete(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "delete"])->whereNumber("id");
+        Route::put(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "update"])->whereNumber(
+            "id",
+        );
+        Route::delete(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "delete"])->whereNumber(
+            "id",
+        );
         // provider-user-roles/has-relation?provider_id=1&user_id=1
         // provider-user-roles/has-relation?role_id=1
         Route::get("provider-user-roles/has-relation", [ProviderUserRoleController::class, "hasRelation"]);
@@ -84,8 +88,12 @@ Route::prefix("v1")->group(function () {
         Route::get("provider-user-roles", [ProviderUserRoleController::class, "all"]);
         Route::post("provider-user-roles", [ProviderUserRoleController::class, "create"]);
         Route::get(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "find"])->whereNumber("id");
-        Route::put(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "update"])->whereNumber("id");
-        Route::delete(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "delete"])->whereNumber("id");
+        Route::put(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "update"])->whereNumber(
+            "id",
+        );
+        Route::delete(RoutePaths::PROVIDER_USER_ROLES_ID, [ProviderUserRoleController::class, "delete"])->whereNumber(
+            "id",
+        );
     });
 
     // sessions
@@ -96,5 +104,11 @@ Route::prefix("v1")->group(function () {
     Route::middleware(["verify_master_token"])->group(function () {
         Route::post("token/exchange", [SessionController::class, "get_token"]);
         // Route::post("sessions/logout", [SessionController::class, "logout_session"]);
+    });
+});
+
+Route::prefix("v2")->group(function () {
+    Route::middleware(["verify_master_token"])->group(function () {
+        Route::post("token/exchange", [SessionController::class, "get_token"]);
     });
 });

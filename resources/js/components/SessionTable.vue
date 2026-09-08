@@ -188,8 +188,14 @@ onMounted(() => {
                         <span v-if="slotProps.data.provider" class="text-surface-700 font-medium">
                             {{ slotProps.data.provider.name }}
                         </span>
-                        <span v-else class="text-surface-400 italic">
-                            {{ $t("admin.sessions.table.no_provider") }}
+                        <!-- `*` = la sessione vale per tutte le applicazioni, non e' un dato mancante.
+                             L'etichetta arriva gia' calcolata dal backend (provider_label). -->
+                        <span
+                            v-else
+                            class="text-surface-700 font-medium"
+                            v-tooltip.top="{ value: $t('admin.sessions.table.all_providers'), escape: true }"
+                        >
+                            {{ slotProps.data.provider_label || "*" }}
                         </span>
                     </template>
                 </Column>

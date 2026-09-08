@@ -1,7 +1,7 @@
 /// <reference types="cypress" />
 
 /**
- * La ricerca deve trovare un nome accentato scritto in maiuscolo (punto TLE04).
+ * La ricerca deve trovare un nome accentato scritto in maiuscolo.
  *
  * Perche' e' un test E2E e non di backend: i test di backend girano su sqlite, e sqlite e MariaDB
  * NON cercano allo stesso modo. Misurato il 2026-08-12 sulle due basi:

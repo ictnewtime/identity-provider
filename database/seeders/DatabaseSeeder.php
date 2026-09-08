@@ -108,6 +108,7 @@ class DatabaseSeeder extends Seeder
             ["key" => "password-force-reset-day", "value" => 90, "type" => "policy"],
             ["key" => "master-token-exp-time-seconds", "value" => 28800, "type" => "token"],
             ["key" => "app-token-exp-time-seconds", "value" => 1800, "type" => "token"],
+            ["key" => "master-token-rotate-after-seconds", "value" => 3600, "type" => "token"],
         ];
 
         foreach ($parameters as $parameter) {

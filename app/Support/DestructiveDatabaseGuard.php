@@ -8,7 +8,7 @@ use App\Exceptions\DestructiveDatabaseException;
  * Rifiuta le operazioni distruttive su un database che non sia quello di test.
  *
  * Perche' esiste: il 2026-08-12 una esecuzione della suite ha fatto `migrate:fresh` sul database
- * di sviluppo e lo ha svuotato (difetto VDF11). La difesa stava nei test, e proteggeva solo chi
+ * di sviluppo e lo ha svuotato. La difesa stava nei test, e proteggeva solo chi
  * passava di li': uno script, un comando, un seeder chiamato a mano non incontravano niente.
  *
  * Perche' NON sovrascrive `migrate:fresh`: quel comando, fuori da `local`, chiede gia' conferma
