@@ -10,15 +10,15 @@ use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
- * I messaggi 404 di ProviderUserRoleController (punti TPU01 e TPU03).
+ * I messaggi 404 di ProviderUserRoleController.
  *
  * STORIA DI QUESTO FILE, perche' e' il motivo per cui e' stato scritto due volte:
  *
- * Nato con `TPU01` per **fotografare** i messaggi scritti a mano, dopo aver verificato che nessuno
+ * Nato per **fotografare** i messaggi scritti a mano, dopo aver verificato che nessuno
  * li confrontava — ne' il frontend, ne' Cypress, ne' un test. Servivano a rendere visibile il
  * cambiamento invece di lasciarlo avvenire in silenzio.
  *
- * `TPU03` ha fatto passare quei messaggi dalle traduzioni, e questi tre test **sono diventati
+ * Il lavoro successivo ha fatto passare quei messaggi dalle traduzioni, e questi tre test **sono diventati
  * rossi**: era il loro scopo. Ora asseriscono il comportamento nuovo, e l'ultimo prova cio' che la
  * traduzione guadagna — la stessa rotta risponde in due lingue diverse, cosa che con il literale
  * era impossibile.
@@ -80,10 +80,10 @@ class ProviderUserRoleNotFoundTest extends TestCase
 
     /**
      * La chiave di traduzione c'e' gia', in entrambe le lingue, e in inglese coincide col literale.
-     * Chi scrivera' `TPU03` non deve inventarne una: deve smettere di ignorare questa.
+     * Chi tocchera' questo messaggio non deve inventarne una: deve smettere di ignorare questa.
      */
     /**
-     * Il guadagno vero di TPU03: la stessa rotta risponde nella lingua della richiesta.
+     * Il guadagno vero: la stessa rotta risponde nella lingua della richiesta.
      * Col literale scritto a mano era impossibile, e le chiavi esistevano gia' — inutilizzate.
      */
     public function test_the_message_follows_the_request_language(): void

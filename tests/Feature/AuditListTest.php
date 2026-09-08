@@ -10,7 +10,7 @@ use OwenIt\Auditing\Models\Audit;
 use Tests\TestCase;
 
 /**
- * Rete di sicurezza per il refactoring di AuditController::all() (punto TCC02).
+ * Rete di sicurezza per il refactoring di AuditController::all().
  *
  * Copre i comportamenti che la scomposizione deve PRESERVARE: ricerca, ordinamento sulle
  * colonne consentite, paginazione. Devono restare invariati mentre il codice si sposta.
@@ -18,8 +18,8 @@ use Tests\TestCase;
  * Le rotte reali portano `authenticated` + `role:admin`: qui si passa oltre, perche' quei
  * due sono coperti altrove (AuthenticatedTest) e mescolarli renderebbe illeggibile un rosso.
  *
- * L'ultimo test NON descrive il comportamento attuale: e' la regressione del difetto VDF02,
- * e oggi FALLISCE apposta. Passera' con TCC03.
+ * L'ultimo test NON descrive il comportamento attuale: e' la regressione del difetto
+ * sull'ordinamento, e oggi FALLISCE apposta. Passera' con la correzione.
  */
 class AuditListTest extends TestCase
 {
@@ -29,7 +29,7 @@ class AuditListTest extends TestCase
 
     /**
      * Quante righe serve seminare, e perche' proprio quel numero. Prima erano tre `range(1, N)` con il
-     * numero nudo dentro il test, e una variabile `$i` che nessuno usava (punto TRC04).
+     * numero nudo dentro il test, e una variabile `$i` che nessuno usava.
      */
     private const ROWS_FOR_A_SECOND_PAGE = 5;
     private const EXTRA_ROWS_FOR_THE_N_PLUS_ONE_CHECK = 9;
@@ -217,7 +217,7 @@ class AuditListTest extends TestCase
 
 
     /**
-     * `per_page` ha un tetto (punto TCC04, difetto VDF03).
+     * `per_page` ha un tetto.
      *
      * Il valore arriva dal client: senza limite, una richiesta sola caricherebbe in memoria
      * l'intera tabella degli audit, che e' quella che cresce piu' in fretta.
@@ -246,7 +246,7 @@ class AuditListTest extends TestCase
     }
 
     /**
-     * L'ordinamento esplicito non viene disturbato da un criterio aggiunto in coda (punto TCC05).
+     * L'ordinamento esplicito non viene disturbato da un criterio aggiunto in coda.
      *
      * Prima c'era un `->latest()` dopo l'`orderBy`: nel ramo predefinito ripeteva quello appena
      * impostato, in quello esplicito aggiungeva un secondo criterio che nessuno aveva chiesto.

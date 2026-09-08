@@ -152,8 +152,8 @@ class LoginController extends Controller
         }
 
         if ($provider_id) {
-            // La sessione del provider di destinazione la apre il LOGIN (punto TMT28), non piu'
-            // l'exchange: cosi' l'exchange puo' rifiutare di creare, e una revoca vale (VDF14).
+            // La sessione del provider di destinazione la apre il LOGIN, non piu'
+            // l'exchange: cosi' l'exchange puo' rifiutare di creare, e una revoca vale.
             // Se fallisce non si blocca il redirect: l'utente entra e il motivo sta nel log.
             (new SessionService())->openProviderSession(
                 $user,
@@ -177,7 +177,7 @@ class LoginController extends Controller
             $sessionService = new SessionService();
 
             $ip_address = $request->ip();
-            // Il master token va nella riga anche qui (punto TMT03): senza, l'IdP sarebbe l'unico
+            // Il master token va nella riga anche qui: senza, l'IdP sarebbe l'unico
             // posto che non puo' rinnovare — cioe' proprio quello da cui nasce il difetto delle
             // disconnessioni a trenta minuti.
             $appToken = $sessionService->getValidProviderToken(

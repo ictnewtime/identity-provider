@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Tests\TestCase;
 
 /**
- * L'estrazione del token, provata da sola (punto TCC07).
+ * L'estrazione del token, provata da sola.
  *
  * Unit: non tocca il database ne' la crittografia, solo la richiesta. E' anche la fase che nella
  * pratica scatta piu' spesso — quella in cui il token non c'e' affatto.

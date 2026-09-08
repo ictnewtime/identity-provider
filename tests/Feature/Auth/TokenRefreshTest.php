@@ -71,7 +71,7 @@ class TokenRefreshTest extends TestCase
         ]);
     }
 
-    /** Una NAVIGAZIONE: niente `Accept: application/json`, quindi il rinnovo si tenta (TMT10). */
+    /** Una NAVIGAZIONE: niente `Accept: application/json`, quindi il rinnovo si tenta. */
     private function browseWith(string $appToken, ?string $masterToken = null)
     {
         $richiesta = $this->withUnencryptedCookie("idp_token_" . config("idp.provider_id"), $appToken);
@@ -98,7 +98,7 @@ class TokenRefreshTest extends TestCase
     }
 
     /**
-     * **Riscritto il 2026-08-31 con `TMT30`**, ed e' la terza volta: prima fotografava «l'IdP non
+     * **Riscritto il 2026-08-31**, ed e' la terza volta: prima fotografava «l'IdP non
      * rinnova», poi «una chiamata API non si rinnova», e nessuna delle due era piu' vera.
      *
      * Ora dice quello che vale oggi: **a decidere e' la sessione, non il tipo di richiesta**. Con la
@@ -120,7 +120,7 @@ class TokenRefreshTest extends TestCase
     }
 
     /**
-     * `TMT30`, l'altra meta': una chiamata API che **non** si puo' rinnovare riceve 401 **e i cookie
+     * L'altra meta': una chiamata API che **non** si puo' rinnovare riceve 401 **e i cookie
      * restano dov'erano**.
      *
      * E' il difetto che il developer ha visto il 2026-08-31: `forceLogoutAndRedirect()` accoda
@@ -172,9 +172,9 @@ class TokenRefreshTest extends TestCase
         $this->callWith($valido)->assertStatus(200);
     }
 
-    // --- cio' che TMT01…TMT05 hanno cambiato, e che non deve tornare indietro -----------------
+    // --- cio' che il rifacimento ha cambiato, e che non deve tornare indietro ----------------
 
-    /** `TMT01`: l'exchange stacca sempre un token nuovo, non riusa quello salvato. */
+    /** L'exchange stacca sempre un token nuovo, non riusa quello salvato. */
     public function test_the_exchange_always_mints_a_new_app_token(): void
     {
         $provider = $this->idpProvider();
@@ -187,10 +187,10 @@ class TokenRefreshTest extends TestCase
         sleep(1); // il JWT porta `iat`: due firme nello stesso secondo sarebbero identiche
         $secondo = $sessionService->getValidProviderToken($user, $provider->id, self::CLIENT_IP, "phpunit", $tokenService);
 
-        $this->assertNotSame($primo, $secondo, "l'exchange ha riusato il token salvato: TMT01 e' tornato indietro");
+        $this->assertNotSame($primo, $secondo, "l'exchange ha riusato il token salvato invece di staccarne uno nuovo");
     }
 
-    /** `TMT02`: la riga porta il master token e dura quanto lui, non quanto l'app token. */
+    /** La riga porta il master token e dura quanto lui, non quanto l'app token. */
     public function test_the_session_row_carries_the_master_token_and_lasts_as_long(): void
     {
         $provider = $this->idpProvider();
@@ -217,20 +217,20 @@ class TokenRefreshTest extends TestCase
         );
     }
 
-    /** `TMT05`: la rotta v2 esiste, e la protegge lo stesso middleware della v1. */
+    /** La rotta v2 esiste, e la protegge lo stesso middleware della v1. */
     public function test_the_v2_exchange_route_exists_and_is_protected(): void
     {
         $this->postJson(self::EXCHANGE_V2, ["provider_id" => "1"])->assertStatus(401);
     }
 
-    /** `TMT04`: il master token si accetta in tutte e tre le forme, e senza header no. */
+    /** Il master token si accetta in tutte e tre le forme, e senza header no. */
     public function test_the_master_token_is_read_from_both_headers(): void
     {
         $provider = $this->idpProvider();
         $user = $this->userWithAccess($provider);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
-        // Da TMT27 l'exchange **rinnova e non crea**: la sessione la apre il login (TMT28). Senza
+        // L'exchange **rinnova e non crea**: la sessione la apre il login. Senza
         // questa riga la risposta sarebbe 403, ed e' il comportamento voluto — la revoca deve valere.
         (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
@@ -256,9 +256,9 @@ class TokenRefreshTest extends TestCase
         return $user;
     }
 
-    // --- TMT08, TMT09, TMT10: il rinnovo dentro l'IdP -----------------------------------------
+    // --- il rinnovo dentro l'IdP ---------------------------------------------------------------
 
-    /** `TMT08`: navigando, con l'app token scaduto e il master valido, l'IdP **rinnova**. */
+    /** Navigando, con l'app token scaduto e il master valido, l'IdP **rinnova**. */
     public function test_browsing_with_an_expired_app_token_renews_it(): void
     {
         $provider = $this->idpProvider();
@@ -275,7 +275,7 @@ class TokenRefreshTest extends TestCase
         $this->assertNotSame($scaduto, $riga->token, "la sessione porta ancora il token scaduto: non ha rinnovato");
     }
 
-    /** `TMT09`, primo esito: senza master token la sessione e' finita davvero. */
+    /** Primo esito: senza master token la sessione e' finita davvero. */
     public function test_browsing_without_a_master_token_ends_the_session(): void
     {
         $provider = $this->idpProvider();
@@ -288,7 +288,7 @@ class TokenRefreshTest extends TestCase
     }
 
     /**
-     * `TMT08`, la parte che protegge `VDF14`: **il rinnovo non ricrea una sessione revocata.**
+     * La parte che protegge la revoca: **il rinnovo non ricrea una sessione revocata.**
      * L'amministratore cancella la riga, e la richiesta successiva non deve rimetterla.
      */
     public function test_a_revoked_session_is_not_recreated_by_the_renewal(): void

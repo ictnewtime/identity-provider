@@ -12,7 +12,7 @@ use Tests\TestCase;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
 
 /**
- * Rete di sicurezza per il refactoring di Authenticated::handle() (punto TCC01).
+ * Rete di sicurezza per il refactoring di Authenticated::handle().
  *
  * Copre i SEI rami d'uscita piu' il ramo felice. Questi test devono restare INVARIATI
  * durante la scomposizione: sono l'unica prova che il comportamento non e' cambiato.
