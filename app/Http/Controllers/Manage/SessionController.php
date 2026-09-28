@@ -185,63 +185,13 @@ class SessionController extends Controller
             "ip_address" => $validated["ip_address"] ?? $request->ip(),
         ]);
 
-        // la rotazione, e **solo sulla v2**. Se il master token presentato ha piu' di un'ora se
-        // ne genera uno nuovo, e da qui in poi e' quello che vale: lo salva la riga e lo riceve il
-        // chiamante. Il vecchio **non viene invalidato** — chi non sa leggere l'header nuovo continua
-        // a funzionare fino alla sua scadenza, che e' l'unico modo di non disconnettere in massa al
-        // primo rilascio. La v1 non ruota: la sua riga scade alle otto ore e viene cancellata.
+        // La rotazione: se il master token presentato ha piu' di un'ora se ne genera uno nuovo, e da
+        // qui in poi e' quello che vale — lo salva la riga e lo riceve il chiamante. Il vecchio **non
+        // viene invalidato**: resta valido fino alla sua scadenza, cosi' un rilascio non disconnette
+        // nessuno.
         $masterToken = $this->rotateMasterTokenIfNeeded($request, $user, $masterToken, $tokenService);
 
-        // Da qui le due rotte si separano davvero, e non solo nella forma della risposta: la v2 ha un
-        // modello suo — una riga sola per utente, senza provider — mentre la v1 tiene le
-        // sue righe per provider e non si tocca.
-        if ($this->isV2($request)) {
-            return $this->exchangeV2($request, $user, $providerId, $masterToken, $tokenService, $sessionService);
-        }
-
-        if (!$sessionService->masterSessionFor($userId)) {
-            Log::warning("[EXCHANGE v1] nessuna riga del master token: sessione revocata o mai aperta.", [
-                "user_id" => $userId,
-                "provider_id" => $providerId,
-            ]);
-
-            return response()->json(
-                [
-                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
-                        "providerId" => $providerId,
-                    ]),
-                ],
-                403,
-            );
-        }
-
-        $appToken = $sessionService->getValidProviderToken(
-            $user,
-            $providerId,
-            $validated["ip_address"] ?? $request->ip(),
-            $validated["user_agent"] ?? $request->userAgent(),
-            $tokenService,
-            $masterToken,
-            true,
-        );
-
-        if (!$appToken) {
-            return response()->json(
-                [
-                    "message" => __("session.error.access_denied.user_disabled_or_missing_roles", [
-                        "providerId" => $providerId,
-                    ]),
-                ],
-                403,
-            );
-        }
-
-        return response()->json(
-            [
-                "token" => $appToken,
-            ],
-            200,
-        );
+        return $this->exchange($request, $user, $providerId, $masterToken, $tokenService, $sessionService);
     }
 
     /**
@@ -276,9 +226,8 @@ class SessionController extends Controller
     /**
      * Il master token da usare da qui in avanti: quello presentato, oppure uno nuovo se e' vecchio.
      *
-     * Ruota **solo sulla v2**: la v1 ha client che non sanno leggere un token nuovo e continuerebbero
-     * a mandare il vecchio senza accorgersi di niente. L'eta' si legge dal claim `iat`, che
-     * `VerifyMasterToken` ha gia' verificato e messo fra gli attributi della richiesta.
+     * L'eta' si legge dal claim `iat`, che `VerifyMasterToken` ha gia' verificato e messo fra gli
+     * attributi della richiesta.
      */
     private function rotateMasterTokenIfNeeded(
         Request $request,
@@ -286,7 +235,7 @@ class SessionController extends Controller
         ?string $masterToken,
         TokenProviderService $tokenService,
     ): ?string {
-        if (!$this->isV2($request) || empty($masterToken)) {
+        if (empty($masterToken)) {
             return $masterToken;
         }
 
@@ -327,17 +276,10 @@ class SessionController extends Controller
     }
 
     /**
-     * L'exchange della `v2`: una riga sola per utente, e nessuna riga per provider.
-     *
-     * COSA CAMBIA RISPETTO ALLA v1, ed e' il modello e non la forma: la v1 tiene una riga per ogni
-     * coppia utente+provider, perche' `validateSession()` la cerca cosi' e i client di oggi ci
-     * contano. La v2 non ne ha bisogno: le basta sapere che l'utente **e' entrato**, e quella riga e'
-     * una sola. A quali applicazioni sia entrato lo raccontano gli `audits`.
-     *
      * LA RIGA DEVE ESISTERE: la scrive il login (`openProviderSession()`). Se non c'e', l'utente e'
-     * stato revocato — e la revoca deve valere, come per la v1 con `canCreate: false`.
+     * stato revocato — e la revoca deve valere.
      */
-    private function exchangeV2(
+    private function exchange(
         Request $request,
         User $user,
         $providerId,
@@ -349,7 +291,7 @@ class SessionController extends Controller
         $userAgent = $request->input("user_agent") ?? $request->userAgent();
 
         if (!$sessionService->masterSessionFor($user->id)) {
-            Log::warning("[EXCHANGE v2] nessuna riga del master token: sessione revocata o mai aperta.", [
+            Log::warning("[EXCHANGE] nessuna riga del master token: sessione revocata o mai aperta.", [
                 "user_id" => $user->id,
             ]);
 
@@ -364,7 +306,7 @@ class SessionController extends Controller
         }
 
         if (!$user->hasAccessToProvider($providerId)) {
-            Log::warning("[EXCHANGE v2] accesso negato al provider", [
+            Log::warning("[EXCHANGE] accesso negato al provider", [
                 "user_id" => $user->id,
                 "provider_id" => $providerId,
             ]);
@@ -382,7 +324,7 @@ class SessionController extends Controller
         $appToken = $tokenService->generateAppToken($user, $providerId);
 
         if (!$appToken) {
-            Log::error("[EXCHANGE v2] app token non generato", ["provider_id" => $providerId]);
+            Log::error("[EXCHANGE] app token non generato", ["provider_id" => $providerId]);
 
             return response()->json(
                 ["message" => __("session.error.provider_not_found", ["providerId" => $providerId])],
@@ -404,19 +346,12 @@ class SessionController extends Controller
             ]);
     }
 
-    /** La richiesta arriva dalla rotta `v2`? Le due rotte puntano allo stesso metodo. */
-    private function isV2(Request $request): bool
-    {
-        return $request->is("api/v2/*");
-    }
-
     /**
      * Una riga di `audits` per l'app token appena staccato.
      *
      * `AppToken` non e' un modello e non lo diventa: qui `auditable_id` e' una **stringa**
      * (`create_audits_table.php:25`), quindi un'entita' senza tabella ci sta. Serve a rispondere alla
-     * domanda «a quali applicazioni e' entrato questo utente, e quando», che sulla v2 la tabella delle
-     * sessioni non sapra' piu' dire.
+     * domanda «a quali applicazioni e' entrato questo utente, e quando».
      */
     private function auditAppToken(Request $request, $userId, $providerId, string $appToken): void
     {

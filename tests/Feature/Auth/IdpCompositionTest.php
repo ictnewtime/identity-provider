@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Support\IdpCookies;
 use App\Models\Provider;
 use App\Models\Session;
 use App\Models\User;
@@ -162,7 +163,7 @@ class IdpCompositionTest extends TestCase
         ])
             // `withUnencryptedCookie`: EncryptCookies esclude questo cookie a runtime leggendo i
             // provider dal database, ma il client di test cifra comunque a meno di dirglielo.
-            ->withUnencryptedCookie("idp_token_" . config("idp.provider_id"), $buono)
+            ->withUnencryptedCookie(IdpCookies::appTokenName(config("idp.provider_id")), $buono)
             ->get(self::PROBE_URI);
 
         $risposta->assertStatus(200);

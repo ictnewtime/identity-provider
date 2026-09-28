@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Support\IdpCookies;
 use App\Models\Provider;
 use App\Models\Role;
 use App\Models\Session;
@@ -21,8 +22,8 @@ class TokenRefreshTest extends TestCase
 
     private const PROBE_URI = "/__probe/refresh";
 
-    /** La rotta dello scambio: qui si prova solo la `v2`. */
-    private const EXCHANGE_V2 = "/api/v2/token/exchange";
+    /** La rotta dello scambio, unica dal 2026-09 (la `v1`, col comportamento che era della `v2`). */
+    private const EXCHANGE = "/api/v1/token/exchange";
 
     /**
      * L'indirizzo di chi apre la sessione, non locale apposta (vedi `SessionRevocationTest`, dove
@@ -74,7 +75,7 @@ class TokenRefreshTest extends TestCase
     /** Una NAVIGAZIONE: niente `Accept: application/json`, quindi il rinnovo si tenta. */
     private function browseWith(string $appToken, ?string $masterToken = null)
     {
-        $richiesta = $this->withUnencryptedCookie("idp_token_" . config("idp.provider_id"), $appToken);
+        $richiesta = $this->withUnencryptedCookie(IdpCookies::appTokenName(config("idp.provider_id")), $appToken);
 
         if ($masterToken !== null) {
             $richiesta = $richiesta->withUnencryptedCookie(config("idp.jwt.master_token_name"), $masterToken);
@@ -93,7 +94,7 @@ class TokenRefreshTest extends TestCase
         }
 
         return $richiesta
-            ->withUnencryptedCookie("idp_token_" . config("idp.provider_id"), $appToken)
+            ->withUnencryptedCookie(IdpCookies::appTokenName(config("idp.provider_id")), $appToken)
             ->get(self::PROBE_URI);
     }
 
@@ -138,7 +139,7 @@ class TokenRefreshTest extends TestCase
 
         $risposta = $this->callWith($scaduto, $master)->assertStatus(401);
 
-        $risposta->assertCookieMissing("idp_token_" . config("idp.provider_id"));
+        $risposta->assertCookieMissing(IdpCookies::appTokenName(config("idp.provider_id")));
     }
 
     /** Il master token c'e' e non serve a niente: senza di lui il risultato e' identico. */
@@ -217,10 +218,10 @@ class TokenRefreshTest extends TestCase
         );
     }
 
-    /** La rotta v2 esiste, e la protegge lo stesso middleware della v1. */
-    public function test_the_v2_exchange_route_exists_and_is_protected(): void
+    /** La rotta dello scambio esiste, e la protegge `verify_master_token`. */
+    public function test_the_exchange_route_exists_and_is_protected(): void
     {
-        $this->postJson(self::EXCHANGE_V2, ["provider_id" => "1"])->assertStatus(401);
+        $this->postJson(self::EXCHANGE, ["provider_id" => "1"])->assertStatus(401);
     }
 
     /** Il master token si accetta in tutte e tre le forme, e senza header no. */
@@ -236,9 +237,9 @@ class TokenRefreshTest extends TestCase
 
         $corpo = ["provider_id" => (string) $provider->id];
 
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["Authorization" => "Bearer {$master}"])->assertStatus(200);
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])->assertStatus(200);
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => "Bearer {$master}"])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["Authorization" => "Bearer {$master}"])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => "Bearer {$master}"])->assertStatus(200);
     }
 
     /** Un utente con accesso al provider: senza ruolo, `getValidProviderToken()` rifiuta ed e' giusto. */

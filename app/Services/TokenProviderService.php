@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Support\IdpCookies;
+use App\Exceptions\MasterTokenIssueException;
 use App\Models\Parameter;
 use App\Models\User;
 use App\Models\Provider;
@@ -10,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Providers\JWT\Lcobucci;
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Illuminate\Support\Facades\File;
 
 class TokenProviderService
@@ -144,13 +147,15 @@ class TokenProviderService
     public function generateMasterToken(User $user, $providerId)
     {
         $jwt_exp_seconds = $this->getMasterTokenExpiredAt();
-        $expiration_seconds = time() + $jwt_exp_seconds;
+        // Un solo orario per `iat` ed `exp`. Prima erano due `time()` con una query in mezzo: se il
+        // secondo scattava durante la query, il token usciva con `exp - iat` di un secondo in meno.
+        $now = time();
         $provider = Provider::where("id", $providerId)->first();
 
         $payload = [
             "iss" => $provider->url,
-            "iat" => time(),
-            "exp" => $expiration_seconds,
+            "iat" => $now,
+            "exp" => $now + $jwt_exp_seconds,
             "sub" => (string) $user->id,
             "payload" => [
                 "user" => [
@@ -168,13 +173,79 @@ class TokenProviderService
         return JWT::encode($payload, $privateKey, "RS256", $keyId);
     }
 
+    /**
+     * I claim del master token, se e' **utilizzabile**: firma dell'IdP, non scaduto, con `sub`.
+     * Altrimenti null, col motivo nel log.
+     *
+     * Serve al redirect SSO, che prima consegnava il token del cookie senza guardarlo: scaduto, di
+     * un altro utente o dell'altro ambiente (staging e produzione scrivono lo stesso cookie sullo
+     * stesso dominio, con chiavi diverse).
+     */
+    public function verifiedMasterTokenClaims(?string $token): ?object
+    {
+        if (empty($token)) {
+            return null;
+        }
+
+        try {
+            $publicKey = File::get(storage_path("app/keys/public.key"));
+            $claims = JWT::decode($token, new Key($publicKey, "RS256"));
+        } catch (\Throwable $e) {
+            Log::warning("[MASTER TOKEN] non utilizzabile: " . $e->getMessage(), [
+                "master_token" => SessionService::tokenFingerprint($token),
+            ]);
+            return null;
+        }
+
+        return empty($claims->sub) ? null : $claims;
+    }
+
+    /**
+     * Il master token da consegnare a `$user`: quello del cookie se e' suo e valido, sennò uno nuovo.
+     *
+     * Il token nuovo si **verifica prima di consegnarlo**: se l'IdP e' configurato male (chiave
+     * privata assente, coppia di chiavi sbagliata) il token uscirebbe comunque, e il client lo
+     * rifiuterebbe rimandando l'utente qui — un loop. Meglio fermarsi e dirlo.
+     *
+     * @throws MasterTokenIssueException se non si riesce a emettere un token verificabile
+     */
+    public function masterTokenFor(User $user, ?string $candidate): string
+    {
+        $claims = $this->verifiedMasterTokenClaims($candidate);
+        if ($claims && (string) $claims->sub === (string) $user->id) {
+            return $candidate;
+        }
+
+        if ($claims) {
+            Log::warning("[MASTER TOKEN] il cookie appartiene a un altro utente: se ne emette uno nuovo.", [
+                "user_id" => $user->id,
+                "sub_nel_cookie" => $claims->sub,
+            ]);
+        }
+
+        try {
+            $token = $this->generateMasterToken($user, (string) config("idp.provider_id"));
+        } catch (\Throwable $e) {
+            throw new MasterTokenIssueException("Emissione del master token fallita: " . $e->getMessage(), 0, $e);
+        }
+
+        $issued = $this->verifiedMasterTokenClaims($token);
+        if (!$issued || (string) $issued->sub !== (string) $user->id) {
+            throw new MasterTokenIssueException(
+                "Il master token appena emesso non si verifica con public.key: controllare la coppia di chiavi in storage/app/keys.",
+            );
+        }
+
+        return $token;
+    }
+
     public function cookieCretion(string $token, string $provider_id, $cookie_name = null)
     {
         $master_token_name = config("idp.jwt.master_token_name");
         $expiration_seconds = $this->getAppTokenExpiredAt();
         // creo un cookie con il token
         if (empty($cookie_name)) {
-            $cookie_name = "idp_token_" . $provider_id;
+            $cookie_name = IdpCookies::appTokenName($provider_id);
         }
         if ($cookie_name == $master_token_name) {
             $expiration_seconds = $this->getMasterTokenExpiredAt();
@@ -185,7 +256,7 @@ class TokenProviderService
         $cookie = cookie(
             $cookie_name, // Nome del cookie
             $token, // Il token JWT stringa
-            $expiration_seconds, // Durata in secondi
+            (int) ceil($expiration_seconds / 60), // Durata in minuti
             "/", // Path
             $domain, // Domain (null = automatico)
             $is_https, // Secure (true = solo HTTPS)

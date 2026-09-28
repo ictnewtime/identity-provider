@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\JwtAuth;
 
+use App\Support\IdpCookies;
 use App\Events\LoginEvent;
 use Illuminate\Http\Request;
 use App\Http\Requests\LoginRequest;
@@ -145,11 +146,15 @@ class LoginController extends Controller
 
         $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
-        if ($ssoData["isSameDomainZone"]) {
-            $master_token_name = config("idp.jwt.master_token_name");
-            $masterCookie = $tokenService->cookieCretion($masterToken, $masterProvider->id, $master_token_name);
-            Cookie::queue($masterCookie);
-        }
+        // Il cookie master dell'IdP si scrive SEMPRE, anche verso un'applicazione di un altro dominio
+        // (che il token lo riceve nell'URL). Prima solo nello stesso dominio: il cookie precedente —
+        // scaduto, o di un altro utente — sopravviveva al login e il redirect SSO successivo lo
+        // consegnava.
+        $master_token_name = config("idp.jwt.master_token_name");
+        $masterCookie = $tokenService->cookieCretion($masterToken, $masterProvider->id, $master_token_name);
+        Cookie::queue($masterCookie);
+        // I cookie coi nomi di prima (idp-master-token, idp_token_<id>) si tolgono dal browser.
+        IdpCookies::forgetLegacy($masterProvider->id, $masterProvider->domain);
 
         if ($provider_id) {
             // La sessione del provider di destinazione la apre il LOGIN, non piu'
@@ -248,7 +253,7 @@ class LoginController extends Controller
     private function performLogout(Request $request, $redirectUrl)
     {
         $idpProviderId = config("idp.provider_id");
-        $dynamicCookieName = "idp_token_" . $idpProviderId;
+        $dynamicCookieName = IdpCookies::appTokenName($idpProviderId);
         $provider = Provider::find($idpProviderId);
         $cookieDomain = $provider ? $provider->domain : null; // es. .miosito.it (o null per localhost)
 
@@ -278,6 +283,7 @@ class LoginController extends Controller
         $request->session()->regenerateToken();
 
         $master_token_name = config("idp.jwt.master_token_name");
+        IdpCookies::forgetLegacy($idpProviderId, $cookieDomain);
         $cookiesToForget = [
             Cookie::forget($dynamicCookieName, "/", $cookieDomain),
             Cookie::forget($master_token_name, "/", $cookieDomain),
