@@ -22,8 +22,8 @@ class TokenRefreshTest extends TestCase
 
     private const PROBE_URI = "/__probe/refresh";
 
-    /** La rotta dello scambio: qui si prova solo la `v2`. */
-    private const EXCHANGE_V2 = "/api/v2/token/exchange";
+    /** La rotta dello scambio, unica dal 2026-09 (la `v1`, col comportamento che era della `v2`). */
+    private const EXCHANGE = "/api/v1/token/exchange";
 
     /**
      * L'indirizzo di chi apre la sessione, non locale apposta (vedi `SessionRevocationTest`, dove
@@ -218,10 +218,10 @@ class TokenRefreshTest extends TestCase
         );
     }
 
-    /** La rotta v2 esiste, e la protegge lo stesso middleware della v1. */
-    public function test_the_v2_exchange_route_exists_and_is_protected(): void
+    /** La rotta dello scambio esiste, e la protegge `verify_master_token`. */
+    public function test_the_exchange_route_exists_and_is_protected(): void
     {
-        $this->postJson(self::EXCHANGE_V2, ["provider_id" => "1"])->assertStatus(401);
+        $this->postJson(self::EXCHANGE, ["provider_id" => "1"])->assertStatus(401);
     }
 
     /** Il master token si accetta in tutte e tre le forme, e senza header no. */
@@ -237,9 +237,9 @@ class TokenRefreshTest extends TestCase
 
         $corpo = ["provider_id" => (string) $provider->id];
 
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["Authorization" => "Bearer {$master}"])->assertStatus(200);
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])->assertStatus(200);
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => "Bearer {$master}"])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["Authorization" => "Bearer {$master}"])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => "Bearer {$master}"])->assertStatus(200);
     }
 
     /** Un utente con accesso al provider: senza ruolo, `getValidProviderToken()` rifiuta ed e' giusto. */

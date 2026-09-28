@@ -175,7 +175,7 @@ class SessionService
     /**
      * La riga «del master token»: quella senza provider.
      *
-     * E' il modello della rotta `v2`: una riga per utente, che rappresenta l'essere entrati — non
+     * E' il modello dello scambio (`api/v1/token/exchange`): una riga per utente, che rappresenta l'essere entrati — non
      * l'essere entrati in una certa applicazione. Il marcatore e' `provider_id IS NULL`, e serve un
      * `whereNull`: `where("provider_id", null)` in SQL **non trova mai niente**, perche' `= NULL` non
      * e' vero nemmeno per un valore nullo.
@@ -185,15 +185,16 @@ class SessionService
      *
      * Prima si calcolava `now() + durata` in un momento diverso dall'emissione: la riga e il token
      * non coincidevano di almeno un secondo, e di ore quando il redirect SSO riusa un token valido
-     * preso dal cookie. Una riga che sopravvive al suo token e' proprio cio' che il loop del
-     * 23/09/2026 ha insegnato a evitare.
+     * preso dal cookie.
      *
      * Il claim si legge SENZA verificare la firma: qui arrivano solo token gia' verificati a monte
      * (emessi ora, o passati da `VerifyMasterToken` / `masterTokenFor()`), e la scadenza non e' una
      * decisione di accesso. Senza token o senza `exp` leggibile si torna alla durata configurata.
      */
-    public static function masterTokenExpiresAt(?string $masterToken, ?TokenProviderService $tokenService = null): Carbon
-    {
+    public static function masterTokenExpiresAt(
+        ?string $masterToken,
+        ?TokenProviderService $tokenService = null,
+    ): Carbon {
         $parts = $masterToken ? explode(".", $masterToken) : [];
         if (count($parts) === 3) {
             $claims = json_decode((string) base64_decode(strtr($parts[1], "-_", "+/")), true);
@@ -252,7 +253,7 @@ class SessionService
             "provider_id" => null,
             "ip_address" => $ipAddress,
             "user_agent" => $userAgent,
-            // `token` non e' nullable e questa riga non ha un app token: la v2 non ne tiene traccia
+            // `token` non e' nullable e questa riga non ha un app token: lo scambio non ne tiene traccia
             // qui, la tiene negli `audits`.
             "token" => "",
             "refresh_token" => $masterToken,
@@ -288,7 +289,7 @@ class SessionService
         ?string $masterToken = null,
     ): ?string {
         try {
-            // La riga «del master token», che e' quella che usa la v2. Si scrive qui e
+            // La riga «del master token», che e' quella che usa lo scambio. Si scrive qui e
             // non all'exchange per la stessa ragione della riga per provider: se la creasse
             // l'exchange, l'exchange non potrebbe far valere una revoca.
             if ($masterToken) {
@@ -299,11 +300,10 @@ class SessionService
             // `IdpSessionValidator::isAlive()` cerca la sessione **per app token**, quindi senza quella
             // riga ogni navigazione nell'IdP fallirebbe.
             //
-            // Per le applicazioni esterne no: al login non si sa se useranno la `v1` o la
-            // `v2`, e scriverle tutte e due significa lasciarne una che nessuno guarda. La riga per
-            // provider nasce quando una chiamata `v1` la chiede — e la `v2` non la chiede mai.
+            // Per le applicazioni esterne no: lo scambio lavora sulla riga del master token e non
+            // chiede mai una riga per provider (dal 2026-09 la vecchia v1, che la chiedeva, non c'e' piu').
             if ((string) $providerId !== (string) config("idp.provider_id")) {
-                Log::debug("[LOGIN] provider esterno: la riga per provider nascera' alla prima chiamata v1.", [
+                Log::debug("[LOGIN] provider esterno: nessuna riga per provider, basta quella del master token.", [
                     "user_id" => $user->id ?? null,
                     "provider_id" => $providerId,
                 ]);

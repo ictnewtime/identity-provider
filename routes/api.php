@@ -101,14 +101,9 @@ Route::prefix("v1")->group(function () {
         Route::get("sessions/check", [SessionController::class, "check"]);
         // Route::post("sessions/logout", [SessionController::class, "logout_session"]);
     });
+
     Route::middleware(["verify_master_token"])->group(function () {
         Route::post("token/exchange", [SessionController::class, "get_token"]);
         // Route::post("sessions/logout", [SessionController::class, "logout_session"]);
-    });
-});
-
-Route::prefix("v2")->group(function () {
-    Route::middleware(["verify_master_token"])->group(function () {
-        Route::post("token/exchange", [SessionController::class, "get_token"]);
     });
 });

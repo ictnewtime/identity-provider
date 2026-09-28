@@ -310,7 +310,7 @@ Redirect al Provider con i cookie impostati (o token in URL su localhost).
 
 ```
 POST /api/v1/token/exchange
-Authorization: Bearer <master_token>
+x-master-token: <master_token>
 Content-Type: application/json
 
 {
@@ -320,10 +320,11 @@ Content-Type: application/json
 }
 ```
 
-Risposta:
+Risposta: **corpo vuoto**, i token negli header (dal 2026-09 è l'unica forma; la rotta `v2` non esiste più):
 
-```json
-{ "token": "eyJhbGc..." }
+```
+x-app-token: <app_token>
+x-master-token: <master_token>   # nuovo se quello presentato aveva più di un'ora, altrimenti lo stesso
 ```
 
 ### Verifica sessione (M2M)
