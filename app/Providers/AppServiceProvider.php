@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\IdpCookies;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // APP_ENV e' obbligatoria e fra i valori ammessi: entra nel nome dei cookie, e con un valore
+        // sbagliato i cookie avrebbero un nome che nessuna app cerca.
+        IdpCookies::assertConfigured();
+
         URL::forceRootUrl(config("app.url"));
 
         // Se non siamo in locale, forza tutti i link generati da Laravel ad usare HTTPS

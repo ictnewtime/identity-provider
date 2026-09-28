@@ -25,9 +25,10 @@ class IdpTokenExtractorTest extends TestCase
         return $request;
     }
 
-    public function test_the_cookie_name_depends_on_the_configured_provider(): void
+    public function test_the_cookie_name_depends_on_the_configured_provider_and_environment(): void
     {
-        $this->assertSame("idp_token_" . config("idp.provider_id"), (new IdpTokenExtractor())->cookieName());
+        // L'ambiente e' l'APP_ENV dell'IdP: `testing`, da phpunit.xml.
+        $this->assertSame("nt-idp-at-" . config("idp.provider_id") . "-testing", (new IdpTokenExtractor())->cookieName());
     }
 
     public function test_with_nothing_it_extracts_nothing(): void

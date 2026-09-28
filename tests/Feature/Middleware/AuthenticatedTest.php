@@ -123,6 +123,25 @@ class AuthenticatedTest extends TestCase
         $this->callWithToken($token)->assertStatus(401);
     }
 
+    /**
+     * Nel secondo esatto di `exp` il token e' gia' scaduto (RFC 7519), come per le altre librerie.
+     * Con `exp < time()` l'IdP lo accettava per quel secondo — la sessione viva qui sotto serve
+     * proprio a far passare il token se il controllo sbaglia.
+     *
+     * Se il secondo scatta fra la firma e la richiesta il token e' scaduto comunque: il test resta
+     * verde, non diventa instabile.
+     */
+    public function test_it_rejects_a_token_expiring_in_the_current_second(): void
+    {
+        $provider = $this->idpProvider();
+        $user = User::factory()->create(["enabled" => 1]);
+
+        $token = $this->tokenFor($provider, ["sub" => $user->id, "exp" => time()]);
+        $this->sessionFor($user, $provider, $token);
+
+        $this->callWithToken($token)->assertStatus(401);
+    }
+
     // --- Ramo 4: claim `sub` mancante ----------------------------------------------------
 
     public function test_it_rejects_a_token_without_the_sub_claim(): void

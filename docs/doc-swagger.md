@@ -73,9 +73,11 @@ Decodificato:
 
 ## Il cookie
 
-L'app-token viaggia in un cookie per ogni applicazione. Il nome è `idp_token_<id>`, dove `<id>` è
-l'identificativo del provider — oggi fisso a `"1"` in [config/idp.php:4](../config/idp.php#L4), non
-letto dall'ambiente.
+L'app-token viaggia in un cookie per ogni applicazione. Il nome è `nt-idp-at-<id>-<ambiente>`, dove
+`<id>` è l'identificativo del provider — oggi fisso a `"1"` in [config/idp.php](../config/idp.php), non
+letto dall'ambiente — e `<ambiente>` è l'`APP_ENV` dell'IdP (`local`, `staging`, `production`; `testing` nei
+test), obbligatorio: senza, l'IdP non parte.
+Il nome si compone con `App\Support\IdpCookies::appTokenName()`.
 
 Il cookie **non è cifrato da Laravel**: è nell'elenco delle eccezioni, costruito a runtime da
 `Provider::pluck("id")` ([EncryptCookies.php:23-27](../app/Http/Middleware/EncryptCookies.php#L23-L27)).
