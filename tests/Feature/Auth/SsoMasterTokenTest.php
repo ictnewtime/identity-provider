@@ -315,5 +315,9 @@ class SsoMasterTokenTest extends TestCase
         $this->assertNotNull($cookie, "il login cross-domain non ha scritto il cookie master dell'IdP");
         $this->assertSame((string) $user->id, (string) $this->claims($cookie->getValue())->sub);
         $this->assertSame($cookie->getValue(), $this->tokenInRedirect($response));
+
+        // I nomi di prima (condivisi fra staging e produzione) si tolgono dal browser.
+        $response->assertCookieExpired("idp-master-token");
+        $response->assertCookieExpired("idp_token_" . $this->idp->id);
     }
 }

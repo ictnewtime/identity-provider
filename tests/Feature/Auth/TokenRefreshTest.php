@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Support\IdpCookies;
 use App\Models\Provider;
 use App\Models\Role;
 use App\Models\Session;
@@ -74,7 +75,7 @@ class TokenRefreshTest extends TestCase
     /** Una NAVIGAZIONE: niente `Accept: application/json`, quindi il rinnovo si tenta. */
     private function browseWith(string $appToken, ?string $masterToken = null)
     {
-        $richiesta = $this->withUnencryptedCookie("idp_token_" . config("idp.provider_id"), $appToken);
+        $richiesta = $this->withUnencryptedCookie(IdpCookies::appTokenName(config("idp.provider_id")), $appToken);
 
         if ($masterToken !== null) {
             $richiesta = $richiesta->withUnencryptedCookie(config("idp.jwt.master_token_name"), $masterToken);
@@ -93,7 +94,7 @@ class TokenRefreshTest extends TestCase
         }
 
         return $richiesta
-            ->withUnencryptedCookie("idp_token_" . config("idp.provider_id"), $appToken)
+            ->withUnencryptedCookie(IdpCookies::appTokenName(config("idp.provider_id")), $appToken)
             ->get(self::PROBE_URI);
     }
 
@@ -138,7 +139,7 @@ class TokenRefreshTest extends TestCase
 
         $risposta = $this->callWith($scaduto, $master)->assertStatus(401);
 
-        $risposta->assertCookieMissing("idp_token_" . config("idp.provider_id"));
+        $risposta->assertCookieMissing(IdpCookies::appTokenName(config("idp.provider_id")));
     }
 
     /** Il master token c'e' e non serve a niente: senza di lui il risultato e' identico. */

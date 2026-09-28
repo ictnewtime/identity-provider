@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\IdpCookies;
 use App\Exceptions\MasterTokenIssueException;
 use App\Models\Parameter;
 use App\Models\User;
@@ -244,7 +245,7 @@ class TokenProviderService
         $expiration_seconds = $this->getAppTokenExpiredAt();
         // creo un cookie con il token
         if (empty($cookie_name)) {
-            $cookie_name = "idp_token_" . $provider_id;
+            $cookie_name = IdpCookies::appTokenName($provider_id);
         }
         if ($cookie_name == $master_token_name) {
             $expiration_seconds = $this->getMasterTokenExpiredAt();

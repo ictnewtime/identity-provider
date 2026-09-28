@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\IdpCookies;
 use Illuminate\Cookie\Middleware\EncryptCookies as Middleware;
 use Illuminate\Contracts\Encryption\Encrypter;
 use App\Models\Provider;
@@ -23,7 +24,7 @@ class EncryptCookies extends Middleware
             // App2
             $providerIds = Provider::pluck("id");
             foreach ($providerIds as $id) {
-                $this->except[] = "idp_token_" . $id;
+                $this->except[] = IdpCookies::appTokenName($id);
             }
         } catch (\Exception $e) {
             Log::error("Verifica che il db sia migrato e con almeno un provider");

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\IdpCookies;
 use Closure;
 use App\Exceptions\MasterTokenIssueException;
 use App\Models\User;
@@ -20,7 +21,7 @@ class RedirectIfAuthenticated
     public function handle(Request $request, Closure $next, $guard = null)
     {
         $idpProviderId = config("idp.provider_id");
-        $cookieName = "idp_token_" . $idpProviderId;
+        $cookieName = IdpCookies::appTokenName($idpProviderId);
 
         $user = $this->resolveAuthenticatedUser($request, $guard, $idpProviderId, $cookieName);
 
@@ -44,7 +45,7 @@ class RedirectIfAuthenticated
             );
             return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.no_application_specified"));
         }
-        // Se non c'è master token (idp-master-token)
+        // Se non c'è master token (nt-idp-mt-<ambiente>)
         // fare forceLogoutAndShowLogin
         $master_token_name = config("idp.jwt.master_token_name");
         $hasRequestMasterToken = $request->hasCookie($master_token_name);
@@ -210,6 +211,7 @@ class RedirectIfAuthenticated
             Cookie::queue(Cookie::forget("token", "/", $provider_idp->domain));
             Cookie::queue(Cookie::forget($master_token_name, "/", $provider_idp->domain));
         }
+        IdpCookies::forgetLegacy(config("idp.provider_id"), $provider_idp?->domain);
 
         if ($userId) {
             SessionService::destroyAllUserSessions((int) $userId);

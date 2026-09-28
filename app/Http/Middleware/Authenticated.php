@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\IdpCookies;
 use App\Auth\Idp\IdpProviderResolver;
 use App\Auth\Idp\IdpSessionValidator;
 use App\Auth\Idp\IdpTokenRenewer;
@@ -176,13 +177,14 @@ class Authenticated
     protected function forceLogoutAndRedirect($request, $message)
     {
         $idpProviderId = config("idp.provider_id");
-        $cookieName = "idp_token_" . $idpProviderId;
+        $cookieName = IdpCookies::appTokenName($idpProviderId);
         $provider = Provider::find($idpProviderId);
 
         $domain = $provider?->domain;
 
         Cookie::queue(Cookie::forget($cookieName, "/", $domain));
         Cookie::queue(Cookie::forget("token", "/", $domain));
+        IdpCookies::forgetLegacy($idpProviderId, $domain);
 
         if ($request->expectsJson() && !$request->header("X-Inertia")) {
             return response()->json(["message" => $message], 401);

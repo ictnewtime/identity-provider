@@ -120,7 +120,7 @@ Firmato con la `secret_key` del Provider (`IDP_SIGNATURE_KEY`). Contiene i ruoli
 | `payload.user.id` | ID dell'utente sull'IDP                                 |
 | `payload.roles`   | Array di ruoli assegnati all'utente per questo Provider |
 
-> **Nota**: `payload.user` nell'app token contiene solo `id`. Per ottenere nome, email e username occorre decodificare il master token (`idp-master-token`).
+> **Nota**: `payload.user` nell'app token contiene solo `id`. Per ottenere nome, email e username occorre decodificare il master token (`nt-idp-mt-<IDP_APP_ENV>`).
 
 ---
 
@@ -128,10 +128,10 @@ Firmato con la `secret_key` del Provider (`IDP_SIGNATURE_KEY`). Contiene i ruoli
 
 | Ambiente               | Meccanismo                                                                                                       | Nome cookie                 |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| **Produzione**         | Cookie HTTP-Only, SameSite=Lax, Secure se HTTPS                                                                  | `idp_token_{IDP_CLIENT_ID}` |
-| **Localhost/sviluppo** | Master token accodato come `?token=…` nella URL di redirect; idp-extension lo converte automaticamente in cookie | `idp_token_{IDP_CLIENT_ID}` |
+| **Produzione**         | Cookie HTTP-Only, SameSite=Lax, Secure se HTTPS                                                                  | `nt-idp-at-{IDP_CLIENT_ID}-{IDP_APP_ENV}` |
+| **Localhost/sviluppo** | Master token accodato come `?token=…` nella URL di redirect; idp-extension lo converte automaticamente in cookie | `nt-idp-at-{IDP_CLIENT_ID}-{IDP_APP_ENV}` |
 
-Il nome del cookie è `idp_token_` seguito dall'ID del Provider (`IDP_CLIENT_ID`). Esempio: se il Provider ha ID `5`, il cookie si chiama `idp_token_5`.
+Il nome del cookie è `nt-idp-at-`, l'ID del Provider (`IDP_CLIENT_ID`) e l'ambiente dell'IdP (`IDP_APP_ENV`, obbligatoria, uguale all'`APP_ENV` dell'IdP). Esempio: Provider con ID `5` sull'IdP di staging, il cookie si chiama `nt-idp-at-5-staging`.
 
 > **Valore di `?token=`**: è il **master token JWT** completo (RS256, verificabile via JWKS), non un identificativo o un nome simbolico. L'app deve trattarlo come master token — validarlo via JWKS e usarlo per il token exchange — esattamente come il valore del cookie.
 
@@ -180,10 +180,10 @@ Route::middleware(["idp.auth"])->group(function () {
 Dal token già verificato dal middleware è possibile accedere a:
 
 ```php
-// Username e dati anagrafici → dal master token (cookie idp-master-token)
+// Username e dati anagrafici → dal master token (cookie nt-idp-mt-<IDP_APP_ENV>)
 $user = $request->idp_user; // { id, username, email, name, surname }
 
-// Ruoli → dall'app token (cookie idp_token_{IDP_CLIENT_ID})
+// Ruoli → dall'app token (cookie nt-idp-at-{IDP_CLIENT_ID}-{IDP_APP_ENV})
 $roles = $request->idp_roles; // [{ id, name }, ...]
 
 // Verificare un ruolo specifico
@@ -264,7 +264,7 @@ Ripetere per ogni coppia utente-ruolo.
 
 ### Step 7 — Verifica
 
-Effettuare il login con un utente assegnato e verificare che il cookie `idp_token_5` sia presente e contenga i ruoli attesi nel payload.
+Effettuare il login con un utente assegnato e verificare che il cookie `nt-idp-at-5-local` sia presente e contenga i ruoli attesi nel payload.
 
 ---
 
