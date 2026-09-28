@@ -111,7 +111,10 @@ class Authenticated
             return $payload;
         }
 
-        if ($payload["exp"] < time()) {
+        // Scaduto gia' NEL secondo di `exp` (RFC 7519: valido solo "before" exp), come per
+        // firebase/php-jwt, lcobucci e i pacchetti client. Con `<` l'IdP accettava per un secondo
+        // un token che il resto del sistema rifiutava.
+        if ($payload["exp"] <= time()) {
             Log::warning("Fallimento: Il token è scaduto!");
 
             throw new TokenExpiredException("Token has expired");

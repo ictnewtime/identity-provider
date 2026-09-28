@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Models\Provider;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\SessionService;
 use App\Services\TokenProviderService;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -141,6 +142,41 @@ class SsoMasterTokenTest extends TestCase
             60,
             "il cookie sopravvive al token che contiene: dopo la scadenza l'IdP lo consegnerebbe ancora",
         );
+    }
+
+    /**
+     * `exp - iat` vale esattamente la durata configurata. Prima `iat` ed `exp` venivano da due
+     * `time()` diversi, con una query in mezzo, e a volte differivano di un secondo in meno.
+     *
+     * LIMITE, detto chiaro: lo scatto del secondo durante la query non si puo' provocare da qui,
+     * quindi questo test sul codice vecchio passava quasi sempre. Tiene fermo il comportamento,
+     * non avrebbe trovato il difetto.
+     */
+    public function test_master_token_lifetime_is_exactly_the_configured_ttl(): void
+    {
+        $user = $this->userWithAccess();
+        $service = new TokenProviderService();
+
+        $claims = $this->claims($service->generateMasterToken($user, (string) $this->idp->id));
+
+        $this->assertSame($service->getMasterTokenExpiredAt(), $claims->exp - $claims->iat);
+    }
+
+    /**
+     * La riga di sessione del master token scade quando scade il token, non "adesso + 8 ore".
+     * Il caso che conta e' il redirect SSO che riusa il token valido del cookie, emesso ore prima:
+     * con "adesso + 8 ore" la riga gli sopravviveva di ore.
+     */
+    public function test_master_session_row_expires_with_the_token(): void
+    {
+        $user = $this->userWithAccess();
+        $token = $this->masterToken($user, 1800); // emesso un'ora fa, scade fra mezz'ora
+
+        $this->ssoRedirectWith($user, $token)->assertRedirect();
+
+        $row = (new SessionService())->masterSessionFor($user->id);
+        $this->assertNotNull($row, "il redirect SSO non ha scritto la riga del master token");
+        $this->assertSame($this->claims($token)->exp, $row->expires_at->getTimestamp());
     }
 
     // --- redirect SSO: cosa consegna l'IdP ------------------------------------------------------

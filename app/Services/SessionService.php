@@ -148,7 +148,7 @@ class SessionService
         }
 
         // La riga rappresenta il MASTER token, non l'app token: dura quanto lui.
-        $expiresAt = now()->addSeconds($tokenService->getMasterTokenExpiredAt());
+        $expiresAt = self::masterTokenExpiresAt($masterToken, $tokenService);
 
         $session = $this->upsertSession(
             $user->id,
@@ -180,6 +180,33 @@ class SessionService
      * `whereNull`: `where("provider_id", null)` in SQL **non trova mai niente**, perche' `= NULL` non
      * e' vero nemmeno per un valore nullo.
      */
+    /**
+     * Quando scade la riga di un master token: all'`exp` del token stesso, non a "adesso + durata".
+     *
+     * Prima si calcolava `now() + durata` in un momento diverso dall'emissione: la riga e il token
+     * non coincidevano di almeno un secondo, e di ore quando il redirect SSO riusa un token valido
+     * preso dal cookie. Una riga che sopravvive al suo token e' proprio cio' che il loop del
+     * 23/09/2026 ha insegnato a evitare.
+     *
+     * Il claim si legge SENZA verificare la firma: qui arrivano solo token gia' verificati a monte
+     * (emessi ora, o passati da `VerifyMasterToken` / `masterTokenFor()`), e la scadenza non e' una
+     * decisione di accesso. Senza token o senza `exp` leggibile si torna alla durata configurata.
+     */
+    public static function masterTokenExpiresAt(?string $masterToken, ?TokenProviderService $tokenService = null): Carbon
+    {
+        $parts = $masterToken ? explode(".", $masterToken) : [];
+        if (count($parts) === 3) {
+            $claims = json_decode((string) base64_decode(strtr($parts[1], "-_", "+/")), true);
+            if (is_array($claims) && is_numeric($claims["exp"] ?? null)) {
+                // `setTimestamp` su `now()` e non `createFromTimestamp`: quello crea in UTC, e la
+                // colonna si scrive nel fuso dell'applicazione.
+                return now()->setTimestamp((int) $claims["exp"]);
+            }
+        }
+
+        return now()->addSeconds(($tokenService ?? new TokenProviderService())->getMasterTokenExpiredAt());
+    }
+
     public function masterSessionFor($userId): ?Session
     {
         return Session::where("user_id", $userId)->whereNull("provider_id")->first();
@@ -199,7 +226,7 @@ class SessionService
         ?Carbon $expiresAt = null,
     ): Session {
         $session = $this->masterSessionFor($userId);
-        $expiresAt = $expiresAt ?? now()->addSeconds((new TokenProviderService())->getMasterTokenExpiredAt());
+        $expiresAt = $expiresAt ?? self::masterTokenExpiresAt($masterToken);
 
         if ($session) {
             $session->update([

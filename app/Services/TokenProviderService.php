@@ -146,13 +146,15 @@ class TokenProviderService
     public function generateMasterToken(User $user, $providerId)
     {
         $jwt_exp_seconds = $this->getMasterTokenExpiredAt();
-        $expiration_seconds = time() + $jwt_exp_seconds;
+        // Un solo orario per `iat` ed `exp`. Prima erano due `time()` con una query in mezzo: se il
+        // secondo scattava durante la query, il token usciva con `exp - iat` di un secondo in meno.
+        $now = time();
         $provider = Provider::where("id", $providerId)->first();
 
         $payload = [
             "iss" => $provider->url,
-            "iat" => time(),
-            "exp" => $expiration_seconds,
+            "iat" => $now,
+            "exp" => $now + $jwt_exp_seconds,
             "sub" => (string) $user->id,
             "payload" => [
                 "user" => [
