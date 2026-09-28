@@ -145,11 +145,13 @@ class LoginController extends Controller
 
         $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
-        if ($ssoData["isSameDomainZone"]) {
-            $master_token_name = config("idp.jwt.master_token_name");
-            $masterCookie = $tokenService->cookieCretion($masterToken, $masterProvider->id, $master_token_name);
-            Cookie::queue($masterCookie);
-        }
+        // Il cookie master dell'IdP si scrive SEMPRE, anche verso un'applicazione di un altro dominio
+        // (che il token lo riceve nell'URL). Prima solo nello stesso dominio: il cookie precedente —
+        // scaduto, o di un altro utente — sopravviveva al login e il redirect SSO successivo lo
+        // consegnava.
+        $master_token_name = config("idp.jwt.master_token_name");
+        $masterCookie = $tokenService->cookieCretion($masterToken, $masterProvider->id, $master_token_name);
+        Cookie::queue($masterCookie);
 
         if ($provider_id) {
             // La sessione del provider di destinazione la apre il LOGIN, non piu'

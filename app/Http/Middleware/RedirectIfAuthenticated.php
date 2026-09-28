@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use App\Exceptions\MasterTokenIssueException;
 use App\Models\User;
 use App\Models\Provider;
 use App\Services\TokenProviderService;
@@ -82,8 +83,28 @@ class RedirectIfAuthenticated
             }
         }
 
-        $masterToken = $request->cookie($master_token_name);
-        //  ?: $tokenService->generateMasterToken($user, $masterProvider->id)
+        // Il token del cookie si consegna solo se e' dell'utente loggato e ancora valido.
+        $cookieMasterToken = $request->cookie($master_token_name);
+        try {
+            $masterToken = $tokenService->masterTokenFor($user, $cookieMasterToken);
+        } catch (MasterTokenIssueException $e) {
+            // Configurazione dell'IdP sbagliata: rimandare l'utente all'applicazione con un token
+            // che non funziona lo farebbe tornare qui all'infinito. Ci si ferma e lo si dice.
+            Log::error("[SSO] " . $e->getMessage(), ["user_id" => $user->id, "provider_id" => $providerId]);
+            return redirect()->route("sso.auth-error", [
+                "provider_id" => $providerId,
+                "reason" => "master_token_issue",
+            ]);
+        }
+
+        if ($masterToken !== $cookieMasterToken) {
+            Log::info("[SSO] master token del cookie sostituito prima del redirect.", [
+                "user_id" => $user->id,
+                "vecchio" => SessionService::tokenFingerprint($cookieMasterToken),
+                "nuovo" => SessionService::tokenFingerprint($masterToken),
+            ]);
+            Cookie::queue($tokenService->cookieCretion($masterToken, $masterProvider->id, $master_token_name));
+        }
 
         $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
