@@ -357,6 +357,25 @@ class SessionService
     }
 
     /**
+     * L'URL con il parametro `token` sostituito dalla sua impronta, per scriverlo nei log.
+     *
+     * Il redirect SSO porta il master token in `?token=`: scritto intero nel log, chiunque legga i
+     * log poteva usarlo fino alla scadenza (8 ore). L'impronta basta a riconoscerlo.
+     */
+    public static function redactTokenInUrl(?string $url): ?string
+    {
+        if (empty($url)) {
+            return $url;
+        }
+
+        return preg_replace_callback(
+            "/([?&]token=)([^&#]*)/",
+            fn($m) => $m[1] . self::tokenFingerprint(urldecode($m[2])),
+            $url,
+        );
+    }
+
+    /**
      * Verifica la sessione per la chiamata middleware dell'extension.
      * Ritorna un array con status HTTP e l'eventuale nuovo token.
      */
