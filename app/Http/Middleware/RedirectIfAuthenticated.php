@@ -122,7 +122,8 @@ class RedirectIfAuthenticated
         );
 
         Log::info("Controlli SSO superati per utente {$user->username}. Redirect finale.", [
-            "redirect_away_url" => $ssoData["redirectUrl"],
+            // Mai il token intero nel log: al suo posto l'impronta.
+            "redirect_away_url" => SessionService::redactTokenInUrl($ssoData["redirectUrl"]),
             "is_cross_domain" => !$ssoData["isSameDomainZone"],
         ]);
 

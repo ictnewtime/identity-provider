@@ -12,6 +12,7 @@ use Firebase\JWT\Key;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -289,6 +290,41 @@ class SsoMasterTokenTest extends TestCase
         $this->get(route("sso.auth-error", ["reason" => "<script>x</script>", "provider_id" => "6 or 1=1"]))
             ->assertOk()
             ->assertInertia(fn($page) => $page->where("reason", null)->where("providerId", null));
+    }
+
+    /**
+     * Il log del redirect non contiene il master token: solo la sua impronta. Prima la riga
+     * `Controlli SSO superati` scriveva `?token=<jwt intero>`, e chi leggeva i log di staging poteva
+     * usarlo per 8 ore.
+     */
+    public function test_the_redirect_log_does_not_contain_the_master_token(): void
+    {
+        $user = $this->userWithAccess();
+        $token = $this->masterToken($user, 3600);
+        Log::spy();
+
+        $this->ssoRedirectWith($user, $token)->assertRedirect();
+
+        Log::shouldHaveReceived("info")
+            ->withArgs(function ($message, $context = []) use ($token) {
+                if (!str_contains($message, "Controlli SSO superati")) {
+                    return false;
+                }
+                $url = $context["redirect_away_url"] ?? "";
+
+                return !str_contains($url, $token) && str_contains($url, SessionService::tokenFingerprint($token));
+            })
+            ->once();
+    }
+
+    /** L'impronta sostituisce solo il valore di `token`, gli altri parametri restano. */
+    public function test_redact_token_in_url_keeps_the_rest(): void
+    {
+        $jwt = "aaa.bbb.cccccccc12345678";
+        $redacted = SessionService::redactTokenInUrl("https://app.it/people/1?x=1&token={$jwt}&y=2#f");
+
+        $this->assertSame("https://app.it/people/1?x=1&token=…12345678 (24 car.)&y=2#f", $redacted);
+        $this->assertSame("https://app.it/", SessionService::redactTokenInUrl("https://app.it/"));
     }
 
     // --- login ---------------------------------------------------------------------------------
