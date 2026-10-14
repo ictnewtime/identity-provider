@@ -50,7 +50,7 @@ Utente → App-X (rotta protetta)
 
 ### Flusso API (Bearer token)
 
-Il Bearer token nell'header `Authorization` viene trattato come master token. In caso di errore viene restituito un JSON con `redirect_url` anziché un redirect HTTP.
+Per le chiamate alle rotte `api/*` dell'app, idp-extension cerca il master token nel parametro `?token=`, poi nel cookie `nt-idp-mt-<ambiente>`, infine nell'header `x-master-token`; l'app token nel cookie `nt-idp-at-<id>-<ambiente>` o nell'header `x-app-token`. L'header `Authorization` **non** viene letto: resta libero per l'autenticazione Passport dell'app. In caso di errore viene restituito un JSON con `error` e `redirect_url` anziché un redirect HTTP.
 
 ---
 
@@ -264,7 +264,7 @@ Ripetere per ogni coppia utente-ruolo.
 
 ### Step 7 — Verifica
 
-Effettuare il login con un utente assegnato e verificare che il cookie `nt-idp-at-5-local` sia presente e contenga i ruoli attesi nel payload.
+Effettuare il login con un utente assegnato e verificare che il cookie `nt-idp-at-5-staging` (`nt-idp-at-5-production` in produzione) sia presente e contenga i ruoli attesi nel payload.
 
 ---
 
@@ -342,6 +342,125 @@ Risposta:
 
 ---
 
-## 9. Stack non supportati da idp-extension
+## 9. Integrazione senza idp-extension (client scritto a mano)
 
-Se l'applicazione non è sviluppata in PHP (Laravel) o Node.js, il team di sviluppo NewTimeGroup deve essere contattato per gestire l' autenticazione.
+Se l'applicazione non è in PHP (Laravel) o Node.js, o non usa idp-extension, il client va scritto a
+mano seguendo i passaggi qui sotto. Per dubbi resta il team di sviluppo NewTimeGroup.
+
+### 9.1 Perché un client scritto prima di ottobre 2026 può non funzionare più
+
+Fra fine settembre e ottobre 2026 l'IdP ha cambiato tre cose:
+
+1. la rotta `api/v2/token/exchange` non esiste più e risponde **404**;
+2. `api/v1/token/exchange` risponde con il **corpo vuoto** e i token negli **header**
+   (`x-app-token`, `x-master-token`). Prima restituiva `{"token": "..."}` nel corpo;
+3. i cookie si chiamano `nt-idp-mt-<ambiente>` e `nt-idp-at-<id>-<ambiente>` (vedi §5). I nomi
+   vecchi `idp-master-token` e `idp_token_<id>` non esistono più.
+
+I flussi sono due, con credenziali diverse.
+
+### 9.2 Flusso A — Gestione di utenti e ruoli (client Passport)
+
+Serve solo per creare o modificare utenti, ruoli e assegnazioni via API. Per far entrare un utente
+nell'app non serve: è il flusso B. Le credenziali sono quelle del client Passport (§7, Step 1).
+
+**A1. Chiedere un access token:**
+
+```bash
+curl -X POST https://idp-staging.newtimegroup.it/oauth/token \
+  -H "Content-Type: application/json" -H "Accept: application/json" \
+  -d '{"grant_type":"client_credentials","client_id":"<client_id>","client_secret":"<client_secret>"}'
+```
+
+La risposta contiene `access_token` ed `expires_in` (secondi).
+
+**A2. Usarlo come Bearer** sulle rotte di gestione (`/api/v1/users`, `/api/v1/roles`,
+`/api/v1/providers`, `/api/v1/provider-user-roles`; dettaglio dei campi su Swagger):
+
+```bash
+curl https://idp-staging.newtimegroup.it/api/v1/users \
+  -H "Authorization: Bearer <access_token>" -H "Accept: application/json"
+```
+
+**A3.** Quando l'access token scade (risposta 401) se ne chiede un altro come in A1.
+
+### 9.3 Flusso B — Accesso di un utente all'app (SSO)
+
+Credenziali: l'ID del Provider (`IDP_CLIENT_ID`) e la sua chiave di firma (`IDP_SIGNATURE_KEY`).
+
+**B1. Login.** Se l'utente non è autenticato nell'app, mandarlo all'IdP:
+
+```
+https://idp-staging.newtimegroup.it?provider_id=<IDP_CLIENT_ID>&redirect_to=<URL dell'app, codificato>
+```
+
+**B2. Ritorno.** Dopo il login l'IdP rimanda a `redirect_to`:
+
+- app su un dominio diverso da `newtimegroup.it`, o con il token in URL attivo: il master token
+  arriva nel parametro `?token=<master_token>`;
+- app su `*.newtimegroup.it`: il master token è già nel cookie `nt-idp-mt-<ambiente>`.
+
+Il master token è un JWT RS256 che dura 8 ore e contiene l'identità dell'utente (`payload.user`).
+
+**B3. Verificare il master token prima di usarlo:**
+
+- scaricare le chiavi pubbliche da `GET /.well-known/jwks.json`;
+- scegliere la chiave con il `kid` dell'header del token (oggi `idp-master-key`);
+- verificare la firma RS256 e `exp`;
+- **tollerare fino a 60 secondi di scarto fra gli orologi.** L'orologio dell'IdP può essere un po'
+  avanti: con tolleranza zero un token appena emesso risulta «emesso nel futuro» e viene rifiutato.
+  È già successo su staging.
+
+**B4. Scambio: master token → app token** (l'app token contiene i ruoli per questa app):
+
+```bash
+curl -i -X POST https://idp-staging.newtimegroup.it/api/v1/token/exchange \
+  -H "x-master-token: <master_token>" \
+  -H "Content-Type: application/json" -H "Accept: application/json" \
+  -d '{"provider_id":"<IDP_CLIENT_ID>","ip_address":"<ip utente>","user_agent":"<user agent utente>"}'
+```
+
+- `provider_id` è obbligatorio; `ip_address` e `user_agent` sono facoltativi.
+- Al posto di `x-master-token` si può usare anche `Authorization: Bearer <master_token>`.
+- Risposta 200: **corpo vuoto**, i token negli header:
+
+| Header           | Contenuto                                                                                                                                                 |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `x-app-token`    | l'app token, JWT HS256, dura 30 minuti                                                                                                                    |
+| `x-master-token` | il master token da usare d'ora in poi: lo stesso, oppure uno **nuovo** se quello inviato aveva più di un'ora. Va sempre salvato al posto del precedente. |
+
+Il master token precedente resta valido fino alla sua scadenza.
+
+| Codice | Significato                                                     | Cosa fare                        |
+| ------ | --------------------------------------------------------------- | -------------------------------- |
+| 401    | master token assente, scaduto o con firma non valida            | rifare il login (B1)             |
+| 403    | sessione revocata dall'amministratore, o utente senza ruoli     | l'utente non può entrare nell'app |
+| 404    | `provider_id` inesistente, oppure chiamata alla vecchia `/api/v2/...` | correggere l'indirizzo o l'ID |
+| 500    | app token non generato: configurazione del Provider sull'IdP    | contattare il team IdP           |
+
+**B5. Verificare e usare l'app token:**
+
+- firma HS256 con `IDP_SIGNATURE_KEY`; controllo di `exp` e `nbf` con la **stessa tolleranza di 60
+  secondi** del passo B3 (l'app token ha `nbf` = momento di emissione sull'IdP);
+- ruoli in `payload.payload.roles`, id utente in `payload.payload.user.id` (vedi §4);
+- se i token si salvano in cookie, usare i nomi di §5: `nt-idp-mt-<ambiente>` e
+  `nt-idp-at-<IDP_CLIENT_ID>-<ambiente>`, con `<ambiente>` = `staging` o `production`. Conviene
+  impostare la scadenza con `Max-Age` (non solo `Expires`), così un dispositivo con l'ora sbagliata
+  non vede il cookie già scaduto.
+
+**B6. Rinnovo.** Quando l'app token scade, cioè ogni 30 minuti, si ripete B4 con il master token
+salvato, senza far rifare il login. Solo se B4 risponde 401 si torna a B1.
+
+**B7. Logout.** Mandare l'utente a
+`https://idp-staging.newtimegroup.it/sso/logout?provider_id=<IDP_CLIENT_ID>` e cancellare i propri
+cookie o la propria sessione.
+
+### 9.4 Controllo rapido (dove un client scritto a mano di solito si rompe)
+
+| Se il client…                                        | Allora                                  |
+| ---------------------------------------------------- | --------------------------------------- |
+| chiama `/api/v2/token/exchange`                      | passare a `/api/v1/token/exchange`      |
+| legge l'app token dal corpo della risposta           | leggerlo dall'header `x-app-token`      |
+| ignora l'header `x-master-token` della risposta      | salvarlo: può essere stato ruotato      |
+| verifica gli orari dei token con tolleranza zero     | tollerare 60 secondi                    |
+| cerca i cookie `idp-master-token` o `idp_token_<id>` | usare i nomi di §5                      |
