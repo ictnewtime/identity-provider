@@ -20,6 +20,8 @@ class EncryptCookies extends Middleware
             // Master Token
             $master_token_name = config("idp.jwt.master_token_name");
             $this->except[] = $master_token_name;
+            // Transizione: il nome di prima, letto in chiaro dalle app coi pacchetti v1.
+            $this->except[] = IdpCookies::legacyMasterTokenName();
 
             // App2
             $providerIds = Provider::pluck("id");

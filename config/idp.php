@@ -23,8 +23,9 @@ return [
         // `IdpCookies::appTokenName()`, mai a mano.
         "app_token_name_pattern" => "nt-idp-at-%s-{$appEnv}",
     ],
-    // I nomi di prima del 2026-09. Non si leggono piu' (riaprirebbero il conflitto fra ambienti):
-    // si cancellano soltanto, al login e al logout, perche' non restino nei browser.
+    // I nomi di prima del 2026-09. L'IdP non li legge mai. TRANSIZIONE (tmp/handle-update-version.md,
+    // opzione B): il master token si scrive ANCHE col nome di prima, per le app coi pacchetti v1; al
+    // logout si cancellano entrambi i nomi. Da togliere quando non resta nessuna app v1.
     "legacy_cookies" => [
         "master_token_name" => "idp-master-token",
         "app_token_name_pattern" => "idp_token_%s",

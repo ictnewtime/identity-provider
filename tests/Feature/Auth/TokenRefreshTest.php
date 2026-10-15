@@ -24,6 +24,7 @@ class TokenRefreshTest extends TestCase
 
     /** La rotta dello scambio, unica dal 2026-09 (la `v1`, col comportamento che era della `v2`). */
     private const EXCHANGE = "/api/v1/token/exchange";
+    private const EXCHANGE_V2 = "/api/v2/token/exchange";
 
     /**
      * L'indirizzo di chi apre la sessione, non locale apposta (vedi `SessionRevocationTest`, dove
@@ -222,6 +223,12 @@ class TokenRefreshTest extends TestCase
     public function test_the_exchange_route_exists_and_is_protected(): void
     {
         $this->postJson(self::EXCHANGE, ["provider_id" => "1"])->assertStatus(401);
+    }
+
+    /** Anche la rotta `v2` esiste, e la protegge `verify_master_token`. */
+    public function test_the_v2_exchange_route_exists_and_is_protected(): void
+    {
+        $this->postJson(self::EXCHANGE_V2, ["provider_id" => "1"])->assertStatus(401);
     }
 
     /** Il master token si accetta in tutte e tre le forme, e senza header no. */

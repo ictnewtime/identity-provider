@@ -327,6 +327,26 @@ class SsoMasterTokenTest extends TestCase
         $this->assertSame("https://app.it/", SessionService::redactTokenInUrl("https://app.it/"));
     }
 
+    /** Il redirect SSO allinea anche il cookie col nome di prima, per chi ha fatto login prima del rilascio. */
+    public function test_the_sso_redirect_also_writes_the_legacy_master_cookie(): void
+    {
+        $user = $this->userWithAccess();
+        $token = $this->masterToken($user, 3600);
+
+        $this->ssoRedirectWith($user, $token)->assertPlainCookie("idp-master-token", $token);
+    }
+
+    /** Il logout cancella il master token con tutti e due i nomi. */
+    public function test_logout_expires_both_master_cookie_names(): void
+    {
+        $user = $this->userWithAccess();
+
+        $response = $this->actingAs($user)->get("/sso/logout?provider_id=" . self::TARGET_ID);
+
+        $response->assertCookieExpired(config("idp.jwt.master_token_name"));
+        $response->assertCookieExpired("idp-master-token");
+    }
+
     // --- login ---------------------------------------------------------------------------------
 
     /**
@@ -352,8 +372,8 @@ class SsoMasterTokenTest extends TestCase
         $this->assertSame((string) $user->id, (string) $this->claims($cookie->getValue())->sub);
         $this->assertSame($cookie->getValue(), $this->tokenInRedirect($response));
 
-        // I nomi di prima (condivisi fra staging e produzione) si tolgono dal browser.
-        $response->assertCookieExpired("idp-master-token");
-        $response->assertCookieExpired("idp_token_" . $this->idp->id);
+        // Transizione (tmp/handle-update-version.md, opzione B): il master token anche col nome di
+        // prima, per le app coi pacchetti v1.
+        $response->assertPlainCookie("idp-master-token", $cookie->getValue());
     }
 }
