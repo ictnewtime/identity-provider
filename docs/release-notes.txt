@@ -6,6 +6,15 @@ Il dettaglio tecnico è in docs/external-integration.md.
 Le date sono quelle dei commit; fra parentesi l'identificativo del commit.
 
 
+15/10/2026 - Documentazione riorganizzata in due documenti
+----------------------------------------------------------
+- docs/api-reference-external.md: gestione via API (client Passport, access token, Swagger,
+  rotte di gestione, procedura per collegare una nuova applicazione).
+- docs/external-integration.md: sessione e token (master token, app token, ruoli, scambio con
+  le due rotte, cookie, idp-extension, client scritto a mano, riferimento delle rotte).
+- Eliminati docs/session.md e docs/doc-swagger.md, assorbiti nei due documenti sopra.
+
+
 15/10/2026 - Due rotte di scambio: v1 compatibile con tutti, v2 col metodo nuovo  (35c7c27)
 ----------------------------------------------------------------------------------
 - POST /api/v1/token/exchange risponde in DUE modi insieme:
@@ -24,7 +33,7 @@ Le date sono quelle dei commit; fra parentesi l'identificativo del commit.
 
 14/10/2026 - Documentazione per chi integra senza idp-extension  (dda4da1)
 ---------------------------------------------------------------
-- docs/external-integration.md, §9: passaggi completi per un client scritto a mano.
+- docs/external-integration.md (oggi §7): passaggi completi per un client scritto a mano.
   Gestione via API con client Passport, accesso utente via SSO, verifica dei token,
   scambio, rinnovo, logout, e un controllo rapido degli errori più comuni.
 
