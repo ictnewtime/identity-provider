@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Support\IdpCookies;
 use App\Http\Controllers\Controller;
 use App\Models\Parameter;
 use App\Models\Session;
@@ -144,7 +145,7 @@ class PasswordResetController extends Controller
 
         Session::where("user_id", $user->id)->delete();
 
-        $cookieName = "idp_token_" . config("idp.provider_id");
+        $cookieName = IdpCookies::appTokenName(config("idp.provider_id"));
         $cookie1 = Cookie::forget($cookieName);
         $cookie2 = Cookie::forget("token");
 

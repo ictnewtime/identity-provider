@@ -2,13 +2,14 @@
 
 namespace App\Auth\Idp;
 
+use App\Support\IdpCookies;
 use Illuminate\Http\Request;
 
 class IdpTokenExtractor
 {
     public function cookieName(): string
     {
-        return "idp_token_" . config("idp.provider_id");
+        return IdpCookies::appTokenName(config("idp.provider_id"));
     }
 
     public function extract(Request $request): ?string

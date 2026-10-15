@@ -101,6 +101,10 @@ Route::prefix("v1")->group(function () {
         Route::get("sessions/check", [SessionController::class, "check"]);
         // Route::post("sessions/logout", [SessionController::class, "logout_session"]);
     });
+
+    // Scambio master token -> app token, versione di compatibilita': risponde col token nel CORPO
+    // ({"token": ...}, per le app coi pacchetti v1) e negli HEADER (per quelle coi pacchetti v2, che
+    // chiamano questa rotta come predefinito). Stesso codice della v2, cambia solo il corpo.
     Route::middleware(["verify_master_token"])->group(function () {
         Route::post("token/exchange", [SessionController::class, "get_token"]);
         // Route::post("sessions/logout", [SessionController::class, "logout_session"]);
@@ -108,6 +112,7 @@ Route::prefix("v1")->group(function () {
 });
 
 Route::prefix("v2")->group(function () {
+    // Scambio col solo metodo nuovo: corpo vuoto, token negli header x-app-token / x-master-token.
     Route::middleware(["verify_master_token"])->group(function () {
         Route::post("token/exchange", [SessionController::class, "get_token"]);
     });

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\JwksController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Inertia\Inertia;
@@ -165,5 +166,20 @@ Route::prefix("client")
             Route::get("unauthorized", function () {
                 return Inertia::render("Client/Unauthorized");
             })->name("sso.unauthorized");
+
+            // Accesso non completato per un guasto di configurazione (IdP o applicazione). Ci arrivano
+            // l'IdP stesso e i pacchetti client, invece di rimandare al login: li' l'utente
+            // rientrerebbe nel loop. `reason` e `provider_id` servono solo a mostrare il codice e il
+            // pulsante per uscire: si passano alla pagina solo se hanno una forma ammessa.
+            Route::get("auth-error", function (Request $request) {
+                $reason = (string) $request->query("reason", "");
+                $providerId = (string) $request->query("provider_id", "");
+
+                return Inertia::render("Client/AuthError", [
+                    "reason" => preg_match('/^[a-z_]{1,40}$/', $reason) ? $reason : null,
+                    "providerId" => ctype_digit($providerId) ? $providerId : null,
+                    "occurredAt" => now()->toIso8601String(),
+                ]);
+            })->name("sso.auth-error");
         });
     });

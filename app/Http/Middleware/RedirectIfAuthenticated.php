@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\IdpCookies;
 use Closure;
+use App\Exceptions\MasterTokenIssueException;
 use App\Models\User;
 use App\Models\Provider;
 use App\Services\TokenProviderService;
@@ -19,7 +21,7 @@ class RedirectIfAuthenticated
     public function handle(Request $request, Closure $next, $guard = null)
     {
         $idpProviderId = config("idp.provider_id");
-        $cookieName = "idp_token_" . $idpProviderId;
+        $cookieName = IdpCookies::appTokenName($idpProviderId);
 
         $user = $this->resolveAuthenticatedUser($request, $guard, $idpProviderId, $cookieName);
 
@@ -43,7 +45,7 @@ class RedirectIfAuthenticated
             );
             return $this->forceLogoutAndShowLogin($request, $cookieName, __("auth.no_application_specified"));
         }
-        // Se non c'è master token (idp-master-token)
+        // Se non c'è master token (nt-idp-mt-<ambiente>)
         // fare forceLogoutAndShowLogin
         $master_token_name = config("idp.jwt.master_token_name");
         $hasRequestMasterToken = $request->hasCookie($master_token_name);
@@ -82,8 +84,35 @@ class RedirectIfAuthenticated
             }
         }
 
-        $masterToken = $request->cookie($master_token_name);
-        //  ?: $tokenService->generateMasterToken($user, $masterProvider->id)
+        // Il token del cookie si consegna solo se e' dell'utente loggato e ancora valido.
+        $cookieMasterToken = $request->cookie($master_token_name);
+        try {
+            $masterToken = $tokenService->masterTokenFor($user, $cookieMasterToken);
+        } catch (MasterTokenIssueException $e) {
+            // Configurazione dell'IdP sbagliata: rimandare l'utente all'applicazione con un token
+            // che non funziona lo farebbe tornare qui all'infinito. Ci si ferma e lo si dice.
+            Log::error("[SSO] " . $e->getMessage(), ["user_id" => $user->id, "provider_id" => $providerId]);
+            return redirect()->route("sso.auth-error", [
+                "provider_id" => $providerId,
+                "reason" => "master_token_issue",
+            ]);
+        }
+
+        if ($masterToken !== $cookieMasterToken) {
+            Log::info("[SSO] master token del cookie sostituito prima del redirect.", [
+                "user_id" => $user->id,
+                "vecchio" => SessionService::tokenFingerprint($cookieMasterToken),
+                "nuovo" => SessionService::tokenFingerprint($masterToken),
+            ]);
+            Cookie::queue($tokenService->cookieCretion($masterToken, $masterProvider->id, $master_token_name));
+        }
+
+        // Transizione: le app coi pacchetti v1 leggono il master token col nome di prima. Si allinea
+        // anche quello, compreso chi aveva fatto login prima del rilascio e non l'ha ancora.
+        $legacyName = IdpCookies::legacyMasterTokenName();
+        if ($request->cookie($legacyName) !== $masterToken) {
+            Cookie::queue($tokenService->cookieCretion($masterToken, $masterProvider->id, $legacyName));
+        }
 
         $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
@@ -100,7 +129,8 @@ class RedirectIfAuthenticated
         );
 
         Log::info("Controlli SSO superati per utente {$user->username}. Redirect finale.", [
-            "redirect_away_url" => $ssoData["redirectUrl"],
+            // Mai il token intero nel log: al suo posto l'impronta.
+            "redirect_away_url" => SessionService::redactTokenInUrl($ssoData["redirectUrl"]),
             "is_cross_domain" => !$ssoData["isSameDomainZone"],
         ]);
 
@@ -189,6 +219,7 @@ class RedirectIfAuthenticated
             Cookie::queue(Cookie::forget("token", "/", $provider_idp->domain));
             Cookie::queue(Cookie::forget($master_token_name, "/", $provider_idp->domain));
         }
+        IdpCookies::forgetLegacy(config("idp.provider_id"), $provider_idp?->domain);
 
         if ($userId) {
             SessionService::destroyAllUserSessions((int) $userId);

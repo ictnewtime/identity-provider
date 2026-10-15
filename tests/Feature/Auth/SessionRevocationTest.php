@@ -28,11 +28,10 @@ class SessionRevocationTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Le due rotte dello scambio, tenute distinte apposta: meta' di questi test esiste per provare
-     * che la `v1` e la `v2` si comportano in modo diverso, e una costante sola con la versione
-     * infilata dentro nasconderebbe proprio quella differenza.
+     * Le rotte dello scambio (tmp/handle-update-version.md): `v1` risponde col token nel corpo E negli
+     * header, per servire sia i pacchetti v1 sia i v2; `v2` solo negli header. Il resto e' comune.
      */
-    private const EXCHANGE_V1 = "/api/v1/token/exchange";
+    private const EXCHANGE = "/api/v1/token/exchange";
     private const EXCHANGE_V2 = "/api/v2/token/exchange";
 
     /**
@@ -146,7 +145,7 @@ class SessionRevocationTest extends TestCase
         SessionService::destroyAllUserSessions($user->id);
 
         $risposta = $this->postJson(
-            self::EXCHANGE_V2,
+            self::EXCHANGE,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         );
@@ -163,7 +162,7 @@ class SessionRevocationTest extends TestCase
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
         $this->postJson(
-            self::EXCHANGE_V2,
+            self::EXCHANGE,
             ["provider_id" => "9999"],
             ["x-master-token" => $master],
         )->assertStatus(404);
@@ -175,7 +174,7 @@ class SessionRevocationTest extends TestCase
      * Forma decisa dal developer il 2026-08-28: `x-master-token` e `x-app-token` negli header, corpo
      * vuoto. E' simmetrica alla richiesta, che i token li manda negli header a sua volta.
      */
-    public function test_the_v2_returns_both_tokens_and_writes_an_audit_row(): void
+    public function test_the_exchange_returns_both_tokens_and_writes_an_audit_row(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
@@ -184,7 +183,7 @@ class SessionRevocationTest extends TestCase
         (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
         $risposta = $this->postJson(
-            self::EXCHANGE_V2,
+            self::EXCHANGE,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         );
@@ -193,7 +192,12 @@ class SessionRevocationTest extends TestCase
         $this->assertNotEmpty($risposta->headers->get("x-master-token"), "manca l'header x-master-token");
         $this->assertNotEmpty($risposta->headers->get("x-app-token"), "manca l'header x-app-token");
         $this->assertSame($master, $risposta->headers->get("x-master-token"), "il master token dell'header non e' quello presentato");
-        $this->assertSame([], $risposta->json(), "il corpo della v2 deve essere vuoto: i token stanno negli header");
+        // v1: il corpo porta lo stesso app token dell'header, per le app coi pacchetti v1.
+        $this->assertSame(
+            ["token" => $risposta->headers->get("x-app-token")],
+            $risposta->json(),
+            "la v1 deve rispondere anche col token nel corpo, uguale a quello dell'header",
+        );
 
         $riga = DB::table("audits")->where("auditable_type", "AppToken")->latest("id")->first();
 
@@ -203,26 +207,48 @@ class SessionRevocationTest extends TestCase
         $this->assertStringContainsString('"provider_id"', $riga->new_values);
     }
 
-    /** La `v1` non cambia: risponde con il solo `token`, e non scrive audit. */
-    public function test_the_v1_keeps_its_shape(): void
+    /** La `v2`: stessi header della v1, ma il corpo resta vuoto. */
+    public function test_the_v2_returns_only_headers(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
-
         (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
-        $this->postJson(
-            self::EXCHANGE_V1,
-            ["provider_id" => (string) $provider->id],
-            ["Authorization" => "Bearer {$master}"],
-        )
-            ->assertStatus(200)
-            ->assertJsonStructure(["token"])
-            ->assertHeaderMissing("x-app-token")
-            ->assertHeaderMissing("x-master-token");
+        $risposta = $this->postJson(self::EXCHANGE_V2, ["provider_id" => (string) $provider->id], ["x-master-token" => $master]);
 
-        $this->assertSame(0, DB::table("audits")->where("auditable_type", "AppToken")->count());
+        $risposta->assertStatus(200);
+        $this->assertNotEmpty($risposta->headers->get("x-app-token"), "manca l'header x-app-token");
+        $this->assertSame($master, $risposta->headers->get("x-master-token"));
+        $this->assertSame([], $risposta->json(), "il corpo della v2 deve essere vuoto: i token stanno negli header");
+    }
+
+    /** La `v1` come la usano i pacchetti v1: master token in `Authorization`, app token letto dal corpo. */
+    public function test_the_v1_works_for_v1_clients(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
+
+        $risposta = $this->postJson(self::EXCHANGE, ["provider_id" => (string) $provider->id], ["Authorization" => "Bearer {$master}"]);
+
+        $risposta->assertStatus(200)->assertJsonStructure(["token"]);
+        $this->assertSame(3, substr_count($risposta->json("token"), ".") + 1, "il corpo non contiene un JWT");
+    }
+
+    /** Anche la `v2` ruota un master token di piu' di un'ora. */
+    public function test_the_v2_also_rotates_an_old_master_token(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $vecchio = $this->masterTokenIssuedHoursAgo($user, $provider, 2);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $vecchio);
+
+        $risposta = $this->postJson(self::EXCHANGE_V2, ["provider_id" => (string) $provider->id], ["x-master-token" => $vecchio]);
+
+        $risposta->assertStatus(200);
+        $this->assertNotSame($vecchio, $risposta->headers->get("x-master-token"), "la v2 non ha ruotato");
     }
 
     /**
@@ -309,7 +335,7 @@ class SessionRevocationTest extends TestCase
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
 
         $this->postJson(
-            self::EXCHANGE_V2,
+            self::EXCHANGE,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         )->assertStatus(403);
@@ -370,7 +396,7 @@ class SessionRevocationTest extends TestCase
     }
 
     /** Sulla v2, un master token di piu' di un'ora viene **rigenerato**. */
-    public function test_the_v2_rotates_a_master_token_older_than_an_hour(): void
+    public function test_the_exchange_rotates_a_master_token_older_than_an_hour(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
@@ -379,7 +405,7 @@ class SessionRevocationTest extends TestCase
         (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $vecchio);
 
         $risposta = $this->postJson(
-            self::EXCHANGE_V2,
+            self::EXCHANGE,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $vecchio],
         )->assertStatus(200);
@@ -407,7 +433,7 @@ class SessionRevocationTest extends TestCase
         (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $fresco);
 
         $risposta = $this->postJson(
-            self::EXCHANGE_V2,
+            self::EXCHANGE,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $fresco],
         )->assertStatus(200);
@@ -430,32 +456,10 @@ class SessionRevocationTest extends TestCase
         (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $vecchio);
 
         $corpo = ["provider_id" => (string) $provider->id];
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
 
         // Seconda chiamata con lo **stesso** token vecchio: deve funzionare ancora.
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
-    }
-
-    /** La `v1` non ruota — la sua riga tiene il master token che le e' stato dato. */
-    public function test_the_v1_does_not_rotate(): void
-    {
-        $user = User::factory()->create(["enabled" => 1]);
-        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
-        $vecchio = $this->masterTokenIssuedHoursAgo($user, $provider, 2);
-
-        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $vecchio);
-
-        $this->postJson(
-            self::EXCHANGE_V1,
-            ["provider_id" => (string) $provider->id],
-            ["Authorization" => "Bearer {$vecchio}"],
-        )->assertStatus(200);
-
-        $this->assertSame(
-            $vecchio,
-            Session::where("user_id", $user->id)->first()->refresh_token,
-            "la v1 ha ruotato il master token: non deve",
-        );
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $vecchio])->assertStatus(200);
     }
 
     // --- Un master token che dura un secondo -------------------------
@@ -467,13 +471,10 @@ class SessionRevocationTest extends TestCase
     }
 
     /**
-     * Sulla `v1`: **il master token scade e la sessione non si rinnova piu'**.
-     *
-     * Con la durata a un secondo, l'exchange funziona subito e non funziona piu' un istante dopo. La
-     * v1 non ruota, quindi qui non c'e' scampo — ed e' il comportamento voluto: e' la scadenza che fa
-     * il suo lavoro.
+     * **Un master token scaduto non rinnova piu'**: la rotazione non lo salva, perche'
+     * `VerifyMasterToken` lo rifiuta prima. E' la scadenza che fa il suo lavoro.
      */
-    public function test_on_v1_an_expired_master_token_cannot_renew_anymore(): void
+    public function test_an_expired_master_token_cannot_renew_anymore(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
@@ -486,10 +487,10 @@ class SessionRevocationTest extends TestCase
         $corpo = ["provider_id" => (string) $provider->id];
 
         // Finche' e' vivo: si rinnova.
-        $this->postJson(self::EXCHANGE_V1, $corpo, ["Authorization" => "Bearer {$vivo}"])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $vivo])->assertStatus(200);
 
-        // Scaduto: `VerifyMasterToken` lo rifiuta, e la v1 non ruota, quindi non c'e' scampo.
-        $this->postJson(self::EXCHANGE_V1, $corpo, ["Authorization" => "Bearer {$scaduto}"])->assertStatus(401);
+        // Scaduto: `VerifyMasterToken` lo rifiuta prima di arrivare alla rotazione.
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $scaduto])->assertStatus(401);
     }
 
     /** La durata del master token e' un **parametro**: qui si legge nel token che ne esce. */
@@ -513,7 +514,7 @@ class SessionRevocationTest extends TestCase
      * Non e' cosi' — con la soglia a un'ora e la durata a un secondo, il token muore **prima** che la
      * rotazione lo consideri vecchio.
      */
-    public function test_on_v2_the_expiry_wins_when_rotation_is_far_away(): void
+    public function test_the_expiry_wins_when_rotation_is_far_away(): void
     {
         $this->parameter("master-token-rotate-after-seconds", "3600");
 
@@ -525,12 +526,12 @@ class SessionRevocationTest extends TestCase
 
         $corpo = ["provider_id" => (string) $provider->id];
 
-        $risposta = $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $risposta = $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $master])->assertStatus(200);
         $this->assertSame($master, $risposta->headers->get("x-master-token"), "non doveva ruotare: ha meno di un'ora");
 
         // Lo stesso utente, con un master token scaduto: la rotazione lontana non lo salva.
         $scaduto = $this->masterTokenLasting($user, $provider, 10, -1);
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $scaduto])->assertStatus(401);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $scaduto])->assertStatus(401);
     }
 
     /**
@@ -540,7 +541,7 @@ class SessionRevocationTest extends TestCase
      * exchange il token ha passato la soglia, ne arriva uno nuovo, e **quello nuovo funziona** anche
      * quando il primo sarebbe morto.
      */
-    public function test_on_v2_a_short_rotation_keeps_the_session_alive(): void
+    public function test_a_short_rotation_keeps_the_session_alive(): void
     {
         $this->parameter("master-token-exp-time-seconds", "600");
         $this->parameter("master-token-rotate-after-seconds", "1");
@@ -556,14 +557,14 @@ class SessionRevocationTest extends TestCase
 
         $corpo = ["provider_id" => (string) $provider->id];
 
-        $risposta = $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])
+        $risposta = $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $master])
             ->assertStatus(200);
 
         $nuovo = $risposta->headers->get("x-master-token");
         $this->assertNotSame($master, $nuovo, "la soglia era passata: doveva ruotare");
 
         // E il token nuovo vale: e' la ragione per cui la rotazione tiene viva la sessione.
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $nuovo])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $nuovo])->assertStatus(200);
     }
 
     /** La soglia e' un **parametro**, e il ripiego e' un'ora: senza riga a database vale 3600. */
@@ -603,7 +604,7 @@ class SessionRevocationTest extends TestCase
      * (la scrive il login, per la v1) e quella del master token. Un exchange v2 su un **secondo**
      * provider non ne aggiunge una terza.
      */
-    public function test_a_v2_exchange_does_not_create_a_provider_row(): void
+    public function test_an_exchange_does_not_create_a_provider_row(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $primo = $this->providerWithAccess((int) config("idp.provider_id"), $user);
@@ -615,7 +616,7 @@ class SessionRevocationTest extends TestCase
         $prima = Session::where("user_id", $user->id)->count();
 
         $this->postJson(
-            self::EXCHANGE_V2,
+            self::EXCHANGE,
             ["provider_id" => (string) $secondo->id],
             ["x-master-token" => $master],
         )->assertStatus(200);
@@ -629,7 +630,7 @@ class SessionRevocationTest extends TestCase
     }
 
     /** Se la riga del master token non c'e', la `v2` rifiuta — e' una revoca. */
-    public function test_the_v2_refuses_when_the_master_session_is_gone(): void
+    public function test_the_exchange_refuses_when_the_master_session_is_gone(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
@@ -639,7 +640,7 @@ class SessionRevocationTest extends TestCase
         SessionService::destroyAllUserSessions($user->id);
 
         $this->postJson(
-            self::EXCHANGE_V2,
+            self::EXCHANGE,
             ["provider_id" => (string) $provider->id],
             ["x-master-token" => $master],
         )->assertStatus(403);
@@ -649,7 +650,7 @@ class SessionRevocationTest extends TestCase
 
     /**
      * Il login verso un'applicazione **esterna** scrive **una sola** riga, quella senza
-     * provider. La riga del provider nasce quando una chiamata `v1` la chiede.
+     * provider. Lo scambio non ne aggiunge: lo prova il test che segue.
      */
     public function test_the_login_towards_an_external_app_writes_only_the_master_row(): void
     {
@@ -664,24 +665,10 @@ class SessionRevocationTest extends TestCase
             (new SessionService())->masterSessionFor($user->id),
             "la riga scritta non e' quella senza provider",
         );
-
-        // Ora arriva una chiamata v1: la riga per provider nasce qui.
-        $this->postJson(
-            self::EXCHANGE_V1,
-            ["provider_id" => (string) $esterna->id],
-            ["Authorization" => "Bearer {$master}"],
-        )->assertStatus(200);
-
-        $this->assertSame(2, Session::where("user_id", $user->id)->count(), "la v1 non ha creato la sua riga");
-        $this->assertSame(
-            1,
-            Session::where("user_id", $user->id)->where("provider_id", $esterna->id)->count(),
-            "manca la riga del provider chiesto",
-        );
     }
 
     /** Una `v2` non fa nascere nessuna riga per provider, nemmeno chiamandola due volte. */
-    public function test_a_v2_app_never_gets_a_provider_row(): void
+    public function test_an_app_never_gets_a_provider_row(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $esterna = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
@@ -690,17 +677,18 @@ class SessionRevocationTest extends TestCase
         (new SessionService())->openProviderSession($user, $esterna->id, self::CLIENT_IP, "phpunit", $master);
 
         $corpo = ["provider_id" => (string) $esterna->id];
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])->assertStatus(200);
-        $this->postJson(self::EXCHANGE_V2, $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $master])->assertStatus(200);
+        $this->postJson(self::EXCHANGE, $corpo, ["x-master-token" => $master])->assertStatus(200);
 
         $this->assertSame(1, Session::where("user_id", $user->id)->count(), "la v2 ha creato righe che non le servono");
     }
 
     /**
-     * La prova che il modello non riapre il difetto della revoca: dopo una revoca **anche la `v1`** rifiuta,
-     * perche' la riga senza provider — la prova che l'utente e' entrato — e' sparita con le altre.
+     * La prova che il modello non riapre il difetto della revoca, su un'applicazione esterna: dopo una
+     * revoca lo scambio rifiuta, perche' la riga senza provider — la prova che l'utente e' entrato —
+     * e' sparita con le altre.
      */
-    public function test_after_a_revocation_even_the_v1_refuses(): void
+    public function test_after_a_revocation_an_external_app_is_refused(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $esterna = $this->providerWithAccess((int) config("idp.provider_id") + 1, $user);
@@ -710,11 +698,11 @@ class SessionRevocationTest extends TestCase
         SessionService::destroyAllUserSessions($user->id);
 
         $this->postJson(
-            self::EXCHANGE_V1,
+            self::EXCHANGE,
             ["provider_id" => (string) $esterna->id],
-            ["Authorization" => "Bearer {$master}"],
+            ["x-master-token" => $master],
         )->assertStatus(403);
 
-        $this->assertSame(0, Session::where("user_id", $user->id)->count(), "la v1 ha ricreato una sessione revocata");
+        $this->assertSame(0, Session::where("user_id", $user->id)->count(), "lo scambio ha ricreato una sessione revocata");
     }
 }
