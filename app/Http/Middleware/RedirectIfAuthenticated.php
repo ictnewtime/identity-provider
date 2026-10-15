@@ -107,6 +107,13 @@ class RedirectIfAuthenticated
             Cookie::queue($tokenService->cookieCretion($masterToken, $masterProvider->id, $master_token_name));
         }
 
+        // Transizione: le app coi pacchetti v1 leggono il master token col nome di prima. Si allinea
+        // anche quello, compreso chi aveva fatto login prima del rilascio e non l'ha ancora.
+        $legacyName = IdpCookies::legacyMasterTokenName();
+        if ($request->cookie($legacyName) !== $masterToken) {
+            Cookie::queue($tokenService->cookieCretion($masterToken, $masterProvider->id, $legacyName));
+        }
+
         $ssoData = $tokenService->resolveCrossDomainRedirect($provider, $masterProvider, $redirectUrl, $masterToken);
         $redirectUrl = $ssoData["redirectUrl"];
 
