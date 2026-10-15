@@ -1,0 +1,73 @@
+NOTE DI RILASCIO - IDENTITY PROVIDER (IdP) NEWTIMEGROUP
+=========================================================
+
+Cosa cambia per chi integra un'applicazione con l'IdP, in ordine dal più recente.
+Il dettaglio tecnico è in docs/external-integration.md.
+Le date sono quelle dei commit; fra parentesi l'identificativo del commit.
+
+
+15/10/2026 - Due rotte di scambio: v1 compatibile con tutti, v2 col metodo nuovo  (35c7c27)
+----------------------------------------------------------------------------------
+- POST /api/v1/token/exchange risponde in DUE modi insieme:
+    * nel corpo:     {"token": "<app_token>"}          (come prima del 28/09)
+    * negli header:  x-app-token e x-master-token       (come dal 28/09)
+  Così funzionano sia le app con idp-extension v1 (leggono il corpo) sia quelle con
+  idp-extension v2 (leggono gli header). Nessuna app va modificata.
+- Torna POST /api/v2/token/exchange: solo header, corpo vuoto.
+- Le due rotte fanno lo stesso scambio (rotazione del master token dopo un'ora, una riga
+  di sessione per utente, audit). Cambia solo il corpo della risposta.
+- TRANSIZIONE: il login scrive di nuovo anche il cookie col nome vecchio idp-master-token,
+  che le app con idp-extension v1 leggono. Al logout si cancellano entrambi i nomi.
+  ATTENZIONE: quel cookie è di nuovo condiviso fra staging e produzione. Va tolto quando
+  tutte le app saranno passate a idp-extension v2.
+
+
+14/10/2026 - Documentazione per chi integra senza idp-extension  (dda4da1)
+---------------------------------------------------------------
+- docs/external-integration.md, §9: passaggi completi per un client scritto a mano.
+  Gestione via API con client Passport, accesso utente via SSO, verifica dei token,
+  scambio, rinnovo, logout, e un controllo rapido degli errori più comuni.
+
+
+29/09/2026 - Tolleranza sugli orari dei token  (4acb3ed, 49d659b)
+-------------------------------------------------------
+- Causa: l'orologio dell'IdP di staging era circa 1 secondo avanti. Un token appena emesso
+  risultava "emesso nel futuro" e veniva rifiutato, e l'utente girava fra app e IdP.
+- I pacchetti idp-extension (PHP e Node) tollerano fino a 60 secondi di scarto fra gli
+  orologi. Oltre, l'utente vede la pagina d'errore dell'IdP con codice clock_skew invece di
+  tornare al login.
+- Pacchetto Node: i cookie hanno anche Max-Age, così un dispositivo con l'ora sbagliata non
+  li vede già scaduti.
+- IdP: il log del redirect SSO non contiene più il master token intero, solo un'impronta
+  (gli ultimi 8 caratteri e la lunghezza).
+- Da fare sui server: sincronizzare gli orologi con NTP.
+
+
+28/09/2026 - Nomi dei cookie per ambiente e correzioni sui token  (d64aff6, ca16053, cdd6f50)
+-------------------------------------------------------------------------
+- MODIFICA INCOMPATIBILE - nomi dei cookie:
+    master token:  idp-master-token   ->  nt-idp-mt-<ambiente>
+    app token:     idp_token_<id>     ->  nt-idp-at-<id>-<ambiente>
+  <ambiente> è "staging" o "production". Prima staging e produzione scrivevano lo stesso
+  cookie sullo stesso dominio .newtimegroup.it e si sovrascrivevano a vicenda.
+  Nei pacchetti l'ambiente si ricava dall'APP_ENV dell'app: production -> production,
+  qualunque altro valore -> staging.
+- Scambio dei token: la v2 era stata tolta e la v1 rispondeva solo negli header.
+  Superato dal rilascio del 15/10.
+- Corretto: il master token poteva uscire con 1 secondo di durata in meno; l'IdP accettava
+  per un secondo un token già scaduto; la sessione sul database poteva durare più del
+  token che conteneva.
+
+
+28/09/2026 - Loop di redirect col master token scaduto  (239f488)
+-------------------------------------------------------
+- Causa: il cookie del master token durava 20 giorni invece di 8 ore, e l'IdP consegnava
+  alle app un token già scaduto. L'app lo rifiutava e rimandava all'IdP, all'infinito.
+- L'IdP controlla il master token prima di consegnarlo: se è scaduto, di un altro utente o
+  dell'altro ambiente, ne emette uno nuovo. Prima un utente poteva entrare nell'app con
+  l'identità di chi aveva usato il browser prima di lui.
+- Il login aggiorna sempre il cookie del master token, anche verso app su altri domini.
+- Nuova pagina "Accesso non completato" (/client/v1/auth-error): ci arrivano l'IdP e i
+  pacchetti quando il problema è di configurazione e rifare il login non servirebbe.
+- Pacchetti idp-extension: dopo 3 giri verso il login in 2 minuti si fermano sulla pagina
+  d'errore (too_many_redirects) invece di girare all'infinito.
