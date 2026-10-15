@@ -247,7 +247,7 @@ class TokenProviderService
         if (empty($cookie_name)) {
             $cookie_name = IdpCookies::appTokenName($provider_id);
         }
-        if ($cookie_name == $master_token_name) {
+        if ($cookie_name == $master_token_name || $cookie_name == IdpCookies::legacyMasterTokenName()) {
             $expiration_seconds = $this->getMasterTokenExpiredAt();
         }
         $provider = Provider::where("id", $provider_id)->first();

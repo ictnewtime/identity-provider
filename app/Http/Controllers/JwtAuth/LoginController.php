@@ -153,8 +153,10 @@ class LoginController extends Controller
         $master_token_name = config("idp.jwt.master_token_name");
         $masterCookie = $tokenService->cookieCretion($masterToken, $masterProvider->id, $master_token_name);
         Cookie::queue($masterCookie);
-        // I cookie coi nomi di prima (idp-master-token, idp_token_<id>) si tolgono dal browser.
-        IdpCookies::forgetLegacy($masterProvider->id, $masterProvider->domain);
+        // Transizione: anche col nome di prima, per le app coi pacchetti v1 (IdpCookies::legacyMasterTokenName()).
+        Cookie::queue(
+            $tokenService->cookieCretion($masterToken, $masterProvider->id, IdpCookies::legacyMasterTokenName()),
+        );
 
         if ($provider_id) {
             // La sessione del provider di destinazione la apre il LOGIN, non piu'

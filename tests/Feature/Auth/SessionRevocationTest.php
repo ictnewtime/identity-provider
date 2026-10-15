@@ -28,11 +28,11 @@ class SessionRevocationTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * La rotta dello scambio. Dal 2026-09 e' una sola: `v1`, col comportamento che era della `v2`
-     * (header, rotazione, riga unica). `v2` non esiste piu' — lo prova un test qui sotto.
+     * Le rotte dello scambio (tmp/handle-update-version.md): `v1` risponde col token nel corpo E negli
+     * header, per servire sia i pacchetti v1 sia i v2; `v2` solo negli header. Il resto e' comune.
      */
     private const EXCHANGE = "/api/v1/token/exchange";
-    private const REMOVED_EXCHANGE_V2 = "/api/v2/token/exchange";
+    private const EXCHANGE_V2 = "/api/v2/token/exchange";
 
     /**
      * L'indirizzo di chi apre la sessione. Non e' locale apposta: nella riga di sessione si
@@ -192,7 +192,12 @@ class SessionRevocationTest extends TestCase
         $this->assertNotEmpty($risposta->headers->get("x-master-token"), "manca l'header x-master-token");
         $this->assertNotEmpty($risposta->headers->get("x-app-token"), "manca l'header x-app-token");
         $this->assertSame($master, $risposta->headers->get("x-master-token"), "il master token dell'header non e' quello presentato");
-        $this->assertSame([], $risposta->json(), "il corpo della v2 deve essere vuoto: i token stanno negli header");
+        // v1: il corpo porta lo stesso app token dell'header, per le app coi pacchetti v1.
+        $this->assertSame(
+            ["token" => $risposta->headers->get("x-app-token")],
+            $risposta->json(),
+            "la v1 deve rispondere anche col token nel corpo, uguale a quello dell'header",
+        );
 
         $riga = DB::table("audits")->where("auditable_type", "AppToken")->latest("id")->first();
 
@@ -202,18 +207,48 @@ class SessionRevocationTest extends TestCase
         $this->assertStringContainsString('"provider_id"', $riga->new_values);
     }
 
-    /** La rotta `v2` non esiste piu': chi la chiama ancora riceve 404, non uno scambio a meta'. */
-    public function test_the_removed_v2_route_is_not_found(): void
+    /** La `v2`: stessi header della v1, ma il corpo resta vuoto. */
+    public function test_the_v2_returns_only_headers(): void
     {
         $user = User::factory()->create(["enabled" => 1]);
         $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
         $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
 
-        $this->postJson(
-            self::REMOVED_EXCHANGE_V2,
-            ["provider_id" => (string) $provider->id],
-            ["x-master-token" => $master],
-        )->assertStatus(404);
+        $risposta = $this->postJson(self::EXCHANGE_V2, ["provider_id" => (string) $provider->id], ["x-master-token" => $master]);
+
+        $risposta->assertStatus(200);
+        $this->assertNotEmpty($risposta->headers->get("x-app-token"), "manca l'header x-app-token");
+        $this->assertSame($master, $risposta->headers->get("x-master-token"));
+        $this->assertSame([], $risposta->json(), "il corpo della v2 deve essere vuoto: i token stanno negli header");
+    }
+
+    /** La `v1` come la usano i pacchetti v1: master token in `Authorization`, app token letto dal corpo. */
+    public function test_the_v1_works_for_v1_clients(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $master = (new TokenProviderService())->generateMasterToken($user, $provider->id);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $master);
+
+        $risposta = $this->postJson(self::EXCHANGE, ["provider_id" => (string) $provider->id], ["Authorization" => "Bearer {$master}"]);
+
+        $risposta->assertStatus(200)->assertJsonStructure(["token"]);
+        $this->assertSame(3, substr_count($risposta->json("token"), ".") + 1, "il corpo non contiene un JWT");
+    }
+
+    /** Anche la `v2` ruota un master token di piu' di un'ora. */
+    public function test_the_v2_also_rotates_an_old_master_token(): void
+    {
+        $user = User::factory()->create(["enabled" => 1]);
+        $provider = $this->providerWithAccess((int) config("idp.provider_id"), $user);
+        $vecchio = $this->masterTokenIssuedHoursAgo($user, $provider, 2);
+        (new SessionService())->openProviderSession($user, $provider->id, self::CLIENT_IP, "phpunit", $vecchio);
+
+        $risposta = $this->postJson(self::EXCHANGE_V2, ["provider_id" => (string) $provider->id], ["x-master-token" => $vecchio]);
+
+        $risposta->assertStatus(200);
+        $this->assertNotSame($vecchio, $risposta->headers->get("x-master-token"), "la v2 non ha ruotato");
     }
 
     /**

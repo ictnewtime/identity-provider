@@ -42,6 +42,17 @@ class IdpCookies
         return config("idp.jwt.master_token_name");
     }
 
+    /**
+     * Il nome di prima del master token (`idp-master-token`). TRANSIZIONE (opzione B di
+     * tmp/handle-update-version.md): l'IdP lo scrive ancora accanto a `nt-idp-mt-<ambiente>` perche' le
+     * app coi pacchetti v1 lo leggono. Riapre il conflitto staging/produzione su quel solo cookie: va
+     * tolto quando non resta nessuna app v1.
+     */
+    public static function legacyMasterTokenName(): string
+    {
+        return config("idp.legacy_cookies.master_token_name");
+    }
+
     public static function appTokenName(int|string $providerId): string
     {
         return sprintf(config("idp.jwt.app_token_name_pattern"), $providerId);

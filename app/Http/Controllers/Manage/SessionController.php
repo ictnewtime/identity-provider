@@ -191,7 +191,23 @@ class SessionController extends Controller
         // nessuno.
         $masterToken = $this->rotateMasterTokenIfNeeded($request, $user, $masterToken, $tokenService);
 
-        return $this->exchange($request, $user, $providerId, $masterToken, $tokenService, $sessionService);
+        // Le due rotte fanno lo stesso scambio; la v1 aggiunge il token nel corpo per le app non
+        // aggiornate (vedi tmp/handle-update-version.md).
+        return $this->exchange(
+            $request,
+            $user,
+            $providerId,
+            $masterToken,
+            $tokenService,
+            $sessionService,
+            withBody: !$this->isV2($request),
+        );
+    }
+
+    /** La richiesta arriva dalla rotta `v2`? Le due rotte puntano allo stesso metodo. */
+    private function isV2(Request $request): bool
+    {
+        return $request->is("api/v2/*");
     }
 
     /**
@@ -286,6 +302,7 @@ class SessionController extends Controller
         ?string $masterToken,
         TokenProviderService $tokenService,
         SessionService $sessionService,
+        bool $withBody = false,
     ): JsonResponse {
         $ipAddress = $request->input("ip_address") ?? $request->ip();
         $userAgent = $request->input("user_agent") ?? $request->userAgent();
@@ -338,8 +355,10 @@ class SessionController extends Controller
 
         $this->auditAppToken($request, $user->id, $providerId, $appToken);
 
+        // Header sempre (pacchetti v2); il corpo {"token": ...} solo sulla v1 (pacchetti v1 e client
+        // scritti prima del 28/09, che leggono il token da li').
         return response()
-            ->json([], 200)
+            ->json($withBody ? ["token" => $appToken] : [], 200)
             ->withHeaders([
                 "x-master-token" => $masterToken,
                 "x-app-token" => $appToken,
