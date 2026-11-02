@@ -6,6 +6,7 @@ use App\Models\Parameter;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Exceptions\SeedingException;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 /**
@@ -23,8 +24,8 @@ class DatabaseSeederTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Il nome della variabile sta in una costante, e la costante finisce **sia** nella lettura
-     * dell'ambiente **sia** nel messaggio d'errore.
+     * Il nome della variabile sta in una costante, e la costante finisce **sia** nell'ambiente
+     * che il test prepara **sia** nel controllo del messaggio d'errore del seeder.
      *
      * Non e' pignoleria: scrivendo il nome due volte, il giorno che cambia si aggiorna la lettura e
      * si dimentica il messaggio — e chi legge l'errore va a cercare una variabile che non esiste piu'.
@@ -33,56 +34,38 @@ class DatabaseSeederTest extends TestCase
      */
     private const PASSWORD_VARIABLE = "SEED_ADMIN_PASSWORD";
 
-    /** Lo script che prepara l'ambiente. Il test qui sotto verifica che **esista davvero**. */
-    private const SETUP_SCRIPT = "scripts/setup-env-for-test-backend.sh";
-
     /**
-     * La password dell'amministratore di prova **non sta nel sorgente**: arriva dall'ambiente
-     *. Nel modello `.env.test.backend.example` la variabile e' dichiarata senza
-     * valore, e lo script di preparazione la genera e la passa al container.
+     * La password dell'amministratore di prova **la genera il test**: non sta nel sorgente e non
+     * arriva da fuori, quindi non c'e' niente da preparare prima di lanciare la suite.
      *
-     * Ricordata in una proprieta' statica perche' `test_senza_la_password_…` la cancella di
-     * proposito: senza questa copia, dal secondo test in poi non ci sarebbe piu'.
+     * Ricordata in una proprieta' statica perche' `test_without_the_password_…` la cancella di
+     * proposito: `setUp()` la rimette a ogni test.
      */
     private static ?string $password = null;
-
-    private static function missingPasswordMessage(): string
-    {
-        return sprintf(
-            "Manca %s nell'ambiente: questo test semina un amministratore e la password non se la " .
-                "inventa. Eseguire ./%s, che la genera una volta e la scrive in .env.test.backend.",
-            self::PASSWORD_VARIABLE,
-            self::SETUP_SCRIPT,
-        );
-    }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        self::$password ??= (string) env(self::PASSWORD_VARIABLE);
-
-        if (self::$password === "") {
-            $this->fail(self::missingPasswordMessage());
-        }
+        self::$password ??= Str::password(24);
 
         $this->setPassword(self::$password);
     }
 
     protected function tearDown(): void
     {
-        // Si **ripristina**, non si cancella: il valore viene dall'ambiente del processo, e
-        // cancellarlo lo toglierebbe anche agli altri file di test eseguiti dopo.
-        $this->setPassword(self::$password ?? "");
+        // Si toglie dall'ambiente del processo: e' del test, e non deve arrivare ai file eseguiti dopo.
+        putenv(self::PASSWORD_VARIABLE);
+        unset($_ENV[self::PASSWORD_VARIABLE], $_SERVER[self::PASSWORD_VARIABLE]);
 
         parent::tearDown();
     }
 
     private function setPassword(string $password): void
     {
-        putenv("SEED_ADMIN_PASSWORD=" . $password);
-        $_ENV["SEED_ADMIN_PASSWORD"] = $password;
-        $_SERVER["SEED_ADMIN_PASSWORD"] = $password;
+        putenv(self::PASSWORD_VARIABLE . "=" . $password);
+        $_ENV[self::PASSWORD_VARIABLE] = $password;
+        $_SERVER[self::PASSWORD_VARIABLE] = $password;
     }
 
     /** Le righe che il seeder crea, nell'ordine in cui le crea. */
@@ -157,35 +140,16 @@ class DatabaseSeederTest extends TestCase
         $this->assertSame($prima, $this->counts(), "la seconda esecuzione ha lasciato righe dietro di se'");
     }
 
-    /**
-     * Il messaggio del guardiano vale quanto la sua precisione: e' l'unica cosa che chi lo incontra
-     * legge. Questo test lo tiene attaccato alla realta' in due modi — nomina la **stessa** variabile
-     * che il codice legge (e' la stessa costante), e lo script che indica **esiste sul disco**.
-     *
-     * In inglese perche' e' la convenzione da qui in avanti; gli altri verranno convertiti.
-     */
-    public function test_the_missing_password_message_names_the_variable_and_an_existing_script(): void
-    {
-        $message = self::missingPasswordMessage();
-
-        $this->assertStringContainsString(self::PASSWORD_VARIABLE, $message);
-        $this->assertStringContainsString(self::SETUP_SCRIPT, $message);
-        $this->assertFileExists(
-            base_path(self::SETUP_SCRIPT),
-            "il messaggio indica uno script che non esiste: chi lo legge non ha una via d'uscita",
-        );
-    }
-
     public function test_without_the_password_the_seeder_stops_and_writes_nothing(): void
     {
-        putenv("SEED_ADMIN_PASSWORD");
-        unset($_ENV["SEED_ADMIN_PASSWORD"], $_SERVER["SEED_ADMIN_PASSWORD"]);
+        putenv(self::PASSWORD_VARIABLE);
+        unset($_ENV[self::PASSWORD_VARIABLE], $_SERVER[self::PASSWORD_VARIABLE]);
 
         try {
             $this->seed(DatabaseSeeder::class);
             $this->fail("senza SEED_ADMIN_PASSWORD il seeder doveva fermarsi");
         } catch (SeedingException $e) {
-            $this->assertStringContainsString("SEED_ADMIN_PASSWORD", $e->getMessage());
+            $this->assertStringContainsString(self::PASSWORD_VARIABLE, $e->getMessage());
         }
 
         $this->assertSame(

@@ -33,12 +33,8 @@ chmod -R 775 storage bootstrap/cache
 npm run build
 ```
 
-**OBBLIGATORIO** — credenziali dei test E2E: si generano come la chiave di Laravel, non si scrivono
-a mano e non si versionano. Lo script crea gli utenti nel database e scrive `cypress.env.json`.
-
-```sh
-./scripts/prepare-e2e-credentials.sh
-```
+I test (backend ed E2E) non hanno bisogno di niente di tutto questo: girano in container loro, con
+credenziali generate a ogni esecuzione. Vedi [TEST.md](TEST.md).
 
 (Facoltativo) Pulisci cache se si hanno dati sporchi quando già avvaita l'applicazione
 

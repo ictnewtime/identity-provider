@@ -2,25 +2,24 @@
 
 ## 1. Riepilogo
 
-Tre ambienti, tre database, e **non si toccano fra loro**. La separazione non è ordine: è la
+Due database su MariaDB, e **non si toccano fra loro**. La separazione non è ordine: è la
 correzione di un difetto — con un database solo, una esecuzione dei test faceva `migrate:fresh` su
 quello di lavoro e lo svuotava ([`VDF11`](task/vulnerability/vulnerability.md)).
 
 | Ambiente               | Database                        | Chi lo crea                                                             | Chi lo svuota   | Obbligatorio?                                      |
 | ---------------------- | ------------------------------- | ----------------------------------------------------------------------- | --------------- | -------------------------------------------------- |
 | **develop**            | `idp_develop`                   | **tu, a mano** (§ 2)                                                    | solo tu         | **opzionale** — serve per lavorare, non per i test |
-| **test E2E**           | `idp_test`                      | l'ambiente di test, da sé: `CREATE DATABASE IF NOT EXISTS` a ogni avvio | ogni esecuzione | sì, per gli E2E                                    |
 | **stage / production** | `idp_staging`, `idp_production` | chi amministra il server (§ 4)                                          | nessuno         | fuori da questa macchina                           |
 
-**I test di backend non usano nessuno dei tre**: girano su **sqlite in memoria**, che non è un
-database su disco e non ha niente da creare. È il motivo per cui il § 2 è opzionale — gli E2E hanno
-bisogno di `idp_test`, non di `idp_develop`.
+**I test non usano nessuno dei due**: i test di backend girano su **sqlite in memoria**, gli E2E su un
+**file sqlite dentro il loro container**, che sparisce con lui (§ 3). È il motivo per cui il § 2 è
+opzionale.
 
 Due difese impediscono che un'esecuzione dei test tocchi `idp_develop`:
 
 - `tests/TestCase.php` **aborta prima di qualunque migrazione** se il database in uso non è fra
-  quelli consentiti (`:memory:`, `idp_test`);
-- l'ambiente di test è un container suo, con la propria configurazione: non legge il `.env` di
+  quelli consentiti (solo `:memory:`);
+- ogni ambiente di test è un container suo, con la propria configurazione: non legge il `.env` di
   sviluppo e non tocca `bootstrap/cache/`.
 
 ---
@@ -103,45 +102,18 @@ deve, ed è [`VDF11`](task/vulnerability/vulnerability.md).
 
 ## 3. Database dei test E2E
 
-Non c'è niente da preparare a mano: lo crea l'entrypoint di `Dockerfile.test.e2e` a ogni avvio, con
-`CREATE DATABASE IF NOT EXISTS`. Le migrazioni ricreano lo schema a ogni esecuzione.
+Non c'è niente da preparare: è un file sqlite in `/tmp` del container E2E. Lo crea
+`docker/test/e2e-reset-db.sh` all'avvio (migrazioni + `DatabaseSeeder` + `E2EUserSeeder`) e sparisce
+quando il container viene eliminato. Lo script rifiuta di partire se il database configurato non è
+un sqlite in `/tmp`.
 
-### Dove sta la configurazione
+| File                       | Cosa dichiara                                                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `.env.test.e2e.example`    | `DB_CONNECTION=sqlite`, `DB_DATABASE=/tmp/e2e/database.sqlite`. `Dockerfile.test.e2e` lo copia **nell'immagine** |
+| `docker/test/e2e-entrypoint.sh` | genera credenziali e chiavi, crea il database, avvia l'applicazione e lancia Playwright                      |
 
-| File                                      | Cosa dichiara                                                                                                                                                |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `.env.test.e2e.example`                   | il modello: `DB_DATABASE=idp_test`, `CYPRESS_BASE_URL`, `SEED_ADMIN_PASSWORD`. `Dockerfile.test.e2e` lo copia **dentro l'immagine**, non sopra il tuo `.env` |
-| `docker-compose.test.yml`, servizio `e2e` | le variabili vere del container, che vincono su tutto. Qui `DB_HOST` è il servizio MariaDB e la rete è quella del compose di sviluppo                        |
-
-Gli E2E usano **MariaDB e non sqlite** per due motivi, e il primo è misurato: `LIKE '%MARIÒ%'` su
-`Mariò` trova **0 righe su sqlite e 1 su MariaDB** con `utf8mb4_unicode_ci` — e la ricerca di questa
-applicazione è fatta di `LIKE`, su nomi che in italiano hanno gli accenti. Il secondo è che un browser
-vero interroga un'applicazione viva: sqlite in memoria non sopravvive fra due richieste HTTP.
-
-### Eseguire
-
-```sh
-docker compose -f docker-compose.test.yml run --rm --build e2e
-```
-
-### Verificare che non tocchi develop
-
-```sh
-docker exec idp_mariadb_2 mariadb -uroot -p123 -N -e "select count(*) from idp_develop.users;"
-
-docker compose -f docker-compose.test.yml run --rm e2e
-
-docker exec idp_mariadb_2 mariadb -uroot -p123 -N -e "select count(*) from idp_develop.users;"
-docker exec idp_mariadb_2 mariadb -uroot -p123 -N -e "show databases;"
-```
-
-Il conteggio deve essere invariato, e `show databases` deve elencare **`idp_develop` e `idp_test`**:
-se comparisse un terzo database, qualcuno sta puntando altrove.
-
-> **Cypress non c'è ancora** in questo ambiente: all'immagine dell'applicazione mancano tutte le
-> librerie che gli servono, e la strada scelta è l'immagine ufficiale `cypress/included`. Il lavoro è
-> [e2e-test-container](task/todo/20260812-e2e-test-container/action-plan.md). Oggi l'ambiente dà il
-> database e sa eseguire la suite PHP contro MariaDB.
+Si esegue con `./scripts/run-test-e2e.sh`. Perché sqlite e quale limite comporta (la ricerca con
+lettere accentate in maiuscolo): [TEST.md](TEST.md#il-limite-di-sqlite).
 
 ---
 
