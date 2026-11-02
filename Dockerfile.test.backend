@@ -7,17 +7,15 @@
 #
 # NON ha un docker-compose: non gli serve. I test di backend girano su **sqlite in memoria**, che
 # vive dentro il processo di PHP e muore con lui — nessun servizio deve restare su, quindi un
-# comando basta (decisione D4). Il compose e' l'ambiente degli E2E: `docker-compose.test.yml`.
+# comando basta (decisione D4). Gli E2E hanno il loro container: `Dockerfile.test.e2e`.
 #
 #     docker build -f Dockerfile.test.backend -t idp-test-backend .
 #     docker run --rm -v "$PWD":/var/www idp-test-backend
 #     docker run --rm -v "$PWD":/var/www idp-test-backend php artisan test --filter=AuditList
 #
-# Immagine leggera di proposito: qui non servono nginx, supervisor, php-fpm o node. `pdo_mysql`
-# c'e' lo stesso, perche' capita di voler eseguire la stessa suite contro `idp_test` per provare
-# qualcosa che sqlite non riproduce.
+# Immagine leggera di proposito: qui non servono nginx, supervisor, php-fpm, node ne' `pdo_mysql`.
 
-FROM php:8.2-cli
+FROM php:8.2.35-cli
 
 WORKDIR /var/www
 
@@ -25,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     unzip \
     libzip-dev \
-    && docker-php-ext-install -j"$(nproc)" pdo_mysql zip \
+    && docker-php-ext-install -j"$(nproc)" zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # `pdo_sqlite` e `sqlite3` sono compilati di serie nell'immagine ufficiale: sono il modo 1.

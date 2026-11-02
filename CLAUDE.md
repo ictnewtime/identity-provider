@@ -18,8 +18,9 @@ Laravel 12 / PHP 8.2 — Passport, JWT, Socialite, Inertia. Il codice sta in `ap
 ## Ambiente e comandi
 
 - `docker compose up` → app su `:8001`, MariaDB su `:3307`, Mailpit su `:8025`.
-- **Test**: [docs/TEST.md](docs/TEST.md). Backend su sqlite con `./scripts/run-test-backend.sh`, E2E
-  su MariaDB con `docker-compose.test.yml`. **Mai `php artisan test` dentro il container
+- **Test**: [docs/TEST.md](docs/TEST.md). Backend con `./scripts/run-test-backend.sh`, E2E (Playwright)
+  con `./scripts/run-test-e2e.sh`: container usa-e-getta su sqlite, non toccano il database di sviluppo
+  e si lanciano senza chiedere. **Mai `php artisan test` dentro il container
   dell'applicazione**: con la config cache ignora `phpunit.xml` e punta al database vero.
 - **Composer**: via immagine `composer:2`, non installato in locale.
 
