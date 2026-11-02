@@ -41,11 +41,14 @@ class DestructiveDatabaseGuardTest extends TestCase
         $this->assertTrue(true, "la guardia non deve fermare un database consentito");
     }
 
-    public function test_it_also_lets_the_e2e_database_through(): void
+    public function test_it_rejects_the_old_mariadb_test_database(): void
     {
+        // `idp_test` era ammesso quando i test potevano girare su MariaDB: ora no, e non deve
+        // tornare a passare senza una decisione esplicita.
         $this->withDatabase("idp_test", function () {
+            $this->expectException(DestructiveDatabaseException::class);
+
             DestructiveDatabaseGuard::ensureTestDatabase();
-            $this->assertTrue(true);
         });
     }
 
@@ -68,7 +71,7 @@ class DestructiveDatabaseGuardTest extends TestCase
             } catch (DestructiveDatabaseException $e) {
                 // Il messaggio conta quanto il rifiuto: e' quello che dice a chi lo legge cosa fare.
                 $this->assertStringContainsString("un_database_qualsiasi", $e->getMessage());
-                $this->assertStringContainsString("idp_test", $e->getMessage());
+                $this->assertStringContainsString(":memory:", $e->getMessage());
                 $this->assertStringContainsString("docs/TEST.md", $e->getMessage());
             }
         });

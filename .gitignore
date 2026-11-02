@@ -28,6 +28,6 @@ Homestead.yaml
 Thumbs.db
 /tmp*
 supervisord.pid
-cypress.env.json
+/e2e-report
 /lang/php_*.json
 tests/integration

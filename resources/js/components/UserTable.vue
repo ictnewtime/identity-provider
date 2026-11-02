@@ -248,6 +248,7 @@ watch(hasSelectedUsers, (newValue) => {
     <div>
         <div class="bg-white rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-5 md:p-6">
             <DataTable
+                data-testid="users-table"
                 :value="pagination.data"
                 :loading="loading"
                 responsiveLayout="scroll"
@@ -310,6 +311,7 @@ watch(hasSelectedUsers, (newValue) => {
                                 />
                             </Button>
                             <Button
+                                data-testid="toggle-deleted-users"
                                 variant="text"
                                 severity="danger"
                                 @click="toggleShowUsersDeleted"
@@ -394,6 +396,7 @@ watch(hasSelectedUsers, (newValue) => {
                             rounded
                             severity="warn"
                             class="mr-1 hover:bg-orange-50!"
+                            :data-testid="`edit-user-${slotProps.data.username}`"
                             @click="editUser(slotProps.data)"
                             ><Icon
                                 icon="material-symbols:edit-outline"
@@ -409,6 +412,7 @@ watch(hasSelectedUsers, (newValue) => {
                                 rounded
                                 severity="success"
                                 class="mr-1 hover:bg-green-50!"
+                                :data-testid="`restore-user-${slotProps.data.username}`"
                                 @click="confirmRestore(slotProps.data)"
                                 ><Icon
                                     icon="material-symbols:restore-from-trash-outline-rounded"
@@ -425,6 +429,7 @@ watch(hasSelectedUsers, (newValue) => {
                                 rounded
                                 severity="danger"
                                 class="hover:bg-red-50!"
+                                :data-testid="`delete-user-${slotProps.data.username}`"
                                 @click="confirmDelete(slotProps.data)"
                                 ><Icon icon="material-symbols:delete-outline-rounded" width="24" height="24" />
                             </Button>
