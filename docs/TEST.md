@@ -127,7 +127,7 @@ girano su MariaDB.
 ## Il guardiano che impedisce di cancellare il database sbagliato
 
 `tests/TestCase.php` legge la configurazione **risolta a runtime** e **si ferma** se il database in
-uso non è fra quelli di `TEST_ALLOWED_DATABASES` (`:memory:` e `idp_test`).
+uso non è fra quelli di `TEST_ALLOWED_DATABASES` (solo `:memory:`, il sqlite in memoria).
 
 Sta in `setUpTraits()` e non in `setUp()`, e la differenza conta: `RefreshDatabase` ricrea il
 database dentro `setUpTraits()`, quindi un controllo messo dopo `parent::setUp()` arriverebbe **a

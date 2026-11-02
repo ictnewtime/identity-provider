@@ -115,7 +115,7 @@ use App\Support\DestructiveDatabaseGuard;
 DestructiveDatabaseGuard::ensureTestDatabase();
 ```
 
-Rifiuta se il database in uso non è fra quelli di `TEST_ALLOWED_DATABASES` (`:memory:`, `idp_test`), e
+Rifiuta se il database in uso non è fra quelli di `TEST_ALLOWED_DATABASES` (solo `:memory:`), e
 **fallisce chiusa**: senza elenco non lascia passare. Su un'operazione che distrugge dati, «non lo so»
 deve valere «no».
 

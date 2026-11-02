@@ -18,7 +18,7 @@ opzionale.
 Due difese impediscono che un'esecuzione dei test tocchi `idp_develop`:
 
 - `tests/TestCase.php` **aborta prima di qualunque migrazione** se il database in uso non è fra
-  quelli consentiti (`:memory:`, `idp_test`);
+  quelli consentiti (solo `:memory:`);
 - ogni ambiente di test è un container suo, con la propria configurazione: non legge il `.env` di
   sviluppo e non tocca `bootstrap/cache/`.
 
