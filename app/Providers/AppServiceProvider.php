@@ -29,8 +29,9 @@ class AppServiceProvider extends ServiceProvider
 
         URL::forceRootUrl(config("app.url"));
 
-        // Se non siamo in locale, forza tutti i link generati da Laravel ad usare HTTPS
-        if (config("app.env") !== "local") {
+        // Fuori da locale e test, forza tutti i link generati da Laravel ad usare HTTPS. I test E2E
+        // girano su http://localhost dentro il loro container: li' HTTPS non c'e'.
+        if (!in_array(config("app.env"), ["local", "testing"], true)) {
             URL::forceScheme("https");
         }
 

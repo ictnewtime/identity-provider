@@ -14,8 +14,8 @@ use App\Exceptions\SeedingException;
  * Crea gli utenti dedicati ai test E2E leggendo le password dall'ambiente.
  *
  * Le password NON stanno qui e non hanno un valore di ripiego: le genera
- * scripts/prepare-e2e-credentials.sh a ogni preparazione dell'ambiente, e le passa
- * come variabili. Un segreto che non esiste prima dell'esecuzione non si puo' esporre.
+ * docker/test/e2e-entrypoint.sh a ogni avvio del container E2E, e le passa come variabili.
+ * Un segreto che non esiste prima dell'esecuzione non si puo' esporre.
  */
 class E2EUserSeeder extends Seeder
 {
@@ -81,7 +81,7 @@ class E2EUserSeeder extends Seeder
             throw new SeedingException(
                 "Variabili mancanti: " .
                     implode(", ", $missing) .
-                    ". Eseguire ./scripts/prepare-e2e-credentials.sh, che le genera e le esporta.",
+                    ". I test E2E si eseguono con ./scripts/run-test-e2e.sh, che le genera nel container.",
             );
         }
 
@@ -102,6 +102,8 @@ class E2EUserSeeder extends Seeder
                 "surname" => $username,
                 "is_verified" => 1,
                 "enabled" => 1,
+                // Senza scadenza il login considera la password scaduta e manda al cambio password.
+                "password_expires_at" => now()->addYear(),
             ],
         );
     }

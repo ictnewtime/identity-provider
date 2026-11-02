@@ -1,190 +1,142 @@
 # Come si eseguono i test
 
-**Due famiglie, due ambienti**, e non è simmetria: hanno vincoli opposti. I test di backend non
-hanno bisogno di niente che duri, gli E2E hanno bisogno che tutto resti in piedi. È da lì che
-discende tutto il resto di questo documento.
+Due famiglie di test, ognuna con **un comando** e **un container usa-e-getta**. Nessuna delle due
+tocca il database di sviluppo (`idp_develop`) o l'applicazione su `:8001`, quindi si possono lanciare
+quando si vuole, senza chiedere a nessuno.
 
-| Famiglia | Database | Ambiente | Perché |
+| Famiglia | Comando | Database | Cosa prova |
 |---|---|---|---|
-| **backend** (PHPUnit) | sqlite in memoria | `Dockerfile.test.backend`, **senza compose** | il database vive dentro il processo di PHP e muore con lui: nessun servizio deve restare su |
-| **E2E** (Cypress) | MariaDB `idp_test` | `docker-compose.test.yml` | un browser vero interroga un'applicazione viva, che ha bisogno di un database per tutta la sessione |
+| **backend** (PHPUnit) | `./scripts/run-test-backend.sh` | sqlite **in memoria**, dentro il processo di PHP | il codice PHP: controller, servizi, regole |
+| **E2E** (Playwright) | `./scripts/run-test-e2e.sh` | sqlite **in un file in `/tmp`** del container | l'applicazione intera, usata da un browser vero come farebbe una persona |
 
-Prerequisito comune: l'ambiente preparato secondo [setup.db.md](setup.db.md) e [SETUP.md](SETUP.md).
+In tutti e due i casi il database nasce con il container e sparisce con lui. Non c'è niente da
+preparare prima, e niente da pulire dopo.
 
 ---
 
-## Test di backend — sqlite, senza compose
+## Test di backend
 
 ```sh
 ./scripts/run-test-backend.sh                    # tutta la suite
-./scripts/run-test-backend.sh --filter=Audit     # una parte
+./scripts/run-test-backend.sh --filter=Audit     # solo i test il cui nome contiene "Audit"
 ```
 
-**Basta questo, e non chiede niente.** Lo script prepara l'ambiente, costruisce l'immagine ed esegue i
-test passando gli argomenti che riceve. Alla prima esecuzione **genera** il valore delle variabili che
-il modello dichiara vuote — oggi una, `SEED_ADMIN_PASSWORD` — e lo scrive in `.env.test.backend`, che
-git ignora. Dalla seconda in poi lo riusa: due esecuzioni di fila lavorano sullo stesso ambiente.
+Lo script costruisce l'immagine (`Dockerfile.test.backend`) ed esegue `php artisan test` passando gli
+argomenti che riceve. Il codice viene **montato** nel container, quindi una modifica si prova subito,
+senza ricostruire niente.
 
-**Se hai cambiato una rotta, svuota la cache delle rotte prima di provarla.** Laravel, se trova
-`bootstrap/cache/routes-v7.php`, legge quello e **ignora i file** in `routes/`: una rotta aggiunta oggi
-risponde 404 finche' la cache non si rigenera. Dal container:
+**Le credenziali le crea il test stesso.** Un test che ha bisogno di una password, per esempio
+`DatabaseSeederTest` che crea un amministratore, se la genera da solo: nessuna variabile da
+impostare, nessun file da tenere segreto.
+
+**Il container gira come te e non sporca l'albero.** `--user "$(id -u):$(id -g)"` fa sì che i file
+creati dal container siano tuoi e non di root. Quello che la suite scriverebbe (log, cache dei
+risultati, cache della configurazione e delle rotte) finisce in `/tmp` del container.
+
+**Se hai cambiato una rotta** e la provi sull'applicazione di sviluppo, svuota prima la cache delle
+rotte: con `bootstrap/cache/routes-v7.php` presente, Laravel ignora i file in `routes/`.
 
 ```sh
 docker exec idp_app_2 php artisan route:clear
 ```
 
-Serve `docker exec` perche' quel file appartiene a `www-data`. La stessa trappola vale per la
-configurazione (difetto `VDF11`), ed e' il motivo per cui i test deviano **tutte e due** le cache fuori
-dall'albero — vedi la riga qui sotto.
-
-**Il container gira come te, e non scrive nell'albero.** `--user "$(id -u):$(id -g)"`: i file che
-nascono dentro il container appartengono a chi ha lanciato lo script, non a root — fino al 2026-08-20 ogni
-esecuzione ne lasciava indietro, e uno di quelli bloccava `npm run build`. E ciò che la suite scriverebbe
-è deviato **fuori** dall'albero: i log su `stderr`, la cache dei risultati in `/tmp` (`phpunit.xml`),
-la config cache in `/tmp/config-test.php` e — dal 2026-08-28 — anche **la cache delle rotte**: senza
-quella deviazione la suite provava le rotte del giorno in cui qualcuno aveva lanciato `route:cache`,
-e una rotta aggiunta dopo non esisteva per i test. Verificato: dopo un'esecuzione, `find . -newer` non trova
-alcun file nuovo. Non è pulizia formale — `storage/logs/laravel.log` è di **www-data**, perché lo scrive
-il container dell'applicazione, e un terzo utente che ci scrive dentro non esiste.
-
-Generate e non digitate perché sono **credenziali di prova**: servono a esistere. Il seeder pretende
-una password e non ne inventa una; quale sia non interessa a nessuno. Da qui due conseguenze pratiche:
-non c'è niente da ricordare, e in CI — dove un terminale non c'è — funziona identico.
-
-Se una variabile è già nell'ambiente, quella vince e non viene scritta nel file:
-
-```sh
-SEED_ADMIN_PASSWORD='…' ./scripts/run-test-backend.sh
-```
-
-**La preparazione ha un comando suo**, e serve a chi i test li lancia a mano:
-
-```sh
-./scripts/setup-env-for-test-backend.sh
-```
-
-Da `.env.test.backend.example` produce `.env.test.backend`, generando **solo** le variabili dichiarate
-senza valore e **solo** se non le trova già — nell'ambiente o nel file. Non costruisce niente e non
-esegue niente: prepara, e si ferma. È la ragione per cui gli script sono due.
-
-### A mano, se serve capire cosa fanno gli script
-
-Prima si prepara l'ambiente — `./scripts/setup-env-for-test-backend.sh`, oppure a mano copiando il
-modello e riempiendo le variabili vuote — e poi:
-
-```sh
-docker build -f Dockerfile.test.backend -t idp-test-backend .
-docker run --rm -v "$PWD":/var/www -e SEED_ADMIN_PASSWORD='…' idp-test-backend
-docker run --rm -v "$PWD":/var/www -e SEED_ADMIN_PASSWORD='…' idp-test-backend php artisan test --filter=AuditList
-```
-
-Il `-e` non è un dettaglio: **prima va preparato `.env.test.backend`** — si copia
-[.env.test.backend.example](../.env.test.backend.example) e si riempiono le variabili dichiarate
-**senza valore**, che sono le credenziali. Senza di esse `DatabaseSeederTest` fallisce con un messaggio
-che dice quale variabile manca; gli altri test girano ugualmente.
-
-**Perché `-e` e non `--env-file`**: un `--env-file` passerebbe tutto il file locale, compreso
-`TEST_ALLOWED_DATABASES` — il guardiano che impedisce alla suite di cancellare `idp_develop`. Un file
-locale sbagliato lo disarmerebbe in silenzio. Con `-e` si passano solo le credenziali, e tutto il resto
-resta quello dell'immagine.
-
-Questi test non toccano **nessun** database: né `idp_develop` né `idp_test`. Un file compose qui sarebbe
-di troppo — un comando basta, ed è la ragione per cui non c'è.
+I test di backend questo problema non ce l'hanno: usano una cache delle rotte loro, in `/tmp`.
 
 Configurazione: `Dockerfile.test.backend` + [.env.test.backend.example](../.env.test.backend.example),
-copiato **dentro l'immagine** e mai sopra il `.env` dell'host. Nel modello le credenziali sono dichiarate
-senza valore: i valori arrivano con `-e`, non da quel `COPY`.
+copiato **dentro l'immagine** e mai sopra il `.env` dell'host.
 
 ---
 
-## Test E2E — MariaDB, con compose
+## Test E2E
 
 ```sh
-TEST_UID=$(id -u) TEST_GID=$(id -g) docker compose -f docker-compose.test.yml run --rm --build e2e
+./scripts/run-test-e2e.sh                                  # tutti
+./scripts/run-test-e2e.sh tests/e2e/auth                   # una cartella o un file
+./scripts/run-test-e2e.sh --grep "logout"                  # solo i test con "logout" nel nome
 ```
 
-**Le due variabili servono**, e senza di loro il compose si ferma dicendo cosa scrivere: danno al
-container l'utente dell'host, così i file che scrive nell'albero montato sono tuoi e non di root. Non
-hanno un valore predefinito di proposito — `1000:1000` sarebbe giusto su una macchina e sbagliato sulla
-successiva. I test backend non chiedono niente: lo script lo fa da sé.
+Lo script costruisce l'immagine (`Dockerfile.test.e2e`) e avvia **un solo container**, che contiene
+tutto:
 
-Il database `idp_test` lo crea l'entrypoint a ogni avvio (`CREATE DATABASE IF NOT EXISTS`): non c'è
-un passo da ricordare. Configurazione: `Dockerfile.test.e2e` +
-[.env.test.e2e.example](../.env.test.e2e.example) + `docker-compose.test.yml`.
+1. **le credenziali**: `APP_KEY`, `JWT_SECRET`, le chiavi che firmano i token e le password degli
+   utenti di prova vengono generate all'avvio (`docker/test/e2e-entrypoint.sh`) e valgono solo per
+   quel container;
+2. **il database**: un file sqlite in `/tmp`, creato da zero con migrazioni e dati di partenza
+   (`docker/test/e2e-reset-db.sh`). Gli utenti di prova li crea `E2EUserSeeder`: `e2e.admin`, con il
+   ruolo admin, ed `e2e.user`, senza ruoli;
+3. **l'applicazione**: `php artisan serve` su `http://localhost:8000`, con gli asset già compilati;
+4. **Chromium e Playwright**, che eseguono i test in `tests/e2e/`.
 
-**Perché MariaDB e non sqlite**, oltre al vincolo di cui sopra: `LIKE '%MARIÒ%'` su `Mariò` trova
-**0 righe su sqlite e 1 su MariaDB** con `utf8mb4_unicode_ci` — misurato — e la ricerca di questa
-applicazione è fatta di `LIKE`, su nomi che in italiano hanno gli accenti. Un test di ricerca su
-sqlite passerebbe senza dire niente su ciò che accade in produzione.
+Alla fine il container viene eliminato (`--rm`) e con lui il database e le credenziali. Lo script
+esce con lo stesso esito dei test: 0 se passano, diverso da 0 se no.
 
-### Finché Cypress non è nell'ambiente: si lancia da fuori
+**Il codice viene copiato nell'immagine, non montato.** Così il container non legge il tuo `.env`,
+le tue chiavi o la tua cache, e non scrive niente nel tuo albero. Il prezzo: dopo una modifica
+l'immagine si ricostruisce, e lo script lo fa da solo. Gli strati delle dipendenze restano in
+cache, quindi di solito servono pochi secondi.
+
+**Se un test fallisce**, lo script stampa gli errori dell'applicazione e salva in `e2e-report/`
+(ignorata da git) screenshot, traccia e rapporto HTML:
 
 ```sh
-npm install                                                 # una volta sola
-docker compose up -d                                        # l'applicazione deve rispondere
-docker exec idp_app_2 ./scripts/prepare-e2e-credentials.sh  # utenti + cypress.env.json
-
-npm run cy:run
-npm run cy:run -- --spec cypress/e2e/auth/login.cy.js
-npm run cy:open
+npx playwright show-trace e2e-report/results/<nome-del-test>/trace.zip
+npx playwright show-report e2e-report/html
 ```
 
-Serve Node sulla macchina locale: Cypress 15 richiede `^20.1.0 || ^22.0.0 || >=24.0.0`
-(`node_modules/cypress/package.json`, campo `engines`). `baseUrl` è `http://localhost:8001`, cioè la
-porta pubblicata dal `docker-compose.yml`: **da fuori funziona, da dentro no**.
+### Come sono scritti i test
 
-Se il login fallisce, quasi sempre è lo script delle credenziali: `cypress.env.json` contiene le
-credenziali di utenti che devono **già esistere**, e lo script crea entrambi.
+| Cartella | Cosa prova |
+|---|---|
+| `tests/e2e/auth/` | login sbagliato, login e logout dell'amministratore, utente senza ruoli rimandato ad "Accesso Negato" |
+| `tests/e2e/user/` | crea, cerca, modifica, elimina e ripristina un utente; ricerca con lettere accentate |
+| `tests/e2e/i18n/` | gli stessi percorsi principali con il browser in inglese |
+| `tests/e2e/support/` | gli aiuti comuni: `login()`, `searchUser()`, `resetDatabase()`, i testi dell'interfaccia nelle due lingue |
+
+Le regole che tengono i test affidabili:
+
+- **ogni test crea i propri dati.** Nessun test modifica l'amministratore o un dato che un altro test
+  si aspetta di trovare;
+- **un test che ha bisogno di partire pulito azzera il database** con `resetDatabase()`. Lo fa per
+  esempio il CRUD utenti, i cui passi dipendono l'uno dall'altro e girano in ordine. Funziona perché
+  Playwright e l'applicazione stanno nello stesso container, e lo script rifiuta qualunque database
+  che non sia il sqlite in `/tmp`;
+- **si aspetta la risposta, non un tempo fisso.** Dopo una ricerca il test aspetta la risposta di
+  `/admin/v1/users` con quel testo, non qualche millisecondo;
+- **gli elementi si trovano per `data-testid`** (es. `edit-user-<username>`) o per testo e ruolo, non
+  per classi CSS che cambiano con lo stile;
+- **la lingua è italiana di partenza** (`Accept-Language: it`). I test in `i18n/` chiedono `en` e
+  verificano messaggi del server e testi dell'interfaccia in inglese.
+
+### Il limite di sqlite
+
+Gli E2E girano su sqlite perché è deciso che stiano in un container solo. In produzione però c'è
+MariaDB, e i due motori **cercano in modo diverso** sulle lettere accentate:
+
+```
+LIKE '%MARIÒ%'  su  'mariò'
+  sqlite                      -> 0 righe   (maiuscole e minuscole uguali solo per a-z)
+  MariaDB utf8mb4_unicode_ci  -> 1 riga    (misurato il 2026-08-12)
+```
+
+Per questo in `tests/e2e/user/search-accented.spec.js` la ricerca in MAIUSCOLO è segnata `fixme`:
+su sqlite fallirebbe per colpa del motore, non del codice. Torna un test vero il giorno che gli E2E
+girano su MariaDB.
 
 ---
 
 ## Il guardiano che impedisce di cancellare il database sbagliato
 
-`tests/TestCase.php` legge la configurazione **risolta a runtime** e **aborta** se il database in uso
-non è fra quelli di `TEST_ALLOWED_DATABASES` (`:memory:` e `idp_test`).
+`tests/TestCase.php` legge la configurazione **risolta a runtime** e **si ferma** se il database in
+uso non è fra quelli di `TEST_ALLOWED_DATABASES` (`:memory:` e `idp_test`).
 
-Sta in `setUpTraits()` e non in `setUp()`, e la differenza è tutto: `RefreshDatabase` agisce dentro
-`setUpTraits()`, quindi un controllo dopo `parent::setUp()` parlerebbe **a database già ricreato**.
-Provato nei due versi — con un database non consentito la suite si ferma **senza** che nessuna
-tabella venga creata; con `idp_test` passa.
-
-Serve anche ora che gli ambienti sono separati: protegge chi lancerà la suite nel modo sbagliato
-comunque.
+Sta in `setUpTraits()` e non in `setUp()`, e la differenza conta: `RefreshDatabase` ricrea il
+database dentro `setUpTraits()`, quindi un controllo messo dopo `parent::setUp()` arriverebbe **a
+database già cancellato**.
 
 > ⚠️ **Non lanciare `php artisan test` dentro `idp_app_2`.** Con una config cache presente ignora
-> `phpunit.xml` e punterebbe al database dell'applicazione. Non fa più danno — il guardiano ferma
-> prima — ma la strada giusta sono i due ambienti qui sopra.
+> `phpunit.xml` e punterebbe al database dell'applicazione. Il guardiano lo ferma prima che faccia
+> danni, ma la strada giusta è `./scripts/run-test-backend.sh`.
 > Difetto [`VDF11`](task/vulnerability/vulnerability.md).
 
----
-
-## Perché Cypress non è ancora nell'ambiente E2E
-
-Non è una dimenticanza: all'immagine dell'applicazione manca tutto ciò che gli serve, e conviene
-saperlo prima di provarci.
-
-| Cosa serve a Cypress | Stato nell'immagine |
-|---|---|
-| Node ≥ 20.1 | **c'è** — `php:8.2-fpm` è basata su Debian trixie, il cui pacchetto `nodejs` è 20.19 |
-| il pacchetto npm `cypress` | **c'è** — il `Dockerfile` esegue `npm install`, che installa anche le dipendenze di sviluppo |
-| `libnss3`, `libgbm1`, `libxss1`, `libasound2`, `libxtst6`, `libgtk-3-0`, `libnotify4` | **nessuna presente** |
-| `xvfb` o `xauth`, per un browser senza schermo | **assenti** |
-| l'applicazione su `localhost:8001` | **no**: dentro un container nginx è sulla porta **80**, e la 8001 esiste solo sull'host |
-
-Le prime due righe ingannano — sembra che ci sia quasi tutto. Ma senza le librerie grafiche il
-binario non parte, e senza `xvfb` non avrebbe dove disegnare. Verificato con `dpkg -s`
-sull'immagine base: nessuno dei sette pacchetti è installato.
-
-**La soluzione non è aggiungerle**: finirebbero anche nell'immagine di produzione, per una cosa che
-in produzione non serve mai. L'immagine ufficiale `cypress/included:15.15.0` — esattamente la
-versione dichiarata da `package.json` — porta già browser, librerie e binario. Il lavoro è
-[e2e-test-container](task/todo/20260812-e2e-test-container/action-plan.md); quando sarà chiuso, la
-sezione «si lancia da fuori» qui sopra diventerà un'alternativa e non un ripiego (`TEC07`).
-
-I test **nella pipeline** sono un'altra cosa ancora, e sono fermi per decisione del developer:
+I test **nella pipeline** sono un'altra cosa, e sono fermi per decisione del developer:
 [pipeline-tests](task/backlog/20260812-pipeline-tests/action-plan.md).
-
-> **Nota su cosa c'è nell'immagine di produzione.** `npm install` nel `Dockerfile` non distingue fra
-> dipendenze di sviluppo e di produzione, quindi scarica anche il **binario di Cypress** — circa
-> 1,5 GB di cache, misurati con `du -sh ~/.cache/Cypress` — dentro un'immagine dove non può
-> funzionare. È [`BDB22`](task/backlog/backlog.md).

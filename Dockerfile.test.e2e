@@ -1,37 +1,67 @@
-# Ambiente dei test E2E. Si usa con `docker-compose.test.yml`, non da solo: gli E2E hanno bisogno
-# di servizi che restano su — l'applicazione e MariaDB — e quello lo esprime il compose.
+# Ambiente dei test E2E (Playwright): UN container solo, che contiene tutto e muore con i test.
 #
-# Differenza da `Dockerfile.test.backend`, che e' la ragione per cui sono due file:
-#   - backend  → sqlite in memoria, nessun servizio, un comando basta;
-#   - e2e      → MariaDB `idp_test`, vivo per tutta la sessione, piu' un browser.
+#     ./scripts/run-test-e2e.sh
 #
-# INCOMPLETO di proposito: qui manca Cypress. All'immagine dell'applicazione mancano tutte le
-# librerie che gli servono, e la strada scelta e' l'immagine ufficiale `cypress/included`, non
-# installarle a mano. Oggi questa immagine
-# prepara il database e sa eseguire la suite PHP contro MariaDB, che e' il pezzo che serve
-# **prima** del browser.
+# Dentro lo stesso container girano:
+#   - l'applicazione, con `php artisan serve` su 127.0.0.1:8000;
+#   - il database, un file **sqlite in /tmp**: nasce all'avvio e sparisce con il container;
+#   - Chromium e Playwright, che usano l'applicazione come farebbe una persona.
+#
+# Il codice NON si monta: si copia nell'immagine. Cosi' il container non scrive niente
+# nell'albero del developer, e non legge il suo `.env`, le sue chiavi o la sua cache.
+# Cosa resta fuori dalla copia: `Dockerfile.test.e2e.dockerignore`.
+#
+# Perche' sqlite e non MariaDB: decisione del developer, gli E2E girano in un container solo.
+# Il prezzo e' noto: sqlite confronta le lettere accentate senza distinguere maiuscole e
+# minuscole solo per l'ASCII, e il test che lo verifica e' segnato `fixme` (vedi docs/TEST.md).
 
-FROM php:8.2-cli
+FROM node:24.19.0-bookworm-slim AS node
 
-WORKDIR /var/www
+FROM php:8.2.35-cli
+
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    COMPOSER_ALLOW_SUPERUSER=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     unzip \
     libzip-dev \
-    && docker-php-ext-install -j"$(nproc)" pdo_mysql zip \
+    openssl \
+    && docker-php-ext-install -j"$(nproc)" zip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# `pdo_sqlite` e' compilato di serie nell'immagine ufficiale di PHP.
+
+# Node dalla sua immagine ufficiale: la versione e' quella scritta sopra, non quella di Debian.
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Il .env degli E2E: preparato QUI, dentro l'immagine, dal modello versionato. Non tocca il .env
-# dell'host e non viene toccato da lui.
-COPY .env.test.e2e.example /opt/test/.env
+WORKDIR /var/www
 
-COPY docker/test/entrypoint.sh /usr/local/bin/entrypoint-test.sh
-RUN chmod +x /usr/local/bin/entrypoint-test.sh
+# Prima le dipendenze, poi il codice: se cambia solo il codice, questi strati restano in cache.
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-autoloader
 
-USER www-data
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund && npx playwright install --with-deps chromium
 
-ENTRYPOINT ["/usr/local/bin/entrypoint-test.sh"]
-CMD ["php", "artisan", "test"]
+COPY . .
+COPY .env.test.e2e.example .env
+
+# Il container gira con l'uid di chi lo lancia (`--user`): le cartelle in cui l'applicazione
+# scrive devono essere scrivibili da chiunque. Sono dell'immagine, non dell'host.
+RUN composer dump-autoload --optimize --no-dev \
+    && php artisan package:discover --ansi \
+    && npm run build \
+    && mkdir -p storage/app/keys storage/framework/cache storage/framework/sessions storage/framework/views \
+        storage/logs bootstrap/cache \
+    && chmod -R a+rwX storage bootstrap/cache
+
+COPY docker/test/e2e-entrypoint.sh docker/test/e2e-reset-db.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/e2e-entrypoint.sh /usr/local/bin/e2e-reset-db.sh
+
+ENTRYPOINT ["/usr/local/bin/e2e-entrypoint.sh"]
