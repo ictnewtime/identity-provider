@@ -136,8 +136,12 @@ const loadSourceRoles = (sourceUsers) => {
             toast.add({
                 severity: "error",
                 summary: trans("common.error"),
-                detail: trans("admin.users.roles.users_roles_load_error"),
-                life: 3000,
+                // troppi ruoli: il server non li tronca, chiede di scegliere meno utenti
+                detail:
+                    err.response?.data?.code === "too_many_roles"
+                        ? trans("admin.users.roles.too_many_roles", { max: err.response.data.max })
+                        : trans("admin.users.roles.users_roles_load_error"),
+                life: 6000,
             });
             emit("user-error", err);
         })

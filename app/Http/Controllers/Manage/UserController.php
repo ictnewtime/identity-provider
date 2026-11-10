@@ -585,8 +585,22 @@ class UserController extends Controller
             ->select("role_id", "provider_id")
             ->groupBy("role_id", "provider_id")
             ->with(["role:id,name", "provider:id,name"])
-            ->limit(self::USERS_ROLES_MAX_RESULTS)
+            // uno in più del massimo: serve solo a capire se il limite è stato superato
+            ->limit(self::USERS_ROLES_MAX_RESULTS + 1)
             ->get();
+
+        // Caso peggiore: troppi ruoli. Tagliare l'elenco vorrebbe dire applicare in silenzio solo una
+        // parte dei ruoli; meglio un errore che chiede di scegliere meno utenti.
+        if ($relations->count() > self::USERS_ROLES_MAX_RESULTS) {
+            return response()->json(
+                [
+                    "code" => "too_many_roles",
+                    "max" => self::USERS_ROLES_MAX_RESULTS,
+                    "message" => __("admin.users.roles.too_many_roles", ["max" => self::USERS_ROLES_MAX_RESULTS]),
+                ],
+                422,
+            );
+        }
 
         $roles = $relations->map(
             fn($relation) => [
