@@ -261,6 +261,7 @@
     "admin.users.roles.btn_submit": "Applica ruoli",
     "admin.users.roles.selected_roles": "Ruoli Selezionati",
     "admin.users.roles.target_users": "Utenti destinatari",
+    "admin.users.roles.too_many_roles": "Non è possibile pre-caricare più di :max ruoli: seleziona meno utenti in tabella e riprova.",
     "admin.users.roles.users_roles_hint": "Puoi aggiungere o togliere ruoli: verranno applicati solo quelli selezionati.",
     "admin.users.roles.users_roles_load_error": "Errore durante il caricamento dei ruoli degli utenti selezionati",
     "admin.users.roles.users_selected": "{0} utenti selezionati",

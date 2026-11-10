@@ -261,6 +261,7 @@
     "admin.users.roles.btn_submit": "Apply roles",
     "admin.users.roles.selected_roles": "Selected roles",
     "admin.users.roles.target_users": "Target users",
+    "admin.users.roles.too_many_roles": "Cannot preload more than :max roles: select fewer users in the table and try again.",
     "admin.users.roles.users_roles_hint": "You can add or remove roles: only the selected ones will be applied.",
     "admin.users.roles.users_roles_load_error": "Unable to load the roles of the selected users",
     "admin.users.roles.users_selected": "{0} users selected",

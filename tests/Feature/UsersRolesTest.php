@@ -116,6 +116,50 @@ class UsersRolesTest extends TestCase
         $this->assertLessThanOrEqual(3, count(DB::getQueryLog()));
     }
 
+    /** Un utente con `$count` ruoli distinti, inseriti in blocco e non uno alla volta. */
+    private function userWithRoles(int $count): User
+    {
+        DB::table("roles")->insert(
+            array_map(fn($i) => ["name" => "role_{$i}", "provider_id" => $this->provider->id], range(1, $count)),
+        );
+        $user = User::factory()->create(["enabled" => 1]);
+        $now = now();
+        foreach (Role::pluck("id")->chunk(250) as $chunk) {
+            DB::table("provider_user_roles")->insert(
+                $chunk
+                    ->map(
+                        fn($roleId) => [
+                            "provider_id" => $this->provider->id,
+                            "user_id" => $user->id,
+                            "role_id" => $roleId,
+                            "created_at" => $now,
+                            "updated_at" => $now,
+                        ],
+                    )
+                    ->values()
+                    ->all(),
+            );
+        }
+        return $user;
+    }
+
+    public function test_too_many_roles_is_an_error_not_a_truncated_list(): void
+    {
+        // uno oltre il massimo: tagliare l'elenco applicherebbe in silenzio solo una parte dei ruoli
+        $user = $this->userWithRoles(1001);
+
+        $this->usersRoles([$user->id])
+            ->assertStatus(422)
+            ->assertJson(["code" => "too_many_roles", "max" => 1000]);
+    }
+
+    public function test_exactly_the_maximum_is_still_returned(): void
+    {
+        $user = $this->userWithRoles(1000);
+
+        $this->usersRoles([$user->id])->assertOk()->assertJsonCount(1000);
+    }
+
     public function test_user_ids_are_required_and_bounded(): void
     {
         $this->withoutMiddleware()->getJson(self::URL)->assertStatus(422)->assertJsonValidationErrors("user_ids");
