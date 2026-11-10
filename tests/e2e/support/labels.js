@@ -15,6 +15,10 @@ export const it = {
     deleted: "Utente eliminato correttamente",
     restore: "Ripristina",
     restored: "Utente ripristinato con successo",
+    copyRoles: "Copia ruoli",
+    applyRoles: "Applica ruoli",
+    copyRolesTooltip: "Selezionando gli utenti in tabella vengono pre-selezionati i ruoli da applicare agli utenti di destinazione",
+    rolesCopied: "Ruoli aggiunti con successo",
 };
 
 export const en = {

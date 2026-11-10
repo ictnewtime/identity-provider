@@ -18,6 +18,8 @@ class UserController extends Controller
 {
     private const OA_PATH = "/api/v1/users";
     private const OA_PATH_ID = self::OA_PATH . "/{id}";
+    private const USERS_ROLES_MAX = 500;
+    private const USERS_ROLES_MAX_RESULTS = 1000;
 
     #[
         OA\Get(
@@ -561,5 +563,39 @@ class UserController extends Controller
             ];
         });
         return response()->json($userRoles, 200);
+    }
+
+    /**
+     * I ruoli che hanno gli utenti indicati (almeno uno di loro), senza ripetizioni, con il provider.
+     *
+     * Serve alla modale "Associa ruoli" per precompilare i ruoli degli utenti selezionati. Le
+     * ripetizioni si tolgono nel database (GROUP BY), non caricando le associazioni dei singoli utenti.
+     */
+    public function getUsersRoles(Request $request)
+    {
+        $validated = $request->validate([
+            "user_ids" => "required|array|max:" . self::USERS_ROLES_MAX,
+            "user_ids.*" => "integer|distinct",
+        ]);
+        $userIds = $validated["user_ids"];
+
+        $relations = ProviderUserRole::query()
+            ->whereIn("user_id", $userIds)
+            ->whereHas("role")
+            ->select("role_id", "provider_id")
+            ->groupBy("role_id", "provider_id")
+            ->with(["role:id,name", "provider:id,name"])
+            ->limit(self::USERS_ROLES_MAX_RESULTS)
+            ->get();
+
+        $roles = $relations->map(
+            fn($relation) => [
+                "id" => $relation->role_id,
+                "name" => $relation->role->name,
+                "provider_id" => $relation->provider_id,
+                "provider_name" => $relation->provider?->name,
+            ],
+        );
+        return response()->json($roles->values(), 200);
     }
 }

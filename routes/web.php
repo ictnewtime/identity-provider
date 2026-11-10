@@ -118,6 +118,7 @@ Route::prefix("admin")
             Route::delete("users/bulk-delete", [UserController::class, "bulkDelete"]);
             Route::patch("users/bulk-restore", [UserController::class, "bulkRestore"]);
             Route::get("users/{id}/roles", [UserController::class, "getUserRoles"])->whereNumber("id");
+            Route::get("users/roles", [UserController::class, "getUsersRoles"]);
 
             // provider-user-roles
             Route::get("provider-user-roles", [ProviderUserRoleController::class, "all"]);
