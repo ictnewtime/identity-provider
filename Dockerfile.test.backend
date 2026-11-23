@@ -15,7 +15,7 @@
 #
 # Immagine leggera di proposito: qui non servono nginx, supervisor, php-fpm, node ne' `pdo_mysql`.
 
-FROM php:8.2.35-cli
+FROM php:8.2.36-cli
 
 WORKDIR /var/www
 

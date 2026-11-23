@@ -15,6 +15,25 @@ class ProviderRequest extends FormRequest
     }
 
     /**
+     * Un form (application/x-www-form-urlencoded, come lo manda Swagger) invia `has_token_url=true`
+     * come testo, e la regola `boolean` di Laravel rifiuta la stringa "true" con un 422.
+     * Qui la si converte in un booleano vero: true/false, 1/0, on/off, yes/no.
+     * Un valore non riconosciuto resta com'e', cosi' la regola `boolean` lo rifiuta ancora.
+     */
+    protected function prepareForValidation(): void
+    {
+        if (!$this->has("has_token_url")) {
+            return;
+        }
+
+        $value = filter_var($this->input("has_token_url"), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+
+        if ($value !== null) {
+            $this->merge(["has_token_url" => $value]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
