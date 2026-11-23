@@ -1,96 +1,60 @@
 <script setup>
-import { ref, computed, watch, toRaw } from "vue";
+import { ref, computed, watch } from "vue";
 import { useToast } from "primevue/usetoast";
 import { trans } from "laravel-vue-i18n";
 
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
-import Select from "primevue/select";
 import MultiSelect from "primevue/multiselect";
-import InputText from "primevue/inputtext";
-import IconField from "primevue/iconfield";
-import InputIcon from "primevue/inputicon";
-import { Icon } from "@iconify/vue";
-import { result } from "lodash";
 
 const props = defineProps({
     visible: { type: Boolean, required: true },
+    // { users: [{ id, username, ... }] } — gli utenti selezionati nella tabella: i ruoli si copiano da loro
     itemSelected: { type: Object, default: () => null },
-    isAllSelected: { type: Boolean, default: () => null },
-    onlyUsersDeleted: { type: Boolean, default: () => null },
 });
 
 const emit = defineEmits(["update:visible", "user-success", "user-error"]);
 const toast = useToast();
-const loading = ref(false);
+const loadingUsers = ref(false);
+const loadingRoles = ref(false);
+const loadingSourceRoles = ref(false);
+const saving = ref(false);
 const filterUsers = ref("");
 const filterRoles = ref("");
-let searchTimeout = null;
+let usersDebounce = null;
+let rolesDebounce = null;
+let sourceRolesRequest = 0;
 const paginationUsers = ref({ data: [], total: 0, per_page: 100 });
 const paginationRoles = ref({ data: [], total: 0, per_page: 100 });
+// gli utenti destinatari: partono vuoti, li sceglie l'operatore
+const selectedUsers = ref([]);
 const selectedRoles = ref([]);
-const selectedUser = ref([]);
 
-const userOptions = computed(() => {
-    const usersArray = paginationUsers.value?.data || [];
-    const mappedUsers = usersArray.map((user) => ({
-        ...user,
-        displayName: user.username,
-    }));
-
-    const allOptionsMap = new Map();
-    // selectedUsers.value.forEach((user) => {
-    //     allOptionsMap.set(user.id, user);
-    // });
-
-    mappedUsers.forEach((user) => {
-        allOptionsMap.set(user.id, user);
-    });
-
-    return Array.from(allOptionsMap.values());
+const toRoleOption = (role) => ({
+    id: Number(role.id),
+    displayName: `${role.name} (${role.provider_name ?? role?.provider?.name ?? ""})`,
+    provider_id: role.provider_id,
 });
 
-const roleOptions = computed(() => {
-    const rolesArray = paginationRoles.value?.data || [];
-    const mappedRoles = rolesArray.map((role) => {
-        const providerName = role?.provider?.name || "";
-        return {
-            id: Number(role.id),
-            displayName: `${role.name} (${providerName})`,
-            provider_id: role.provider_id,
-        };
-    });
-
-    const allOptionsMap = new Map();
-    selectedRoles.value.forEach((role) => {
-        if (!allOptionsMap.has(role.id)) {
-            allOptionsMap.set(role.id, role);
-        }
-    });
-
-    mappedRoles.forEach((role) => {
-        allOptionsMap.set(role.id, role);
-    });
-
-    return Array.from(allOptionsMap.values());
-});
-
-let debounceTimeout = null;
-
-const onFilterRolesChange = (event) => {
-    if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-    }
-
-    debounceTimeout = setTimeout(() => {
-        filterRoles.value = event.value;
-        loadRoles();
-    }, 500);
+const mergeById = (...lists) => {
+    const map = new Map();
+    lists.flat().forEach((item) => map.set(item.id, item));
+    return Array.from(map.values());
 };
 
-const loadRoles = () => {
-    loading.value = true;
+// gli utenti selezionati restano fra le opzioni anche se la ricerca non li restituisce
+const userOptions = computed(() => mergeById(selectedUsers.value, paginationUsers.value?.data || []));
 
+const roleOptions = computed(() =>
+    mergeById(selectedRoles.value, (paginationRoles.value?.data || []).map(toRoleOption))
+);
+
+const canSubmit = computed(
+    () => selectedUsers.value.length > 0 && selectedRoles.value.length > 0 && !saving.value
+);
+
+const loadRoles = () => {
+    loadingRoles.value = true;
     window.axios
         .get("/admin/v1/roles", {
             params: {
@@ -114,56 +78,12 @@ const loadRoles = () => {
             emit("user-error", err);
         })
         .finally(() => {
-            loading.value = false;
-        });
-};
-
-const onFilterUsersChange = (event) => {
-    if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-    }
-
-    debounceTimeout = setTimeout(() => {
-        filterUsers.value = event.value;
-        loadUsers();
-    }, 500);
-};
-
-const onUserChange = (event) => {
-    selectedUser.value = event.value;
-    let userRoles = [];
-    window.axios
-        .get(`/admin/v1/users/${event.value.id}/roles`)
-        .then((res) => {
-            const newRoles = res.data.map((role) => ({
-                id: Number(role.id),
-                displayName: `${role.name} (${role.provider_name})`,
-                provider_id: role.provider_id,
-            }));
-            const currentRoles = selectedRoles.value.map((role) => ({
-                id: Number(role.id),
-                displayName: role.displayName,
-                provider_id: role.provider_id,
-            }));
-            const uniqueMap = new Map();
-            currentRoles.forEach((role) => uniqueMap.set(role.id, role));
-            newRoles.forEach((role) => uniqueMap.set(role.id, role));
-            selectedRoles.value = Array.from(uniqueMap.values());
-        })
-        .catch((err) => {
-            console.error(err);
-            toast.add({
-                severity: "error",
-                summary: trans("common.error"),
-                detail: trans("admin.roles.toast.load_user_role_error"),
-                life: 3000,
-            });
-            emit("user-error", err);
+            loadingRoles.value = false;
         });
 };
 
 const loadUsers = () => {
-    loading.value = true;
+    loadingUsers.value = true;
     window.axios
         .get("/admin/v1/users", {
             params: {
@@ -187,34 +107,79 @@ const loadUsers = () => {
             emit("user-error", err);
         })
         .finally(() => {
-            loading.value = false;
+            loadingUsers.value = false;
         });
 };
 
-const addRolesToUserIds = () => {
-    const userIds = props.itemSelected.ids;
-    const isAllSelected = props.isAllSelected;
-    const onlyUsersDeleted = props.onlyUsersDeleted;
-    if (!userIds || userIds.length === 0 || selectedRoles.value.length === 0) {
+/**
+ * Precompila i ruoli degli utenti selezionati in tabella (gli utenti sorgente). Avviene una volta,
+ * all'apertura: scegliere i destinatari non cambia i ruoli.
+ */
+const loadSourceRoles = (sourceUsers) => {
+    const userIds = sourceUsers.map((user) => user.id);
+    if (userIds.length === 0) {
         return;
     }
-    loading.value = true;
 
-    const formattedRoles = selectedRoles.value.map((role) => {
-        return {
-            role_id: role.id,
-            provider_id: role.provider_id || role.provider?.id,
-        };
-    });
+    // scarta la risposta di un'apertura precedente
+    const requestId = ++sourceRolesRequest;
+    loadingSourceRoles.value = true;
+    window.axios
+        .get("/admin/v1/users/roles", { params: { user_ids: userIds } })
+        .then((res) => {
+            if (requestId !== sourceRolesRequest) return;
+            selectedRoles.value = res.data.map(toRoleOption);
+        })
+        .catch((err) => {
+            if (requestId !== sourceRolesRequest) return;
+            console.error(err);
+            toast.add({
+                severity: "error",
+                summary: trans("common.error"),
+                // troppi ruoli: il server non li tronca, chiede di scegliere meno utenti
+                detail:
+                    err.response?.data?.code === "too_many_roles"
+                        ? trans("admin.users.roles.too_many_roles", { max: err.response.data.max })
+                        : trans("admin.users.roles.users_roles_load_error"),
+                life: 6000,
+            });
+            emit("user-error", err);
+        })
+        .finally(() => {
+            if (requestId === sourceRolesRequest) loadingSourceRoles.value = false;
+        });
+};
+
+const onFilterUsersChange = (event) => {
+    clearTimeout(usersDebounce);
+    usersDebounce = setTimeout(() => {
+        filterUsers.value = event.value;
+        loadUsers();
+    }, 500);
+};
+
+const onFilterRolesChange = (event) => {
+    clearTimeout(rolesDebounce);
+    rolesDebounce = setTimeout(() => {
+        filterRoles.value = event.value;
+        loadRoles();
+    }, 500);
+};
+
+const addRolesToUsers = () => {
+    if (!canSubmit.value) {
+        return;
+    }
+    saving.value = true;
+
     window.axios
         .post("/admin/v1/provider-user-roles/bulk-add", {
-            user_ids: userIds,
-            roles: formattedRoles,
-            is_all_selected: isAllSelected,
-            only_user_deleted: onlyUsersDeleted,
+            user_ids: selectedUsers.value.map((user) => user.id),
+            roles: selectedRoles.value.map((role) => ({ role_id: role.id, provider_id: role.provider_id })),
+            is_all_selected: false,
+            only_user_deleted: false,
         })
         .then((res) => {
-            selectedRoles.value = [];
             toast.add({
                 severity: "success",
                 summary: trans("common.success"),
@@ -234,19 +199,21 @@ const addRolesToUserIds = () => {
             emit("user-error", err);
         })
         .finally(() => {
-            loading.value = false;
+            saving.value = false;
         });
 };
 
 watch(
     () => props.visible,
     (isVisible) => {
-        if (isVisible) {
-            filterRoles.value = "";
-            filterUsers.value = "";
-            loadRoles();
-            loadUsers();
-        }
+        if (!isVisible) return;
+        filterRoles.value = "";
+        filterUsers.value = "";
+        selectedRoles.value = [];
+        selectedUsers.value = [];
+        loadRoles();
+        loadUsers();
+        loadSourceRoles(props.itemSelected?.users || []);
     }
 );
 </script>
@@ -260,59 +227,65 @@ watch(
         modal
         :draggable="false"
     >
-        <div class="flex flex-col gap-2">
-            <label id="user-select-label" for="user-select" class="font-medium text-surface-900 dark:text-surface-0">
-                {{ $t("admin.users.roles.add_roles_from_user") }}
-            </label>
-            <Select
-                id="user-select"
-                aria-labelledby="user-select-label"
-                v-model="selectedUser"
-                :options="userOptions"
-                optionLabel="username"
-                :placeholder="$t('admin.roles.form.user_placeholder')"
-                :loading="loading"
-                :filter="true"
-                @filter="onFilterUsersChange"
-                fluid
-                @change="onUserChange"
-            />
-        </div>
-
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 mb-4">
             <label for="roles-multiselect" class="font-medium text-surface-900 dark:text-surface-0">
-                {{ $t("admin.roles.select_roles") }}
+                {{ $t("admin.users.roles.selected_roles") }}
             </label>
+            <small class="text-surface-500">{{ $t("admin.users.roles.users_roles_hint") }}</small>
 
             <MultiSelect
                 inputId="roles-multiselect"
+                data-testid="add-roles-roles"
                 dataKey="id"
                 v-model="selectedRoles"
                 :options="roleOptions"
                 optionLabel="displayName"
                 :filter="true"
                 @filter="onFilterRolesChange"
-                :loading="loading"
+                :loading="loadingRoles || loadingSourceRoles"
                 :maxSelectedLabels="3"
                 :selectedItemsLabel="$t('admin.roles.items_selected')"
-                :disabled="roleOptions.length === 0 && !loading"
                 :placeholder="$t('admin.roles.search_placeholder')"
-                class="w-full"
+                fluid
             >
                 <template #empty>
-                    <span v-if="loading">{{ $t("common.loading") }}</span>
+                    <span v-if="loadingRoles">{{ $t("common.loading") }}</span>
                     <span v-else>{{ $t("common.no_records_found") }}</span>
                 </template>
             </MultiSelect>
         </div>
+
+        <div class="flex flex-col gap-2">
+            <label for="users-multiselect" class="font-medium text-surface-900 dark:text-surface-0">
+                {{ $t("admin.users.roles.target_users") }}
+            </label>
+            <MultiSelect
+                inputId="users-multiselect"
+                data-testid="add-roles-users"
+                dataKey="id"
+                v-model="selectedUsers"
+                :options="userOptions"
+                optionLabel="username"
+                :placeholder="$t('admin.roles.form.user_placeholder')"
+                :loading="loadingUsers"
+                :filter="true"
+                @filter="onFilterUsersChange"
+                :maxSelectedLabels="5"
+                :selectedItemsLabel="$t('admin.users.roles.users_selected')"
+                display="chip"
+                fluid
+            />
+        </div>
         <template #footer>
             <Button :label="$t('common.cancel')" icon="pi pi-times" text @click="$emit('update:visible', false)" />
             <Button
-                :label="$t('admin.roles.btn_add_roles')"
+                data-testid="add-roles-submit"
+                :label="$t('admin.users.roles.btn_submit')"
                 icon="pi pi-check"
-                sclass="shadow-sm"
-                @click="addRolesToUserIds()"
-                autofocus
+                class="shadow-sm"
+                :loading="saving"
+                :disabled="!canSubmit"
+                @click="addRolesToUsers()"
             />
         </template>
     </Dialog>

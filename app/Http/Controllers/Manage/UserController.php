@@ -18,6 +18,8 @@ class UserController extends Controller
 {
     private const OA_PATH = "/api/v1/users";
     private const OA_PATH_ID = self::OA_PATH . "/{id}";
+    private const USERS_ROLES_MAX = 500;
+    private const USERS_ROLES_MAX_RESULTS = 1000;
 
     #[
         OA\Get(
@@ -561,5 +563,53 @@ class UserController extends Controller
             ];
         });
         return response()->json($userRoles, 200);
+    }
+
+    /**
+     * I ruoli che hanno gli utenti indicati (almeno uno di loro), senza ripetizioni, con il provider.
+     *
+     * Serve alla modale "Associa ruoli" per precompilare i ruoli degli utenti selezionati. Le
+     * ripetizioni si tolgono nel database (GROUP BY), non caricando le associazioni dei singoli utenti.
+     */
+    public function getUsersRoles(Request $request)
+    {
+        $validated = $request->validate([
+            "user_ids" => "required|array|max:" . self::USERS_ROLES_MAX,
+            "user_ids.*" => "integer|distinct",
+        ]);
+        $userIds = $validated["user_ids"];
+
+        $relations = ProviderUserRole::query()
+            ->whereIn("user_id", $userIds)
+            ->whereHas("role")
+            ->select("role_id", "provider_id")
+            ->groupBy("role_id", "provider_id")
+            ->with(["role:id,name", "provider:id,name"])
+            // uno in più del massimo: serve solo a capire se il limite è stato superato
+            ->limit(self::USERS_ROLES_MAX_RESULTS + 1)
+            ->get();
+
+        // Caso peggiore: troppi ruoli. Tagliare l'elenco vorrebbe dire applicare in silenzio solo una
+        // parte dei ruoli; meglio un errore che chiede di scegliere meno utenti.
+        if ($relations->count() > self::USERS_ROLES_MAX_RESULTS) {
+            return response()->json(
+                [
+                    "code" => "too_many_roles",
+                    "max" => self::USERS_ROLES_MAX_RESULTS,
+                    "message" => __("admin.users.roles.too_many_roles", ["max" => self::USERS_ROLES_MAX_RESULTS]),
+                ],
+                422,
+            );
+        }
+
+        $roles = $relations->map(
+            fn($relation) => [
+                "id" => $relation->role_id,
+                "name" => $relation->role->name,
+                "provider_id" => $relation->provider_id,
+                "provider_name" => $relation->provider?->name,
+            ],
+        );
+        return response()->json($roles->values(), 200);
     }
 }

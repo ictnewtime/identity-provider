@@ -100,10 +100,9 @@ const openCreateModal = () => {
 };
 
 const openAddRoleModal = () => {
+    // gli utenti selezionati sono la sorgente: la modale ne copia i ruoli
+    itemSelected.value = { users: getSelectedUsers() };
     displayAddRoleModal.value = true;
-    const rawData = getSelectedUsers();
-    const ids = rawData.map((item) => item.id);
-    itemSelected.value = { ids: ids };
 };
 
 defineExpose({
@@ -162,6 +161,7 @@ const onModalSuccess = () => {
 const onModalAddRolesSuccess = () => {
     itemSelected.value = null;
     displayAddRoleModal.value = false;
+    unselectAllUser();
 };
 
 const deleteSelectedUsers = () => {
@@ -488,8 +488,6 @@ watch(hasSelectedUsers, (newValue) => {
         <AddRolesDialog
             v-model:visible="displayAddRoleModal"
             :itemSelected="itemSelected"
-            :isAllSelected="isAllSelected"
-            :onlyUsersDeleted="tableComponent.showUsersDeleted"
             @user-success="onModalAddRolesSuccess"
         />
     </div>

@@ -34,13 +34,18 @@ const handleAddRoleClick = () => {
             </h1>
         </div>
         <div class="flex gap-2">
-            <Button
-                :disabled="isButtonAddRoleDisabled"
-                :label="$t('admin.users.add_role_relations')"
-                icon="pi pi-plus"
-                @click="handleAddRoleClick"
-                class="shadow-sm"
-            />
+            <!-- Il tooltip sta sullo span: un bottone disabilitato non riceve l'hover, e proprio
+                 da disabilitato serve spiegare che prima si scelgono gli utenti in tabella. -->
+            <span v-tooltip.bottom="$t('admin.users.add_role_relations_tooltip')" data-testid="btn-add-roles-wrapper">
+                <Button
+                    data-testid="btn-add-roles"
+                    :disabled="isButtonAddRoleDisabled"
+                    :label="$t('admin.users.add_role_relations')"
+                    icon="pi pi-plus"
+                    @click="handleAddRoleClick"
+                    class="shadow-sm"
+                />
+            </span>
             <Button
                 :label="$t('admin.users.new_user')"
                 icon="pi pi-plus"

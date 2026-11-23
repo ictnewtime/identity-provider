@@ -230,11 +230,11 @@ class ProviderController extends Controller
                             new OA\Property(
                                 property: "has_token_url",
                                 type: "boolean",
-                                example: "true",
+                                example: true,
                                 description: "Force the JWT master-token to be sended in the URL",
                             ),
                         ],
-                        required: ["name", "url", "domain", "logoutUrl", "secret_key", "has_token_url"],
+                        required: ["name", "url", "domain", "logoutUrl", "secret_key"],
                     ),
                 ),
             ),
@@ -334,7 +334,7 @@ class ProviderController extends Controller
                             new OA\Property(
                                 property: "has_token_url",
                                 type: "boolean",
-                                example: "true",
+                                example: true,
                                 description: "Force the JWT master-token to be sended in the URL",
                             ),
                         ],
