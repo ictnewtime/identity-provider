@@ -17,7 +17,7 @@
 
 FROM node:24.19.0-bookworm-slim AS node
 
-FROM php:8.2.35-cli
+FROM php:8.2.36-cli
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     COMPOSER_ALLOW_SUPERUSER=1
