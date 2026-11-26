@@ -5,6 +5,7 @@ import { trans } from "laravel-vue-i18n";
 
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
+import { fetchAllPages } from "@/utils/pagination";
 import Button from "primevue/button";
 import Message from "primevue/message";
 
@@ -66,10 +67,7 @@ const validate = () => {
 const loadProvidersList = async () => {
     loadingProviders.value = true;
     try {
-        const res = await window.axios.get("/admin/v1/providers", {
-            params: { per_page: 1000 },
-        });
-        providers.value = res.data.data || res.data;
+        providers.value = await fetchAllPages("/admin/v1/providers");
     } catch (err) {
         console.error("Errore caricamento provider", err);
         toast.add({
@@ -203,11 +201,13 @@ onMounted(() => {
                     :options="providers"
                     optionLabel="name"
                     optionValue="id"
+                    :filterFields="['name', 'domain']"
                     :placeholder="$t('admin.roles.form.provider_placeholder')"
                     :invalid="!!errors.provider_id"
                     :loading="loadingProviders"
                     fluid
                     filter
+                    autoFilterFocus
                 />
                 <Message v-if="errors.provider_id" severity="error" size="small" variant="simple">
                     {{ errors.provider_id }}
