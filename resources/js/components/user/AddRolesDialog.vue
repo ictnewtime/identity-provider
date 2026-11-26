@@ -34,6 +34,8 @@ const toRoleOption = (role) => ({
     id: Number(role.id),
     displayName: `${role.name} (${role.provider_name ?? role?.provider?.name ?? ""})`,
     provider_id: role.provider_id,
+    // il server cerca i ruoli anche per dominio del provider: il filtro locale deve vederlo
+    domain: role.provider?.domain ?? "",
 });
 
 const mergeById = (...lists) => {
@@ -240,7 +242,9 @@ watch(
                 v-model="selectedRoles"
                 :options="roleOptions"
                 optionLabel="displayName"
+                :filterFields="['displayName', 'domain']"
                 :filter="true"
+                autoFilterFocus
                 @filter="onFilterRolesChange"
                 :loading="loadingRoles || loadingSourceRoles"
                 :maxSelectedLabels="3"
@@ -266,9 +270,11 @@ watch(
                 v-model="selectedUsers"
                 :options="userOptions"
                 optionLabel="username"
+                :filterFields="['username', 'email']"
                 :placeholder="$t('admin.roles.form.user_placeholder')"
                 :loading="loadingUsers"
                 :filter="true"
+                autoFilterFocus
                 @filter="onFilterUsersChange"
                 :maxSelectedLabels="5"
                 :selectedItemsLabel="$t('admin.users.roles.users_selected')"
